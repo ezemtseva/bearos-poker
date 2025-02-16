@@ -52,30 +52,21 @@ export default function Game() {
     fetchGameData()
 
     const socketInitializer = async () => {
-      try {
-        await fetch("/api/socket")
-        const newSocket = io("/", {
-          path: "/api/socket",
-        })
+      await fetch("/api/socket")
+      const newSocket = io({
+        path: "/api/socket",
+      })
 
-        newSocket.on("connect", () => {
-          console.log("Connected to WebSocket")
-          newSocket.emit("join-game", tableId)
-        })
+      newSocket.on("connect", () => {
+        console.log("Connected to WebSocket")
+        newSocket.emit("join-game", tableId)
+      })
 
-        newSocket.on("game-updated", (updatedData: GameData) => {
-          setGameData(updatedData)
-        })
+      newSocket.on("game-updated", (updatedData: GameData) => {
+        setGameData(updatedData)
+      })
 
-        setSocket(newSocket)
-      } catch (error) {
-        console.error("Failed to initialize socket:", error)
-        toast({
-          title: "Error",
-          description: "Failed to connect to game server",
-          variant: "destructive",
-        })
-      }
+      setSocket(newSocket)
     }
 
     socketInitializer()
@@ -85,7 +76,7 @@ export default function Game() {
         socket.disconnect()
       }
     }
-  }, [tableId, toast, socket])
+  }, [tableId, toast, socket, socket?.disconnect]) // Added socket and socket?.disconnect to dependencies
 
   const handleShare = () => {
     const shareUrl = `${window.location.origin}/join-game?tableId=${tableId}`

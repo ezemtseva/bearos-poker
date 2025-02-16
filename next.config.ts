@@ -1,10 +1,10 @@
-import type { NextConfig } from "next"
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   reactStrictMode: true,
-  // Remove the experimental section if it only contained appDir
-  // If you have other experimental features, keep them and remove only appDir
+  experimental: {
+    runtime: "edge",
+  },
 }
 
-export default nextConfig
+module.exports = nextConfig
 
