@@ -19,6 +19,12 @@ export default function JoinGameClient() {
     if (tableIdParam) {
       setTableId(tableIdParam)
     }
+
+    // Load player name from localStorage if it exists
+    const storedPlayerName = localStorage.getItem("playerName")
+    if (storedPlayerName) {
+      setPlayerName(storedPlayerName)
+    }
   }, [searchParams])
 
   const handleJoinGame = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -31,6 +37,9 @@ export default function JoinGameClient() {
       })
       return
     }
+
+    // Store player name in localStorage
+    localStorage.setItem("playerName", playerName)
 
     try {
       const response = await fetch("/api/sse", {

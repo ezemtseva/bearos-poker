@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import GameTable from "../../../components/GameTable"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
@@ -9,6 +9,7 @@ import type { GameData, Player } from "../../../types/game"
 
 export default function Game() {
   const params = useParams()
+  const router = useRouter()
   const tableId = params?.tableId as string
   const [gameData, setGameData] = useState<GameData | null>(null)
   const [isOwner, setIsOwner] = useState(false)
@@ -22,6 +23,17 @@ export default function Game() {
         description: "No table ID provided",
         variant: "destructive",
       })
+      return
+    }
+
+    const playerName = localStorage.getItem("playerName")
+    if (!playerName) {
+      toast({
+        title: "Error",
+        description: "Player name not found. Please join the game again.",
+        variant: "destructive",
+      })
+      router.push(`/join-game?tableId=${tableId}`)
       return
     }
 
@@ -60,7 +72,7 @@ export default function Game() {
         eventSourceRef.current.close()
       }
     }
-  }, [tableId, toast])
+  }, [tableId, toast, router])
 
   const updateGameState = (data: GameData) => {
     setGameData(data)
