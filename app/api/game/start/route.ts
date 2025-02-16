@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
-import type { GameData, Player } from "../../../../types/game"
+import type { GameData, Player, ScoreTableRow } from "../../../../types/game"
 
 export const runtime = "edge"
 
@@ -25,10 +25,33 @@ export async function POST(req: NextRequest) {
     }
 
     const updatedGame = result.rows[0]
+    const players = updatedGame.players as Player[]
+
+    const scoreTable: ScoreTableRow[] = Array.from({ length: 18 }, (_, index) => {
+      const roundId = index + 1
+      let roundName
+      if (roundId <= 6) {
+        roundName = roundId.toString()
+      } else if (roundId <= 12) {
+        roundName = "B"
+      } else {
+        roundName = (19 - roundId).toString()
+      }
+      const scores = players.reduce(
+        (acc, player) => {
+          acc[player.name] = null
+          return acc
+        },
+        {} as { [playerName: string]: number | null },
+      )
+      return { roundId, roundName, scores }
+    })
+
     const gameData: GameData = {
       tableId: updatedGame.table_id,
-      players: updatedGame.players as Player[],
+      players: players,
       gameStarted: updatedGame.game_started,
+      scoreTable: scoreTable,
     }
 
     // Broadcast the game start event to all connected clients
