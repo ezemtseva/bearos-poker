@@ -31,26 +31,17 @@ export default function Game() {
       eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data)
         console.log("Received message:", data)
-        setGameData(data)
-        setIsOwner(
-          data.players.some((player: Player) => player.isOwner && player.name === localStorage.getItem("playerName")),
-        )
+        updateGameState(data)
       }
 
       eventSource.addEventListener("init", (event) => {
         const data = JSON.parse((event as MessageEvent).data)
-        setGameData(data)
-        setIsOwner(
-          data.players.some((player: Player) => player.isOwner && player.name === localStorage.getItem("playerName")),
-        )
+        updateGameState(data)
       })
 
       eventSource.addEventListener("update", (event) => {
         const data = JSON.parse((event as MessageEvent).data)
-        setGameData(data)
-        setIsOwner(
-          data.players.some((player: Player) => player.isOwner && player.name === localStorage.getItem("playerName")),
-        )
+        updateGameState(data)
       })
 
       eventSource.onerror = (error) => {
@@ -70,6 +61,21 @@ export default function Game() {
       }
     }
   }, [tableId, toast])
+
+  const updateGameState = (data: GameData) => {
+    setGameData(data)
+    const currentPlayerName = localStorage.getItem("playerName")
+    const isCurrentPlayerOwner = data.players.some(
+      (player: Player) => player.isOwner && player.name === currentPlayerName,
+    )
+    setIsOwner(isCurrentPlayerOwner)
+    console.log("Game state updated:", {
+      gameData: data,
+      currentPlayerName,
+      isCurrentPlayerOwner,
+      players: data.players,
+    })
+  }
 
   const handleShare = () => {
     const shareUrl = `${window.location.origin}/join-game?tableId=${tableId}`
@@ -112,6 +118,12 @@ export default function Game() {
   }
 
   const canStartGame = isOwner && gameData.players.length >= 2 && !gameData.gameStarted
+  console.log("Render state:", {
+    isOwner,
+    playersCount: gameData.players.length,
+    gameStarted: gameData.gameStarted,
+    canStartGame,
+  })
 
   return (
     <div className="container mx-auto px-4 py-8">

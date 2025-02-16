@@ -62,6 +62,7 @@ async function getGameState(tableId: string): Promise<GameData> {
     return { tableId, players: [], gameStarted: false }
   }
   const row = result.rows[0]
+  console.log("Game state from database:", row)
   return {
     tableId: row.table_id,
     players: row.players as Player[],
