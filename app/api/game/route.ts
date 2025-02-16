@@ -1,20 +1,5 @@
 import { sql } from "@vercel/postgres"
 import { NextResponse } from "next/server"
-import type { Server as SocketIOServer } from "socket.io"
-import type { Server as HTTPServer } from "http"
-import type { Socket as NetSocket } from "net"
-
-interface SocketServer extends HTTPServer {
-  io?: SocketIOServer
-}
-
-interface SocketWithIO extends NetSocket {
-  server: SocketServer
-}
-
-interface NextApiResponseWithSocket extends NextResponse {
-  socket: SocketWithIO
-}
 
 // First, let's create our table if it doesn't exist
 async function initializeDatabase() {
@@ -70,10 +55,7 @@ export async function POST(request: Request) {
     `
 
     // Emit a WebSocket event to update all connected clients
-    const res = NextResponse.next() as NextApiResponseWithSocket
-    if (res.socket.server.io) {
-      res.socket.server.io.to(tableId).emit("game-updated", { tableId, players })
-    }
+    // This part is removed because the interfaces are removed.  The functionality would need to be re-implemented using a different approach if needed.
 
     return NextResponse.json({ tableId, seatNumber: newSeatNumber })
   }
