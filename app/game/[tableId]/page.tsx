@@ -62,8 +62,11 @@ export default function Game() {
       const data = JSON.parse(event.data)
       console.log("Received message:", data)
 
-      if (data.type === "game-updated") {
-        setGameData(data)
+      if (data.type === "players-update") {
+        setGameData((prevData) => ({
+          ...prevData!,
+          players: data.players,
+        }))
       }
     }
 

@@ -49,7 +49,28 @@ export default function JoinGameClient() {
         variant: "destructive",
       })
     } else {
-      router.push(`/game/${tableId}`)
+      // Connect to WebSocket and send join message
+      const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:"
+      const ws = new WebSocket(`${wsProtocol}//${window.location.host}/api/socket?tableId=${tableId}`)
+
+      ws.onopen = () => {
+        ws.send(
+          JSON.stringify({
+            type: "join-game",
+            player: { name: playerName, seatNumber: data.seatNumber, isOwner: false },
+          }),
+        )
+        router.push(`/game/${tableId}`)
+      }
+
+      ws.onerror = (error) => {
+        console.error("WebSocket error:", error)
+        toast({
+          title: "Error",
+          description: "Failed to connect to game server",
+          variant: "destructive",
+        })
+      }
     }
   }
 
