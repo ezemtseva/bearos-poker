@@ -1,17 +1,10 @@
-import type { NextRequest } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
 import type { GameData, Player } from "../../../types/game"
 
-declare module "next/server" {
-  interface NextRequest {
-    upgradeWebSocket(): Promise<{ socket: WebSocket; response: Response }>
-  }
-}
-
 export const runtime = "edge"
 
-const connectedClients = new Map<string, Set<WebSocket>>()
-;(global as any).connectedClients = connectedClients
+const connectedClients: Map<string, Set<WebSocket>> = new Map()
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -21,30 +14,30 @@ export async function GET(req: NextRequest) {
 
   if (!tableId) {
     console.error("[WebSocket] No table ID provided")
-    return new Response("Table ID is required", { status: 400 })
+    return new NextResponse("Table ID is required", { status: 400 })
+  }
+
+  const upgradeHeader = req.headers.get("upgrade")
+  if (upgradeHeader !== "websocket") {
+    return new NextResponse("Expected Upgrade: websocket", { status: 426 })
   }
 
   try {
-    const { socket, response } = await req.upgradeWebSocket()
-
-    if (!socket) {
-      console.error("[WebSocket] Failed to upgrade to WebSocket")
-      return new Response("WebSocket upgrade failed", { status: 500 })
-    }
+    const { WebSocketPair } = await import("ws")
+    const pair = new WebSocketPair() as unknown as [WebSocket, WebSocket]
+    const [client, server] = pair
 
     if (!connectedClients.has(tableId)) {
       connectedClients.set(tableId, new Set())
     }
-    connectedClients.get(tableId)!.add(socket)
+    connectedClients.get(tableId)!.add(client)
 
     console.log("[WebSocket] Connection established for table:", tableId)
 
-    socket.addEventListener("open", () => {
-      console.log("[WebSocket] Connection opened for table:", tableId)
-      socket.send(JSON.stringify({ type: "connection", message: "Connected to server" }))
-    })
+    server.accept()
+    server.send(JSON.stringify({ type: "connection", message: "Connected to server" }))
 
-    socket.addEventListener("message", async (event: MessageEvent) => {
+    server.addEventListener("message", async (event: MessageEvent) => {
       const data = JSON.parse(event.data as string)
       console.log("[WebSocket] Received message:", data)
 
@@ -72,29 +65,36 @@ export async function GET(req: NextRequest) {
           console.log("[WebSocket] Updated game data:", gameData)
 
           // Broadcast the updated game data to all connected clients for this table
-          const message = JSON.stringify({ type: "game-update", gameData })
+          const updateMessage = JSON.stringify({ type: "game-update", gameData })
           connectedClients.get(tableId)?.forEach((client) => {
-            client.send(message)
+            client.send(updateMessage)
           })
         } catch (error) {
           console.error("[WebSocket] Error processing join-game:", error)
-          socket.send(JSON.stringify({ type: "error", message: "Failed to join game" }))
+          server.send(JSON.stringify({ type: "error", message: "Failed to join game" }))
         }
       }
     })
 
-    socket.addEventListener("close", () => {
+    server.addEventListener("close", () => {
       console.log("[WebSocket] Connection closed for table:", tableId)
-      connectedClients.get(tableId)?.delete(socket)
+      connectedClients.get(tableId)?.delete(client)
       if (connectedClients.get(tableId)?.size === 0) {
         connectedClients.delete(tableId)
       }
     })
 
-    return response
+    return new NextResponse(null, {
+      status: 101,
+      headers: {
+        Upgrade: "websocket",
+        Connection: "Upgrade",
+      },
+      webSocket: client,
+    })
   } catch (error) {
     console.error("[WebSocket] Error setting up WebSocket:", error)
-    return new Response("Failed to set up WebSocket", { status: 500 })
+    return new NextResponse("Failed to set up WebSocket", { status: 500 })
   }
 }
 

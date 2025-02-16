@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import { useParams } from "next/navigation"
 import GameTable from "../../../components/GameTable"
 import { Button } from "@/components/ui/button"
@@ -14,6 +14,49 @@ export default function Game() {
   const [isOwner, setIsOwner] = useState(false)
   const { toast } = useToast()
   const socketRef = useRef<WebSocket | null>(null)
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  const connectWebSocket = useCallback(() => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      return
+    }
+
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:"
+    const socket = new WebSocket(`${protocol}//${window.location.host}/api/socket?tableId=${tableId}`)
+
+    socket.onopen = () => {
+      console.log("WebSocket connection opened")
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+        reconnectTimeoutRef.current = null
+      }
+    }
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data)
+      console.log("Received message:", data)
+
+      if (data.type === "game-update" || data.type === "game-started") {
+        setGameData(data.gameData)
+        setIsOwner(
+          data.gameData.players.some(
+            (player: Player) => player.isOwner && player.name === localStorage.getItem("playerName"),
+          ),
+        )
+      }
+    }
+
+    socket.onerror = (error) => {
+      console.error("WebSocket error:", error)
+    }
+
+    socket.onclose = () => {
+      console.log("WebSocket connection closed")
+      reconnectTimeoutRef.current = setTimeout(connectWebSocket, 5000)
+    }
+
+    socketRef.current = socket
+  }, [tableId])
 
   useEffect(() => {
     if (!tableId) {
@@ -25,53 +68,17 @@ export default function Game() {
       return
     }
 
-    const connectWebSocket = () => {
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:"
-      const socket = new WebSocket(`${protocol}//${window.location.host}/api/socket?tableId=${tableId}`)
-
-      socket.onopen = () => {
-        console.log("WebSocket connection opened")
-      }
-
-      socket.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        console.log("Received message:", data)
-
-        if (data.type === "game-update" || data.type === "game-started") {
-          setGameData(data.gameData)
-          setIsOwner(
-            data.gameData.players.some(
-              (player: Player) => player.isOwner && player.name === localStorage.getItem("playerName"),
-            ),
-          )
-        }
-      }
-
-      socket.onerror = (error) => {
-        console.error("WebSocket error:", error)
-        toast({
-          title: "Error",
-          description: "Failed to connect to game server",
-          variant: "destructive",
-        })
-      }
-
-      socket.onclose = () => {
-        console.log("WebSocket connection closed")
-        setTimeout(connectWebSocket, 5000) // Attempt to reconnect after 5 seconds
-      }
-
-      socketRef.current = socket
-    }
-
     connectWebSocket()
 
     return () => {
       if (socketRef.current) {
         socketRef.current.close()
       }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+      }
     }
-  }, [tableId, toast])
+  }, [tableId, toast, connectWebSocket])
 
   const handleShare = () => {
     const shareUrl = `${window.location.origin}/join-game?tableId=${tableId}`
