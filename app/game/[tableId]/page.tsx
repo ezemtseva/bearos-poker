@@ -22,7 +22,7 @@ export default function Game() {
   const params = useParams()
   const tableId = params?.tableId as string
   const [gameData, setGameData] = useState<GameData | null>(null)
-  const [socket, setSocket] = useState<any>(null)
+  const [socket, setSocket] = useState<ReturnType<typeof io> | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -54,7 +54,9 @@ export default function Game() {
     const socketInitializer = async () => {
       try {
         await fetch("/api/socket")
-        const newSocket = io()
+        const newSocket = io("/", {
+          path: "/api/socket",
+        })
 
         newSocket.on("connect", () => {
           console.log("Connected to WebSocket")
@@ -83,7 +85,7 @@ export default function Game() {
         socket.disconnect()
       }
     }
-  }, [tableId, toast, socket, socket?.disconnect]) // Added socket and socket?.disconnect to dependencies
+  }, [tableId, toast, socket])
 
   const handleShare = () => {
     const shareUrl = `${window.location.origin}/join-game?tableId=${tableId}`

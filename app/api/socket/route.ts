@@ -1,6 +1,7 @@
 import { Server as SocketIOServer } from "socket.io"
 import type { Server as NetServer } from "http"
-import { type NextRequest, NextResponse } from "next/server"
+import type { NextApiResponse } from "next"
+import type { NextRequest } from "next/server"
 import type { Socket as NetSocket } from "net"
 
 interface SocketServer extends NetServer {
@@ -11,18 +12,21 @@ interface SocketWithIO extends NetSocket {
   server: SocketServer
 }
 
-interface NextResponseWithSocket extends NextResponse {
+interface ResponseWithSocket extends NextApiResponse {
   socket: SocketWithIO
 }
 
-export async function GET(req: NextRequest, res: NextResponseWithSocket) {
+export async function GET(req: NextRequest, res: ResponseWithSocket) {
   if (res.socket.server.io) {
     console.log("Socket is already running")
-    return NextResponse.json({ message: "Socket is already running" })
+    return new Response(JSON.stringify({ message: "Socket is already running" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    })
   }
 
   console.log("Socket is initializing")
-  const io = new SocketIOServer(res.socket.server as any)
+  const io = new SocketIOServer(res.socket.server as SocketServer)
   res.socket.server.io = io
 
   io.on("connection", (socket) => {
@@ -43,8 +47,10 @@ export async function GET(req: NextRequest, res: NextResponseWithSocket) {
     })
   })
 
-  console.log("Socket is initialized")
-  return NextResponse.json({ message: "Socket initialized" })
+  return new Response(JSON.stringify({ message: "Socket initialized" }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  })
 }
 
 export const config = {
