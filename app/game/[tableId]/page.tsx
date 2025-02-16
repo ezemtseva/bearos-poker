@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react"
 import { useParams } from "next/navigation"
 import GameTable from "../../../components/GameTable"
 import { useToast } from "@/hooks/use-toast"
-import type { GameData, Player, ScoreTableRow } from "../../../types/game"
+import type { GameData, Player } from "../../../types/game"
 
 export default function Game() {
   const params = useParams()
@@ -25,7 +25,7 @@ export default function Game() {
     }
 
     const connectSSE = () => {
-      const eventSource = new EventSource(`/api/socket?tableId=${tableId}`)
+      const eventSource = new EventSource(`/api/sse?tableId=${tableId}`)
 
       eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data)
@@ -62,9 +62,6 @@ export default function Game() {
   }, [tableId, toast])
 
   const updateGameState = (data: GameData) => {
-    if (!data.scoreTable) {
-      data.scoreTable = initializeScoreTable(data.players)
-    }
     setGameData(data)
     const currentPlayerName = localStorage.getItem("playerName")
     const isCurrentPlayerOwner = data.players.some(
@@ -76,28 +73,6 @@ export default function Game() {
       currentPlayerName,
       isCurrentPlayerOwner,
       players: data.players,
-    })
-  }
-
-  const initializeScoreTable = (players: Player[]): ScoreTableRow[] => {
-    return Array.from({ length: 18 }, (_, index) => {
-      const roundId = index + 1
-      let roundName
-      if (roundId <= 6) {
-        roundName = roundId.toString()
-      } else if (roundId <= 12) {
-        roundName = "B"
-      } else {
-        roundName = (19 - roundId).toString()
-      }
-      const scores = players.reduce(
-        (acc, player) => {
-          acc[player.name] = null
-          return acc
-        },
-        {} as { [playerName: string]: number | null },
-      )
-      return { roundId, roundName, scores }
     })
   }
 

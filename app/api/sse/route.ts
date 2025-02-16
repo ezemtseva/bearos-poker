@@ -1,21 +1,18 @@
-import type { NextRequest } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
-import { Redis } from "@upstash/redis"
-import type { Player, GameData, ScoreTableRow } from "../../../types/game"
+import type { GameData, Player, ScoreTableRow } from "../../../types/game"
 
 export const runtime = "edge"
-
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-})
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const tableId = searchParams.get("tableId")
 
+  console.log("[SSE] Connection attempt for table:", tableId)
+
   if (!tableId) {
-    return new Response("Table ID is required", { status: 400 })
+    console.error("[SSE] No table ID provided")
+    return new NextResponse("Table ID is required", { status: 400 })
   }
 
   const encoder = new TextEncoder()
@@ -48,7 +45,7 @@ export async function GET(req: NextRequest) {
     },
   })
 
-  return new Response(stream, {
+  return new NextResponse(stream, {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
@@ -104,7 +101,7 @@ export async function POST(req: NextRequest) {
   const { tableId, action, player } = await req.json()
 
   if (!tableId || !action) {
-    return new Response("Table ID and action are required", { status: 400 })
+    return new NextResponse("Table ID and action are required", { status: 400 })
   }
 
   let updatedState: GameData
@@ -117,13 +114,10 @@ export async function POST(req: NextRequest) {
       updatedState = await leaveGame(tableId, player)
       break
     default:
-      return new Response("Invalid action", { status: 400 })
+      return new NextResponse("Invalid action", { status: 400 })
   }
 
-  // Store the updated state in Redis
-  await redis.set(`game:${tableId}`, JSON.stringify(updatedState))
-
-  return new Response(JSON.stringify(updatedState), {
+  return new NextResponse(JSON.stringify(updatedState), {
     headers: { "Content-Type": "application/json" },
   })
 }
