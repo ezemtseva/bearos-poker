@@ -1,12 +1,13 @@
 import type { NextRequest } from "next/server"
 import { sql } from "@vercel/postgres"
 
-export const runtime = "edge"
-
-declare class WebSocketPair {
-  0: WebSocket
-  1: WebSocket
+declare module "next/server" {
+  interface NextRequest {
+    upgradeWebSocket(): Promise<{ socket: WebSocket; response: Response }>
+  }
 }
+
+export const runtime = "edge"
 
 const connectedClients = new Map<string, Set<WebSocket>>()
 
@@ -21,31 +22,27 @@ export async function GET(req: NextRequest) {
     return new Response("Table ID is required", { status: 400 })
   }
 
-  const upgradeHeader = req.headers.get("Upgrade")
-  if (upgradeHeader !== "websocket") {
-    console.error("[WebSocket] Invalid upgrade header:", upgradeHeader)
-    return new Response("Expected Upgrade: websocket", { status: 426 })
-  }
-
   try {
-    console.log("[WebSocket] Creating WebSocketPair")
-    const pair = new WebSocketPair()
-    const client = pair[0]
-    const server = pair[1]
+    const { socket, response } = await req.upgradeWebSocket()
 
-    console.log("[WebSocket] Accepting connection")
-    server.accept()
+    if (!socket) {
+      console.error("[WebSocket] Failed to upgrade to WebSocket")
+      return new Response("WebSocket upgrade failed", { status: 500 })
+    }
 
     if (!connectedClients.has(tableId)) {
       connectedClients.set(tableId, new Set())
     }
-    connectedClients.get(tableId)!.add(server)
+    connectedClients.get(tableId)!.add(socket)
 
     console.log("[WebSocket] Connection established for table:", tableId)
 
-    server.send(JSON.stringify({ type: "connection", message: "Connected to server" }))
+    socket.addEventListener("open", () => {
+      console.log("[WebSocket] Connection opened for table:", tableId)
+      socket.send(JSON.stringify({ type: "connection", message: "Connected to server" }))
+    })
 
-    server.addEventListener("message", async (event: MessageEvent) => {
+    socket.addEventListener("message", async (event: MessageEvent) => {
       const data = JSON.parse(event.data as string)
       console.log("[WebSocket] Received message:", data)
 
@@ -70,30 +67,24 @@ export async function GET(req: NextRequest) {
           // Broadcast the updated player list to all connected clients for this table
           const message = JSON.stringify({ type: "players-update", players: updatedPlayers })
           connectedClients.get(tableId)?.forEach((client) => {
-            if (client.readyState === WebSocket.OPEN) {
-              client.send(message)
-            }
+            client.send(message)
           })
         } catch (error) {
           console.error("[WebSocket] Error processing join-game:", error)
-          server.send(JSON.stringify({ type: "error", message: "Failed to join game" }))
+          socket.send(JSON.stringify({ type: "error", message: "Failed to join game" }))
         }
       }
     })
 
-    server.addEventListener("close", () => {
+    socket.addEventListener("close", () => {
       console.log("[WebSocket] Connection closed for table:", tableId)
-      connectedClients.get(tableId)?.delete(server)
+      connectedClients.get(tableId)?.delete(socket)
       if (connectedClients.get(tableId)?.size === 0) {
         connectedClients.delete(tableId)
       }
     })
 
-    console.log("[WebSocket] Returning WebSocket response")
-    return new Response(null, {
-      status: 101,
-      webSocket: client,
-    })
+    return response
   } catch (error) {
     console.error("[WebSocket] Error setting up WebSocket:", error)
     return new Response("Failed to set up WebSocket", { status: 500 })

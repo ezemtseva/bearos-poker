@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -47,42 +46,8 @@ export default function JoinGameClient() {
         throw new Error(data.error)
       }
 
-      // Connect to WebSocket and send join message
-      const ws = new WebSocket(
-        `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/api/socket?tableId=${tableId}`,
-      )
-
-      ws.onopen = () => {
-        console.log("WebSocket connection opened")
-        ws.send(
-          JSON.stringify({
-            type: "join-game",
-            player: { name: playerName, seatNumber: data.seatNumber, isOwner: false },
-          }),
-        )
-      }
-
-      ws.onmessage = (event) => {
-        const message = JSON.parse(event.data)
-        console.log("Received message:", message)
-        if (message.type === "players-update") {
-          // Navigate to the game page
-          router.push(`/game/${tableId}`)
-        }
-      }
-
-      ws.onerror = (error) => {
-        console.error("WebSocket error:", error)
-        toast({
-          title: "Error",
-          description: "Failed to connect to game server",
-          variant: "destructive",
-        })
-      }
-
-      ws.onclose = () => {
-        console.log("WebSocket connection closed")
-      }
+      // Navigate to the game page
+      router.push(`/game/${tableId}`)
     } catch (error: unknown) {
       toast({
         title: "Error",
