@@ -3,9 +3,8 @@
 import { useEffect, useState, useRef } from "react"
 import { useParams } from "next/navigation"
 import GameTable from "../../../components/GameTable"
-import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
-import type { GameData, Player } from "../../../types/game"
+import type { GameData, Player, ScoreTableRow } from "../../../types/game"
 
 export default function Game() {
   const params = useParams()
@@ -63,6 +62,9 @@ export default function Game() {
   }, [tableId, toast])
 
   const updateGameState = (data: GameData) => {
+    if (!data.scoreTable) {
+      data.scoreTable = initializeScoreTable(data.players)
+    }
     setGameData(data)
     const currentPlayerName = localStorage.getItem("playerName")
     const isCurrentPlayerOwner = data.players.some(
@@ -74,6 +76,28 @@ export default function Game() {
       currentPlayerName,
       isCurrentPlayerOwner,
       players: data.players,
+    })
+  }
+
+  const initializeScoreTable = (players: Player[]): ScoreTableRow[] => {
+    return Array.from({ length: 18 }, (_, index) => {
+      const roundId = index + 1
+      let roundName
+      if (roundId <= 6) {
+        roundName = roundId.toString()
+      } else if (roundId <= 12) {
+        roundName = "B"
+      } else {
+        roundName = (19 - roundId).toString()
+      }
+      const scores = players.reduce(
+        (acc, player) => {
+          acc[player.name] = null
+          return acc
+        },
+        {} as { [playerName: string]: number | null },
+      )
+      return { roundId, roundName, scores }
     })
   }
 
@@ -117,21 +141,16 @@ export default function Game() {
     return <div>Loading...</div>
   }
 
-  const canStartGame = isOwner && gameData.players.length >= 2 && !gameData.gameStarted
-  console.log("Render state:", {
-    isOwner,
-    playersCount: gameData.players.length,
-    gameStarted: gameData.gameStarted,
-    canStartGame,
-  })
-
   return (
     <div className="container mx-auto px-4 py-8">
-      <GameTable tableId={gameData.tableId} players={gameData.players} />
-      <div className="mt-4 flex justify-center space-x-4">
-        <Button onClick={handleShare}>Share Game Link</Button>
-        {canStartGame && <Button onClick={handleStartGame}>Start Game</Button>}
-      </div>
+      <GameTable
+        tableId={gameData.tableId}
+        players={gameData.players}
+        isOwner={isOwner}
+        gameStarted={gameData.gameStarted}
+        onShare={handleShare}
+        onStartGame={handleStartGame}
+      />
     </div>
   )
 }
