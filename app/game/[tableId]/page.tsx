@@ -35,16 +35,19 @@ export default function Game() {
     }
 
     const fetchGameData = async () => {
-      const response = await fetch(`/api/game?tableId=${tableId}`)
-      const data = await response.json()
-      if (data.error) {
+      try {
+        const response = await fetch(`/api/game?tableId=${tableId}`)
+        const data = await response.json()
+        if (data.error) {
+          throw new Error(data.error)
+        }
+        setGameData(data)
+      } catch (error) {
         toast({
           title: "Error",
-          description: data.error,
+          description: error instanceof Error ? error.message : "Failed to fetch game data",
           variant: "destructive",
         })
-      } else {
-        setGameData(data)
       }
     }
 
