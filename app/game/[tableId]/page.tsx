@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useParams } from "next/navigation"
 import GameTable from "../../../components/GameTable"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
-import { GameData, Player } from "../../../types/game"
+import type { GameData, Player } from "../../../types/game"
 
 export default function Game() {
   const params = useParams()
@@ -13,6 +13,7 @@ export default function Game() {
   const [gameData, setGameData] = useState<GameData | null>(null)
   const [isOwner, setIsOwner] = useState(false)
   const { toast } = useToast()
+  const socketRef = useRef<WebSocket | null>(null)
 
   useEffect(() => {
     if (!tableId) {
@@ -24,38 +25,51 @@ export default function Game() {
       return
     }
 
-    const eventSource = new EventSource(`/api/sse?tableId=${tableId}`)
+    const connectWebSocket = () => {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:"
+      const socket = new WebSocket(`${protocol}//${window.location.host}/api/socket?tableId=${tableId}`)
 
-    eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data) as GameData
-      setGameData(data)
-      setIsOwner(data.players.some((player: Player) => player.isOwner && player.name === localStorage.getItem('playerName')))
+      socket.onopen = () => {
+        console.log("WebSocket connection opened")
+      }
+
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        console.log("Received message:", data)
+
+        if (data.type === "game-update" || data.type === "game-started") {
+          setGameData(data.gameData)
+          setIsOwner(
+            data.gameData.players.some(
+              (player: Player) => player.isOwner && player.name === localStorage.getItem("playerName"),
+            ),
+          )
+        }
+      }
+
+      socket.onerror = (error) => {
+        console.error("WebSocket error:", error)
+        toast({
+          title: "Error",
+          description: "Failed to connect to game server",
+          variant: "destructive",
+        })
+      }
+
+      socket.onclose = () => {
+        console.log("WebSocket connection closed")
+        setTimeout(connectWebSocket, 5000) // Attempt to reconnect after 5 seconds
+      }
+
+      socketRef.current = socket
     }
 
-    eventSource.addEventListener("init", (event) => {
-      const data = JSON.parse((event as MessageEvent).data) as GameData
-      setGameData(data)
-      setIsOwner(data.players.some((player: Player) => player.isOwner && player.name === localStorage.getItem('playerName')))
-    })
-
-    eventSource.addEventListener("update", (event) => {
-      const data = JSON.parse((event as MessageEvent).data) as GameData
-      setGameData(data)
-      setIsOwner(data.players.some((player: Player) => player.isOwner && player.name === localStorage.getItem('playerName')))
-    })
-
-    eventSource.onerror = (error) => {
-      console.error("SSE error:", error)
-      toast({
-        title: "Error",
-        description: "Failed to connect to game server",
-        variant: "destructive",
-      })
-      eventSource.close()
-    }
+    connectWebSocket()
 
     return () => {
-      eventSource.close()
+      if (socketRef.current) {
+        socketRef.current.close()
+      }
     }
   }, [tableId, toast])
 
@@ -70,16 +84,16 @@ export default function Game() {
 
   const handleStartGame = async () => {
     try {
-      const response = await fetch('/api/game/start', {
-        method: 'POST',
+      const response = await fetch("/api/game/start", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ tableId }),
       })
 
       if (!response.ok) {
-        throw new Error('Failed to start the game')
+        throw new Error("Failed to start the game")
       }
 
       toast({
@@ -106,9 +120,7 @@ export default function Game() {
       <GameTable tableId={gameData.tableId} players={gameData.players} />
       <div className="mt-4 flex justify-center space-x-4">
         <Button onClick={handleShare}>Share Game Link</Button>
-        {canStartGame && (
-          <Button onClick={handleStartGame}>Start Game</Button>
-        )}
+        {canStartGame && <Button onClick={handleStartGame}>Start Game</Button>}
       </div>
     </div>
   )

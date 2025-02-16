@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server"
 import { sql } from "@vercel/postgres"
+import type { GameData, Player } from "../../../types/game"
 
 declare module "next/server" {
   interface NextRequest {
@@ -10,6 +11,7 @@ declare module "next/server" {
 export const runtime = "edge"
 
 const connectedClients = new Map<string, Set<WebSocket>>()
+;(global as any).connectedClients = connectedClients
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -58,14 +60,19 @@ export async function GET(req: NextRequest) {
 
           // Fetch updated player list
           const result = await sql`
-            SELECT players FROM poker_games WHERE table_id = ${tableId};
+            SELECT * FROM poker_games WHERE table_id = ${tableId};
           `
-          const updatedPlayers = result.rows[0].players
+          const updatedGame = result.rows[0]
+          const gameData: GameData = {
+            tableId: updatedGame.table_id,
+            players: updatedGame.players as Player[],
+            gameStarted: updatedGame.game_started,
+          }
 
-          console.log("[WebSocket] Updated players:", updatedPlayers)
+          console.log("[WebSocket] Updated game data:", gameData)
 
-          // Broadcast the updated player list to all connected clients for this table
-          const message = JSON.stringify({ type: "players-update", players: updatedPlayers })
+          // Broadcast the updated game data to all connected clients for this table
+          const message = JSON.stringify({ type: "game-update", gameData })
           connectedClients.get(tableId)?.forEach((client) => {
             client.send(message)
           })

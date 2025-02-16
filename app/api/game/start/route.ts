@@ -1,11 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
-import { Redis } from "@upstash/redis"
+import type { GameData, Player } from "../../../../types/game"
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-})
+export const runtime = "edge"
 
 export async function POST(req: NextRequest) {
   const { tableId } = await req.json()
@@ -28,17 +25,22 @@ export async function POST(req: NextRequest) {
     }
 
     const updatedGame = result.rows[0]
+    const gameData: GameData = {
+      tableId: updatedGame.table_id,
+      players: updatedGame.players as Player[],
+      gameStarted: updatedGame.game_started,
+    }
 
-    // Update the game state in Redis
-    await redis.set(
-      `game:${tableId}`,
-      JSON.stringify({
-        ...updatedGame,
-        gameStarted: true,
-      }),
-    )
+    // Broadcast the game start event to all connected clients
+    const connectedClients = (global as any).connectedClients?.get(tableId)
+    if (connectedClients) {
+      const message = JSON.stringify({ type: "game-started", gameData })
+      connectedClients.forEach((client: WebSocket) => {
+        client.send(message)
+      })
+    }
 
-    return NextResponse.json({ message: "Game started successfully" })
+    return NextResponse.json({ message: "Game started successfully", gameData })
   } catch (error) {
     console.error("Error starting game:", error)
     return NextResponse.json({ error: "Failed to start game" }, { status: 500 })
