@@ -1,7 +1,10 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-  /* config options here */
-};
+  reactStrictMode: true,
+  // Remove the experimental section if it only contained appDir
+  // If you have other experimental features, keep them and remove only appDir
+}
 
-export default nextConfig;
+export default nextConfig
+
