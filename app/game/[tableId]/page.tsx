@@ -5,23 +5,12 @@ import { useParams } from "next/navigation"
 import GameTable from "../../../components/GameTable"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
-
-interface Player {
-  name: string
-  seatNumber: number
-  isOwner: boolean
-}
-
-interface GameData {
-  tableId: string
-  players: Player[]
-}
+import type { GameData } from "../../../types/game"
 
 export default function Game() {
   const params = useParams()
   const tableId = params?.tableId as string
   const [gameData, setGameData] = useState<GameData | null>(null)
-  const [socket, setSocket] = useState<WebSocket | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -34,63 +23,35 @@ export default function Game() {
       return
     }
 
-    const fetchGameData = async () => {
-      try {
-        const response = await fetch(`/api/game?tableId=${tableId}`)
-        const data = await response.json()
-        if (data.error) {
-          throw new Error(data.error)
-        }
-        setGameData(data)
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: error instanceof Error ? error.message : "Failed to fetch game data",
-          variant: "destructive",
-        })
-      }
-    }
+    const eventSource = new EventSource(`/api/sse?tableId=${tableId}`)
 
-    fetchGameData()
-
-    const ws = new WebSocket(
-      `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/api/socket?tableId=${tableId}`,
-    )
-
-    ws.onopen = () => {
-      console.log("WebSocket connection opened")
-      setSocket(ws)
-    }
-
-    ws.onmessage = (event) => {
+    eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data)
-      console.log("Received message:", data)
-
-      if (data.type === "players-update") {
-        setGameData((prevData) => ({
-          ...prevData!,
-          players: data.players,
-        }))
-      }
+      setGameData(data)
     }
 
-    ws.onerror = (error) => {
-      console.error("WebSocket error:", error)
+    eventSource.addEventListener("init", (event) => {
+      const data = JSON.parse((event as MessageEvent).data)
+      setGameData(data)
+    })
+
+    eventSource.addEventListener("update", (event) => {
+      const data = JSON.parse((event as MessageEvent).data)
+      setGameData(data)
+    })
+
+    eventSource.onerror = (error) => {
+      console.error("SSE error:", error)
       toast({
         title: "Error",
         description: "Failed to connect to game server",
         variant: "destructive",
       })
-    }
-
-    ws.onclose = () => {
-      console.log("WebSocket connection closed")
+      eventSource.close()
     }
 
     return () => {
-      if (ws) {
-        ws.close()
-      }
+      eventSource.close()
     }
   }, [tableId, toast])
 

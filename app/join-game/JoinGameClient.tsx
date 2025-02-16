@@ -33,12 +33,12 @@ export default function JoinGameClient() {
     }
 
     try {
-      const response = await fetch("/api/game", {
+      const response = await fetch("/api/sse", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ action: "join", tableId, playerName }),
+        body: JSON.stringify({ action: "join", tableId, player: { name: playerName, seatNumber: 0, isOwner: false } }),
       })
 
       const data = await response.json()
