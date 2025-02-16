@@ -33,25 +33,24 @@ export default function JoinGameClient() {
       return
     }
 
-    const response = await fetch("/api/game", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ action: "join", tableId, playerName }),
-    })
-
-    const data = await response.json()
-    if (data.error) {
-      toast({
-        title: "Error",
-        description: data.error,
-        variant: "destructive",
+    try {
+      const response = await fetch("/api/game", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ action: "join", tableId, playerName }),
       })
-    } else {
+
+      const data = await response.json()
+      if (data.error) {
+        throw new Error(data.error)
+      }
+
       // Connect to WebSocket and send join message
-      const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:"
-      const ws = new WebSocket(`${wsProtocol}//${window.location.host}/api/socket?tableId=${tableId}`)
+      const ws = new WebSocket(
+        `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/api/socket?tableId=${tableId}`,
+      )
 
       ws.onopen = () => {
         ws.send(
@@ -65,12 +64,14 @@ export default function JoinGameClient() {
 
       ws.onerror = (error) => {
         console.error("WebSocket error:", error)
-        toast({
-          title: "Error",
-          description: "Failed to connect to game server",
-          variant: "destructive",
-        })
+        throw new Error("Failed to connect to game server")
       }
+    } catch (error: unknown) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An error occurred while joining the game",
+        variant: "destructive",
+      })
     }
   }
 

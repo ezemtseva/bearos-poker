@@ -50,8 +50,9 @@ export default function Game() {
 
     fetchGameData()
 
-    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:"
-    const ws = new WebSocket(`${wsProtocol}//${window.location.host}/api/socket?tableId=${tableId}`)
+    const ws = new WebSocket(
+      `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/api/socket?tableId=${tableId}`,
+    )
 
     ws.onopen = () => {
       console.log("WebSocket connection opened")
