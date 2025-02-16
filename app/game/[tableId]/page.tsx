@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef, useCallback } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useParams } from "next/navigation"
 import GameTable from "../../../components/GameTable"
 import { Button } from "@/components/ui/button"
@@ -13,50 +13,7 @@ export default function Game() {
   const [gameData, setGameData] = useState<GameData | null>(null)
   const [isOwner, setIsOwner] = useState(false)
   const { toast } = useToast()
-  const socketRef = useRef<WebSocket | null>(null)
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-
-  const connectWebSocket = useCallback(() => {
-    if (socketRef.current?.readyState === WebSocket.OPEN) {
-      return
-    }
-
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:"
-    const socket = new WebSocket(`${protocol}//${window.location.host}/api/socket?tableId=${tableId}`)
-
-    socket.onopen = () => {
-      console.log("WebSocket connection opened")
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current)
-        reconnectTimeoutRef.current = null
-      }
-    }
-
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-      console.log("Received message:", data)
-
-      if (data.type === "game-update" || data.type === "game-started") {
-        setGameData(data.gameData)
-        setIsOwner(
-          data.gameData.players.some(
-            (player: Player) => player.isOwner && player.name === localStorage.getItem("playerName"),
-          ),
-        )
-      }
-    }
-
-    socket.onerror = (error) => {
-      console.error("WebSocket error:", error)
-    }
-
-    socket.onclose = () => {
-      console.log("WebSocket connection closed")
-      reconnectTimeoutRef.current = setTimeout(connectWebSocket, 5000)
-    }
-
-    socketRef.current = socket
-  }, [tableId])
+  const eventSourceRef = useRef<EventSource | null>(null)
 
   useEffect(() => {
     if (!tableId) {
@@ -68,17 +25,51 @@ export default function Game() {
       return
     }
 
-    connectWebSocket()
+    const connectSSE = () => {
+      const eventSource = new EventSource(`/api/socket?tableId=${tableId}`)
+
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        console.log("Received message:", data)
+        setGameData(data)
+        setIsOwner(
+          data.players.some((player: Player) => player.isOwner && player.name === localStorage.getItem("playerName")),
+        )
+      }
+
+      eventSource.addEventListener("init", (event) => {
+        const data = JSON.parse((event as MessageEvent).data)
+        setGameData(data)
+        setIsOwner(
+          data.players.some((player: Player) => player.isOwner && player.name === localStorage.getItem("playerName")),
+        )
+      })
+
+      eventSource.addEventListener("update", (event) => {
+        const data = JSON.parse((event as MessageEvent).data)
+        setGameData(data)
+        setIsOwner(
+          data.players.some((player: Player) => player.isOwner && player.name === localStorage.getItem("playerName")),
+        )
+      })
+
+      eventSource.onerror = (error) => {
+        console.error("SSE error:", error)
+        eventSource.close()
+        setTimeout(connectSSE, 5000) // Attempt to reconnect after 5 seconds
+      }
+
+      eventSourceRef.current = eventSource
+    }
+
+    connectSSE()
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.close()
-      }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current)
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close()
       }
     }
-  }, [tableId, toast, connectWebSocket])
+  }, [tableId, toast])
 
   const handleShare = () => {
     const shareUrl = `${window.location.origin}/join-game?tableId=${tableId}`

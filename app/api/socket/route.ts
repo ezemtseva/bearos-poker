@@ -4,97 +4,127 @@ import type { GameData, Player } from "../../../types/game"
 
 export const runtime = "edge"
 
-const connectedClients: Map<string, Set<WebSocket>> = new Map()
-
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const tableId = searchParams.get("tableId")
 
-  console.log("[WebSocket] Connection attempt for table:", tableId)
+  console.log("[SSE] Connection attempt for table:", tableId)
 
   if (!tableId) {
-    console.error("[WebSocket] No table ID provided")
+    console.error("[SSE] No table ID provided")
     return new NextResponse("Table ID is required", { status: 400 })
   }
 
-  const upgradeHeader = req.headers.get("upgrade")
-  if (upgradeHeader !== "websocket") {
-    return new NextResponse("Expected Upgrade: websocket", { status: 426 })
+  const encoder = new TextEncoder()
+  const stream = new ReadableStream({
+    async start(controller) {
+      const sendEvent = (event: string, data: string) => {
+        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${data}\n\n`))
+      }
+
+      // Send initial game state
+      const initialState = await getGameState(tableId)
+      sendEvent("init", JSON.stringify(initialState))
+
+      // Set up polling for game updates
+      const pollInterval = setInterval(async () => {
+        const latestState = await getGameState(tableId)
+        sendEvent("update", JSON.stringify(latestState))
+      }, 5000) // Poll every 5 seconds
+
+      // Heartbeat to keep connection alive
+      const heartbeat = setInterval(() => {
+        sendEvent("heartbeat", "ping")
+      }, 30000)
+
+      // Clean up on close
+      req.signal.addEventListener("abort", () => {
+        clearInterval(pollInterval)
+        clearInterval(heartbeat)
+      })
+    },
+  })
+
+  return new NextResponse(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  })
+}
+
+async function getGameState(tableId: string): Promise<GameData> {
+  const result = await sql`
+    SELECT * FROM poker_games WHERE table_id = ${tableId};
+  `
+  if (result.rows.length === 0) {
+    return { tableId, players: [], gameStarted: false }
+  }
+  const row = result.rows[0]
+  return {
+    tableId: row.table_id,
+    players: row.players as Player[],
+    gameStarted: row.game_started || false,
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const { tableId, action, player } = await req.json()
+
+  if (!tableId || !action) {
+    return new NextResponse("Table ID and action are required", { status: 400 })
   }
 
-  try {
-    const { WebSocketPair } = await import("ws")
-    const pair = new WebSocketPair() as unknown as [WebSocket, WebSocket]
-    const [client, server] = pair
+  let updatedState: GameData
 
-    if (!connectedClients.has(tableId)) {
-      connectedClients.set(tableId, new Set())
-    }
-    connectedClients.get(tableId)!.add(client)
+  switch (action) {
+    case "join":
+      updatedState = await joinGame(tableId, player)
+      break
+    case "leave":
+      updatedState = await leaveGame(tableId, player)
+      break
+    default:
+      return new NextResponse("Invalid action", { status: 400 })
+  }
 
-    console.log("[WebSocket] Connection established for table:", tableId)
+  return new NextResponse(JSON.stringify(updatedState), {
+    headers: { "Content-Type": "application/json" },
+  })
+}
 
-    server.accept()
-    server.send(JSON.stringify({ type: "connection", message: "Connected to server" }))
+async function joinGame(tableId: string, player: Player): Promise<GameData> {
+  const result = await sql`
+    UPDATE poker_games 
+    SET players = players || ${JSON.stringify([player])}::jsonb
+    WHERE table_id = ${tableId}
+    RETURNING *;
+  `
+  const row = result.rows[0]
+  return {
+    tableId: row.table_id,
+    players: row.players as Player[],
+    gameStarted: row.game_started || false,
+  }
+}
 
-    server.addEventListener("message", async (event: MessageEvent) => {
-      const data = JSON.parse(event.data as string)
-      console.log("[WebSocket] Received message:", data)
-
-      if (data.type === "join-game") {
-        try {
-          console.log("[WebSocket] Processing join-game request")
-          // Update the database with the new player
-          await sql`
-            UPDATE poker_games 
-            SET players = players || ${JSON.stringify([data.player])}::jsonb
-            WHERE table_id = ${tableId};
-          `
-
-          // Fetch updated player list
-          const result = await sql`
-            SELECT * FROM poker_games WHERE table_id = ${tableId};
-          `
-          const updatedGame = result.rows[0]
-          const gameData: GameData = {
-            tableId: updatedGame.table_id,
-            players: updatedGame.players as Player[],
-            gameStarted: updatedGame.game_started,
-          }
-
-          console.log("[WebSocket] Updated game data:", gameData)
-
-          // Broadcast the updated game data to all connected clients for this table
-          const updateMessage = JSON.stringify({ type: "game-update", gameData })
-          connectedClients.get(tableId)?.forEach((client) => {
-            client.send(updateMessage)
-          })
-        } catch (error) {
-          console.error("[WebSocket] Error processing join-game:", error)
-          server.send(JSON.stringify({ type: "error", message: "Failed to join game" }))
-        }
-      }
-    })
-
-    server.addEventListener("close", () => {
-      console.log("[WebSocket] Connection closed for table:", tableId)
-      connectedClients.get(tableId)?.delete(client)
-      if (connectedClients.get(tableId)?.size === 0) {
-        connectedClients.delete(tableId)
-      }
-    })
-
-    return new NextResponse(null, {
-      status: 101,
-      headers: {
-        Upgrade: "websocket",
-        Connection: "Upgrade",
-      },
-      webSocket: client,
-    })
-  } catch (error) {
-    console.error("[WebSocket] Error setting up WebSocket:", error)
-    return new NextResponse("Failed to set up WebSocket", { status: 500 })
+async function leaveGame(tableId: string, player: Player): Promise<GameData> {
+  const result = await sql`
+    UPDATE poker_games 
+    SET players = (
+      SELECT jsonb_agg(p)
+      FROM jsonb_array_elements(players) p
+      WHERE p->>'name' != ${player.name}
+    )
+    WHERE table_id = ${tableId}
+    RETURNING *;
+  `
+  const row = result.rows[0]
+  return {
+    tableId: row.table_id,
+    players: row.players as Player[],
+    gameStarted: row.game_started || false,
   }
 }
 
