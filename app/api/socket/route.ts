@@ -1,40 +1,62 @@
-import { Server as SocketIOServer } from "socket.io"
-import type { NextApiRequest } from "next"
-import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 
 export const runtime = "edge"
 
-const SocketHandler = (req: NextApiRequest) => {
-  if (!(req.socket as any).server.io) {
-    console.log("New Socket.io server...")
-    // adapt Next's net Server to http Server
-    const httpServer = (req.socket as any).server
-    const io = new SocketIOServer(httpServer, {
-      path: "/api/socket",
-    })
-    // append SocketIO server to Next.js socket server
-    ;(req.socket as any).server.io = io
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url)
+  const tableId = searchParams.get("tableId")
 
-    io.on("connection", (socket) => {
-      console.log("A client connected")
-
-      socket.on("join-game", (tableId) => {
-        console.log(`Client joined game: ${tableId}`)
-        socket.join(tableId)
-      })
-
-      socket.on("game-update", (data) => {
-        console.log(`Game update received for table: ${data.tableId}`)
-        socket.to(data.tableId).emit("game-updated", data)
-      })
-
-      socket.on("disconnect", () => {
-        console.log("A client disconnected")
-      })
-    })
+  if (!tableId) {
+    return new Response("Table ID is required", { status: 400 })
   }
-  return NextResponse.json({ message: "Socket is initialized" }, { status: 200 })
-}
 
-export const GET = SocketHandler
+  const upgradeHeader = req.headers.get("Upgrade")
+  if (upgradeHeader !== "websocket") {
+    return new Response("Expected Upgrade: websocket", { status: 426 })
+  }
+
+  try {
+    const { socket, response } = await new Promise<{ socket: WebSocket; response: Response }>((resolve) => {
+      // @ts-ignore
+      const { socket, response } = req.upgradeWebSocket()
+
+      socket.onopen = () => {
+        console.log("WebSocket connection opened")
+        socket.send(JSON.stringify({ type: "connection", message: "Connected to server" }))
+      }
+
+      socket.onmessage = (event: MessageEvent) => {
+        const data = JSON.parse(event.data as string)
+        console.log("Received message:", data)
+
+        // Handle different message types
+        switch (data.type) {
+          case "join-game":
+            // Logic for joining a game
+            break
+          case "game-update":
+            // Logic for updating game state
+            break
+          default:
+            console.log("Unknown message type:", data.type)
+        }
+
+        // Broadcast message to all clients in the same table
+        // This is a simplified example. In a real app, you'd need to manage connections per table.
+        socket.send(JSON.stringify(data))
+      }
+
+      socket.onclose = () => {
+        console.log("WebSocket connection closed")
+      }
+
+      resolve({ socket, response })
+    })
+
+    return response
+  } catch (error) {
+    console.error("WebSocket upgrade failed:", error)
+    return new Response("WebSocket upgrade failed", { status: 500 })
+  }
+}
 

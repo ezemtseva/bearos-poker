@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
-import io from "socket.io-client"
 import GameTable from "../../../components/GameTable"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
@@ -22,7 +21,7 @@ export default function Game() {
   const params = useParams()
   const tableId = params?.tableId as string
   const [gameData, setGameData] = useState<GameData | null>(null)
-  const [socket, setSocket] = useState<ReturnType<typeof io> | null>(null)
+  const [socket, setSocket] = useState<WebSocket | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -51,32 +50,42 @@ export default function Game() {
 
     fetchGameData()
 
-    const socketInitializer = async () => {
-      await fetch("/api/socket")
-      const newSocket = io({
-        path: "/api/socket",
-      })
+    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:"
+    const ws = new WebSocket(`${wsProtocol}//${window.location.host}/api/socket?tableId=${tableId}`)
 
-      newSocket.on("connect", () => {
-        console.log("Connected to WebSocket")
-        newSocket.emit("join-game", tableId)
-      })
-
-      newSocket.on("game-updated", (updatedData: GameData) => {
-        setGameData(updatedData)
-      })
-
-      setSocket(newSocket)
+    ws.onopen = () => {
+      console.log("WebSocket connection opened")
+      setSocket(ws)
     }
 
-    socketInitializer()
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data)
+      console.log("Received message:", data)
 
-    return () => {
-      if (socket) {
-        socket.disconnect()
+      if (data.type === "game-updated") {
+        setGameData(data)
       }
     }
-  }, [tableId, toast, socket, socket?.disconnect]) // Added socket and socket?.disconnect to dependencies
+
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error)
+      toast({
+        title: "Error",
+        description: "Failed to connect to game server",
+        variant: "destructive",
+      })
+    }
+
+    ws.onclose = () => {
+      console.log("WebSocket connection closed")
+    }
+
+    return () => {
+      if (ws) {
+        ws.close()
+      }
+    }
+  }, [tableId, toast])
 
   const handleShare = () => {
     const shareUrl = `${window.location.origin}/join-game?tableId=${tableId}`
