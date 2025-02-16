@@ -7,6 +7,7 @@ export interface Player {
   export interface GameData {
     tableId: string
     players: Player[]
+    gameStarted: boolean
   }
   
   

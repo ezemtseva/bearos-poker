@@ -62,12 +62,13 @@ async function getGameState(tableId: string): Promise<GameData> {
     SELECT * FROM poker_games WHERE table_id = ${tableId};
   `
   if (result.rows.length === 0) {
-    return { tableId, players: [] }
+    return { tableId, players: [], gameStarted: false }
   }
   const row = result.rows[0]
   return {
     tableId: row.table_id,
     players: row.players as Player[],
+    gameStarted: row.game_started || false,
   }
 }
 
@@ -110,6 +111,7 @@ async function joinGame(tableId: string, player: Player): Promise<GameData> {
   return {
     tableId: row.table_id,
     players: row.players as Player[],
+    gameStarted: row.game_started || false,
   }
 }
 
@@ -128,6 +130,7 @@ async function leaveGame(tableId: string, player: Player): Promise<GameData> {
   return {
     tableId: row.table_id,
     players: row.players as Player[],
+    gameStarted: row.game_started || false,
   }
 }
 
