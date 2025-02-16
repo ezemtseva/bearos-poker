@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server"
 import { sql } from "@vercel/postgres"
 import { Redis } from "@upstash/redis"
-import type { Player, GameData } from "../../../types/game"
+import type { Player, GameData, ScoreTableRow } from "../../../types/game"
 
 export const runtime = "edge"
 
@@ -62,14 +62,42 @@ async function getGameState(tableId: string): Promise<GameData> {
     SELECT * FROM poker_games WHERE table_id = ${tableId};
   `
   if (result.rows.length === 0) {
-    return { tableId, players: [], gameStarted: false }
+    return {
+      tableId,
+      players: [],
+      gameStarted: false,
+      scoreTable: initializeScoreTable([]),
+    }
   }
   const row = result.rows[0]
   return {
     tableId: row.table_id,
     players: row.players as Player[],
     gameStarted: row.game_started || false,
+    scoreTable: row.score_table || initializeScoreTable(row.players),
   }
+}
+
+function initializeScoreTable(players: Player[]): ScoreTableRow[] {
+  return Array.from({ length: 18 }, (_, index) => {
+    const roundId = index + 1
+    let roundName
+    if (roundId <= 6) {
+      roundName = roundId.toString()
+    } else if (roundId <= 12) {
+      roundName = "B"
+    } else {
+      roundName = (19 - roundId).toString()
+    }
+    const scores = players.reduce(
+      (acc, player) => {
+        acc[player.name] = null
+        return acc
+      },
+      {} as { [playerName: string]: number | null },
+    )
+    return { roundId, roundName, scores }
+  })
 }
 
 export async function POST(req: NextRequest) {
@@ -112,6 +140,7 @@ async function joinGame(tableId: string, player: Player): Promise<GameData> {
     tableId: row.table_id,
     players: row.players as Player[],
     gameStarted: row.game_started || false,
+    scoreTable: row.score_table || initializeScoreTable(row.players),
   }
 }
 
@@ -131,6 +160,7 @@ async function leaveGame(tableId: string, player: Player): Promise<GameData> {
     tableId: row.table_id,
     players: row.players as Player[],
     gameStarted: row.game_started || false,
+    scoreTable: row.score_table || initializeScoreTable(row.players),
   }
 }
 
