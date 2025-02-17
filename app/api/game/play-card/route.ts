@@ -27,11 +27,12 @@ export async function POST(req: NextRequest) {
 
     const game = result.rows[0]
     const players = game.players as Player[]
-    let cardsOnTable = game.cards_on_table as Card[]
+    const cardsOnTable = game.cards_on_table as Card[]
     let currentRound = game.current_round
     let currentPlay = game.current_play
     let currentTurn = game.current_turn
     const deck = game.deck as Card[]
+    let allCardsPlayedTimestamp: number | null = null
 
     // Find the current player
     const playerIndex = players.findIndex((p) => p.name === playerName)
@@ -54,15 +55,14 @@ export async function POST(req: NextRequest) {
 
     // Check if the play is complete
     if (cardsOnTable.length === players.length) {
+      allCardsPlayedTimestamp = Date.now()
+
       // Determine the winner of the play
       const winnerCard = cardsOnTable.reduce((max, current) => (current.value > max.value ? current : max))
       const winnerIndex = players.findIndex((p) => p.name === winnerCard.playerName)
 
       // Update the score
       players[winnerIndex].score = (players[winnerIndex].score || 0) + 1
-
-      // Clear the table
-      cardsOnTable = []
 
       // Move to the next play or round
       if (currentPlay < currentRound) {
@@ -98,6 +98,7 @@ export async function POST(req: NextRequest) {
       cardsOnTable,
       deck,
       scoreTable: game.score_table,
+      allCardsPlayedTimestamp,
     }
 
     await sql`
@@ -108,7 +109,8 @@ export async function POST(req: NextRequest) {
           current_turn = ${currentTurn},
           cards_on_table = ${JSON.stringify(cardsOnTable)}::jsonb,
           deck = ${JSON.stringify(deck)}::jsonb,
-          game_started = ${game.game_started}
+          game_started = ${game.game_started},
+          all_cards_played_timestamp = ${allCardsPlayedTimestamp}
       WHERE table_id = ${tableId}
     `
 

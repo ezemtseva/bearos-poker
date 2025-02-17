@@ -1,6 +1,8 @@
-import { TableHeader } from "@/components/ui/table"
+"use client"
+
+import { useState, useEffect } from "react"
 import type { Player, Card, GameData } from "../types/game"
-import { Table, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import PlayingCard from "./PlayingCard"
 
@@ -33,6 +35,24 @@ export default function GameTable({
   onPlayCard,
   gameData,
 }: GameTableProps) {
+  const [displayedCards, setDisplayedCards] = useState<Card[]>(cardsOnTable)
+
+  useEffect(() => {
+    if (gameData.allCardsPlayedTimestamp) {
+      const delay = 2000 - (Date.now() - gameData.allCardsPlayedTimestamp)
+      if (delay > 0) {
+        const timer = setTimeout(() => {
+          setDisplayedCards([])
+        }, delay)
+        return () => clearTimeout(timer)
+      } else {
+        setDisplayedCards([])
+      }
+    } else {
+      setDisplayedCards(cardsOnTable)
+    }
+  }, [cardsOnTable, gameData.allCardsPlayedTimestamp])
+
   console.log("GameTable render. Props:", {
     tableId,
     players,
@@ -103,7 +123,7 @@ export default function GameTable({
 
         {/* Cards on table */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex space-x-2">
-          {cardsOnTable.map((card, index) => (
+          {displayedCards.map((card, index) => (
             <div key={index}>
               <PlayingCard suit={card.suit} value={card.value} disabled />
             </div>
