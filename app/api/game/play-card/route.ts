@@ -41,11 +41,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Remove the played card from the player's hand
-    const cardIndex = players[playerIndex].hand.findIndex((c) => c.suit === card.suit && c.value === card.value)
-    if (cardIndex === -1) {
-      return NextResponse.json({ error: "Card not found in player's hand" }, { status: 400 })
-    }
-    players[playerIndex].hand.splice(cardIndex, 1)
+    players[playerIndex].hand = players[playerIndex].hand.filter(
+      (c) => !(c.suit === card.suit && c.value === card.value),
+    )
 
     // Add the card to the table
     cardsOnTable.push({ ...card, playerName })

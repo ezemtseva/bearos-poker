@@ -54,7 +54,7 @@ export default function GameTable({
         processRoundEnd()
       }
     }
-  }, [cardsOnTable, gameData.allCardsPlayedTimestamp, isProcessingRound])
+  }, [cardsOnTable, gameData, isProcessingRound]) // Added isProcessingRound to dependencies
 
   const processRoundEnd = async () => {
     setDisplayedCards([])
@@ -100,7 +100,7 @@ export default function GameTable({
   const currentPlayerName = localStorage.getItem("playerName")
   const currentPlayer = players.find((p) => p.name === currentPlayerName)
   const canStartGame = isOwner && players.length >= 2 && !gameStarted
-  const isCurrentPlayerTurn = currentPlayer && players.indexOf(currentPlayer) === currentTurn
+  const isCurrentPlayerTurn = currentPlayer && players[currentTurn]?.name === currentPlayer.name
 
   return (
     <div className="space-y-8">

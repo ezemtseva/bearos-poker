@@ -57,6 +57,12 @@ export async function POST(req: NextRequest) {
 
       // Update the deck
       updatedGameData.deck = deck
+
+      // Set the current turn to the winner of the previous round
+      const previousRoundWinner = updatedGameData.players.findIndex(
+        (p: Player) => p.score === Math.max(...updatedGameData.players.map((p: Player) => p.score)),
+      )
+      updatedGameData.currentTurn = previousRoundWinner >= 0 ? previousRoundWinner : 0
     }
 
     await sql`
