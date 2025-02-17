@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react"
 import { useParams } from "next/navigation"
 import GameTable from "../../../components/GameTable"
 import { useToast } from "@/hooks/use-toast"
-import type { GameData, Player } from "../../../types/game"
+import type { GameData, Player, Card } from "../../../types/game"
 
 export default function Game() {
   const params = useParams()
@@ -68,12 +68,6 @@ export default function Game() {
       (player: Player) => player.isOwner && player.name === currentPlayerName,
     )
     setIsOwner(isCurrentPlayerOwner)
-    console.log("Game state updated:", {
-      gameData: data,
-      currentPlayerName,
-      isCurrentPlayerOwner,
-      players: data.players,
-    })
   }
 
   const handleShare = () => {
@@ -99,6 +93,9 @@ export default function Game() {
         throw new Error("Failed to start the game")
       }
 
+      const data = await response.json()
+      updateGameState(data.gameData)
+
       toast({
         title: "Game Started",
         description: "The game has been started successfully!",
@@ -107,6 +104,45 @@ export default function Game() {
       toast({
         title: "Error",
         description: "Failed to start the game. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handlePlayCard = async (card: Card) => {
+    if (!gameData) return
+
+    const currentPlayerName = localStorage.getItem("playerName")
+    const currentPlayerIndex = gameData.players.findIndex((p) => p.name === currentPlayerName)
+
+    if (currentPlayerIndex !== gameData.currentTurn) {
+      toast({
+        title: "Not your turn",
+        description: "Please wait for your turn to play a card.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      const response = await fetch("/api/game/play-card", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tableId, card }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to play the card")
+      }
+
+      const data = await response.json()
+      updateGameState(data.gameData)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to play the card. Please try again.",
         variant: "destructive",
       })
     }
@@ -123,8 +159,14 @@ export default function Game() {
         players={gameData.players}
         isOwner={isOwner}
         gameStarted={gameData.gameStarted}
+        currentRound={gameData.currentRound}
+        currentPlay={gameData.currentPlay}
+        currentTurn={gameData.currentTurn}
+        cardsOnTable={gameData.cardsOnTable}
         onShare={handleShare}
         onStartGame={handleStartGame}
+        onPlayCard={handlePlayCard}
+        gameData={gameData} // Add this line
       />
     </div>
   )

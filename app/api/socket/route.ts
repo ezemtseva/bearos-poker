@@ -15,6 +15,11 @@ async function getGameState(tableId: string): Promise<GameData> {
       tableId,
       players: [],
       gameStarted: false,
+      currentRound: 0,
+      currentPlay: 0,
+      currentTurn: 0,
+      cardsOnTable: [],
+      deck: [],
       scoreTable: Array.from({ length: 18 }, (_, index) => ({
         roundId: index + 1,
         roundName: index < 6 ? (index + 1).toString() : index < 12 ? "B" : (18 - index).toString(),
@@ -28,6 +33,11 @@ async function getGameState(tableId: string): Promise<GameData> {
     tableId: row.table_id,
     players: row.players as Player[],
     gameStarted: row.game_started || false,
+    currentRound: row.current_round || 0,
+    currentPlay: row.current_play || 0,
+    currentTurn: row.current_turn || 0,
+    cardsOnTable: row.cards_on_table || [],
+    deck: row.deck || [],
     scoreTable:
       row.score_table ||
       Array.from({ length: 18 }, (_, index) => ({

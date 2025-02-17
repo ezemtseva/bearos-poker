@@ -64,6 +64,11 @@ async function getGameState(tableId: string): Promise<GameData> {
       players: [],
       gameStarted: false,
       scoreTable: initializeScoreTable([]),
+      currentRound: 0,
+      currentPlay: 0,
+      currentTurn: 0,
+      cardsOnTable: [],
+      deck: [],
     }
   }
   const row = result.rows[0]
@@ -72,6 +77,11 @@ async function getGameState(tableId: string): Promise<GameData> {
     players: row.players as Player[],
     gameStarted: row.game_started || false,
     scoreTable: row.score_table || initializeScoreTable(row.players),
+    currentRound: row.current_round || 0,
+    currentPlay: row.current_play || 0,
+    currentTurn: row.current_turn || 0,
+    cardsOnTable: row.cards_on_table || [],
+    deck: row.deck || [],
   }
 }
 
@@ -124,17 +134,39 @@ export async function POST(req: NextRequest) {
 
 async function joinGame(tableId: string, player: Player): Promise<GameData> {
   const result = await sql`
+    SELECT * FROM poker_games
+    WHERE table_id = ${tableId};
+  `
+
+  if (result.rows.length === 0) {
+    throw new Error("Game not found")
+  }
+
+  const game = result.rows[0]
+
+  if (game.game_started) {
+    throw new Error("Cannot join a game that has already started")
+  }
+
+  const updatedPlayers = [...game.players, player]
+
+  await sql`
     UPDATE poker_games 
-    SET players = players || ${JSON.stringify([player])}::jsonb
+    SET players = ${JSON.stringify(updatedPlayers)}::jsonb
     WHERE table_id = ${tableId}
     RETURNING *;
   `
-  const row = result.rows[0]
+
   return {
-    tableId: row.table_id,
-    players: row.players as Player[],
-    gameStarted: row.game_started || false,
-    scoreTable: row.score_table || initializeScoreTable(row.players),
+    tableId: game.table_id,
+    players: updatedPlayers,
+    gameStarted: game.game_started,
+    currentRound: game.current_round,
+    currentPlay: game.current_play,
+    currentTurn: game.current_turn,
+    cardsOnTable: game.cards_on_table || [],
+    deck: game.deck || [],
+    scoreTable: game.score_table || initializeScoreTable(updatedPlayers),
   }
 }
 
@@ -155,6 +187,11 @@ async function leaveGame(tableId: string, player: Player): Promise<GameData> {
     players: row.players as Player[],
     gameStarted: row.game_started || false,
     scoreTable: row.score_table || initializeScoreTable(row.players),
+    currentRound: row.current_round,
+    currentPlay: row.current_play,
+    currentTurn: row.current_turn,
+    cardsOnTable: row.cards_on_table || [],
+    deck: row.deck || [],
   }
 }
 
