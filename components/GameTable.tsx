@@ -1,6 +1,7 @@
 import type { Player, Card, GameData } from "../types/game"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import PlayingCard from "./PlayingCard"
 
 interface GameTableProps {
   tableId: string
@@ -31,27 +32,10 @@ export default function GameTable({
   onPlayCard,
   gameData,
 }: GameTableProps) {
-  console.log("GameTable props:", {
-    tableId,
-    players,
-    isOwner,
-    gameStarted,
-    currentRound,
-    currentPlay,
-    currentTurn,
-    cardsOnTable,
-  })
   const currentPlayerName = localStorage.getItem("playerName")
   const currentPlayer = players.find((p) => p.name === currentPlayerName)
   const canStartGame = isOwner && players.length >= 2 && !gameStarted
   const isCurrentPlayerTurn = currentPlayer && players.indexOf(currentPlayer) === currentTurn
-
-  const renderCard = (card: Card) => (
-    <div className="w-16 h-24 bg-white border border-gray-300 rounded-lg flex items-center justify-center text-lg font-bold">
-      {card.value}
-      {card.suit.charAt(0).toUpperCase()}
-    </div>
-  )
 
   return (
     <div className="space-y-8">
@@ -108,7 +92,9 @@ export default function GameTable({
         {/* Cards on table */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex space-x-2">
           {cardsOnTable.map((card, index) => (
-            <div key={index}>{renderCard(card)}</div>
+            <div key={index}>
+              <PlayingCard suit={card.suit} value={card.value} disabled />
+            </div>
           ))}
         </div>
       </div>
@@ -119,14 +105,13 @@ export default function GameTable({
           <h2 className="text-xl font-bold mb-2">Your Hand</h2>
           <div className="flex justify-center space-x-2">
             {currentPlayer.hand.map((card, index) => (
-              <button
+              <PlayingCard
                 key={index}
+                suit={card.suit}
+                value={card.value}
                 onClick={() => onPlayCard(card)}
                 disabled={!isCurrentPlayerTurn}
-                className={`${isCurrentPlayerTurn ? "hover:scale-110 transition-transform" : "opacity-50"}`}
-              >
-                {renderCard(card)}
-              </button>
+              />
             ))}
           </div>
           {isCurrentPlayerTurn && (
