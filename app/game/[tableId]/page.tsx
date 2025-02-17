@@ -66,6 +66,22 @@ export default function Game() {
     }
   }, [tableId, toast])
 
+  useEffect(() => {
+    const refreshInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/game/state?tableId=${tableId}`)
+        if (response.ok) {
+          const data = await response.json()
+          updateGameState(data.gameData)
+        }
+      } catch (error) {
+        console.error("Error refreshing game state:", error)
+      }
+    }, 5000) // Refresh every 5 seconds
+
+    return () => clearInterval(refreshInterval)
+  }, [tableId])
+
   const updateGameState = (data: GameData) => {
     console.log("Updating game state. Received data:", data)
     setGameData(data)

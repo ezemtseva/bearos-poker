@@ -77,45 +77,54 @@ export async function POST(req: NextRequest) {
       allCardsPlayedTimestamp = Date.now()
 
       // Determine the winner of the play
-      const winnerCard = cardsOnTable.reduce((max, current) => (current.value > max.value ? current : max))
-      const winnerIndex = players.findIndex((p) => p.name === winnerCard.playerName)
+      const winnerCard =
+        cardsOnTable.length > 0
+          ? cardsOnTable.reduce((max, current) => (current.value > max.value ? current : max))
+          : null
 
-      // Update scores
-      players[winnerIndex].score = (players[winnerIndex].score || 0) + 1
+      if (winnerCard) {
+        const winnerIndex = players.findIndex((p) => p.name === winnerCard.playerName)
 
-      // Update score table
-      const roundIndex = currentRound - 1
-      if (!scoreTable[roundIndex]) {
-        scoreTable[roundIndex] = {
-          roundId: currentRound,
-          roundName:
-            currentRound <= 6 ? currentRound.toString() : currentRound <= 12 ? "B" : (19 - currentRound).toString(),
-          scores: {},
+        // Update scores
+        players[winnerIndex].score = (players[winnerIndex].score || 0) + 1
+
+        // Update score table
+        const roundIndex = currentRound - 1
+        if (!scoreTable[roundIndex]) {
+          scoreTable[roundIndex] = {
+            roundId: currentRound,
+            roundName:
+              currentRound <= 6 ? currentRound.toString() : currentRound <= 12 ? "B" : (19 - currentRound).toString(),
+            scores: {},
+          }
         }
+        players.forEach((player) => {
+          scoreTable[roundIndex].scores[player.name] = player.score
+        })
+
+        // Prepare for the next play or round
+        currentPlay++
+        if (currentPlay > currentRound) {
+          currentRound++
+          currentPlay = 1
+
+          // Deal new cards for the new round
+          deck = createDeck()
+          const cardsPerPlayer =
+            currentRound <= 6 ? currentRound : currentRound <= 12 ? 13 - currentRound : 19 - currentRound
+
+          players = players.map((player) => ({
+            ...player,
+            hand: deck.splice(0, cardsPerPlayer),
+          }))
+        }
+
+        cardsOnTable = []
+        currentTurn = winnerIndex
+      } else {
+        console.error("No cards on table to determine winner")
+        // Handle this edge case, perhaps by not changing the turn or scores
       }
-      players.forEach((player) => {
-        scoreTable[roundIndex].scores[player.name] = player.score
-      })
-
-      // Prepare for the next play or round
-      currentPlay++
-      if (currentPlay > currentRound) {
-        currentRound++
-        currentPlay = 1
-
-        // Deal new cards for the new round
-        deck = createDeck()
-        const cardsPerPlayer =
-          currentRound <= 6 ? currentRound : currentRound <= 12 ? 13 - currentRound : 19 - currentRound
-
-        players = players.map((player) => ({
-          ...player,
-          hand: deck.splice(0, cardsPerPlayer),
-        }))
-      }
-
-      cardsOnTable = []
-      currentTurn = winnerIndex
     } else {
       // Move to the next turn
       currentTurn = getNextTurn(currentTurn, players.length)
