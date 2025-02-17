@@ -23,15 +23,32 @@ export async function POST(req: NextRequest) {
       score: 0,
     }
 
-    await sql`
-      INSERT INTO poker_games (table_id, players, game_started)
-      VALUES (${tableId}, ${JSON.stringify([owner])}::jsonb, false)
-    `
+    console.log("Attempting to insert new game into database")
+    console.log("Table ID:", tableId)
+    console.log("Player:", owner)
+
+    try {
+      const result = await sql`
+        INSERT INTO poker_games (table_id, players, game_started)
+        VALUES (${tableId}, ${JSON.stringify([owner])}::jsonb, false)
+        RETURNING *
+      `
+      console.log("Database insert result:", result)
+    } catch (dbError) {
+      console.error("Database error:", dbError)
+      return NextResponse.json(
+        { error: "Database operation failed", details: dbError instanceof Error ? dbError.message : String(dbError) },
+        { status: 500 },
+      )
+    }
 
     return NextResponse.json({ tableId, owner })
   } catch (error) {
     console.error("Error creating game:", error)
-    return NextResponse.json({ error: "Failed to create game" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Failed to create game", details: error instanceof Error ? error.message : String(error) },
+      { status: 500 },
+    )
   }
 }
 
