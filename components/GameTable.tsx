@@ -38,13 +38,11 @@ export default function GameTable({
   gameData,
 }: GameTableProps) {
   const [displayedCards, setDisplayedCards] = useState<Card[]>(cardsOnTable)
-  const [isProcessingRound, setIsProcessingRound] = useState(false)
 
   useEffect(() => {
     setDisplayedCards(cardsOnTable)
 
-    if (gameData.allCardsPlayedTimestamp && !isProcessingRound) {
-      setIsProcessingRound(true)
+    if (gameData.allCardsPlayedTimestamp) {
       const delay = 2000 - (Date.now() - gameData.allCardsPlayedTimestamp)
 
       if (delay > 0) {
@@ -56,11 +54,10 @@ export default function GameTable({
         processRoundEnd()
       }
     }
-  }, [cardsOnTable, gameData, isProcessingRound])
+  }, [cardsOnTable, gameData])
 
   const processRoundEnd = async () => {
     setDisplayedCards([])
-    setIsProcessingRound(false)
 
     // Determine the winner of the play
     const winnerCard =
@@ -186,14 +183,14 @@ export default function GameTable({
                   suit={card.suit}
                   value={card.value}
                   onClick={() => onPlayCard(card)}
-                  disabled={!isCurrentPlayerTurn || isProcessingRound}
+                  disabled={!isCurrentPlayerTurn}
                 />
               ))
             ) : (
               <p>No cards in hand</p>
             )}
           </div>
-          {isCurrentPlayerTurn && !isProcessingRound && (
+          {isCurrentPlayerTurn && (
             <p className="text-center mt-2 text-green-600 font-bold">It's your turn! Select a card to play.</p>
           )}
         </div>
