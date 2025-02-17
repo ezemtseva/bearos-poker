@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
 
       // Send initial game state
       const initialState = await getGameState(tableId)
+      console.log("[SSE] Sending initial game state:", initialState)
       sendEvent("init", JSON.stringify(initialState))
 
       // Set up polling for game updates
@@ -148,11 +149,7 @@ async function joinGame(tableId: string, player: Player): Promise<GameData> {
     throw new Error("Cannot join a game that has already started")
   }
 
-  const isFirstPlayer = game.players.length === 0
-  const updatedPlayer = { ...player, isOwner: isFirstPlayer }
-  const updatedPlayers = [...game.players, updatedPlayer]
-
-  console.log("Joining game. Updated players:", updatedPlayers)
+  const updatedPlayers = [...game.players, player]
 
   await sql`
     UPDATE poker_games 

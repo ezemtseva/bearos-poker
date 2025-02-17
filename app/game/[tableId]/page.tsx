@@ -17,7 +17,7 @@ export default function Game() {
 
   useEffect(() => {
     const storedPlayerName = localStorage.getItem("playerName")
-    console.log("Retrieved player name from localStorage:", storedPlayerName)
+    console.log("Initial player name from localStorage:", storedPlayerName)
     setCurrentPlayerName(storedPlayerName)
 
     if (!tableId) {
@@ -34,7 +34,7 @@ export default function Game() {
 
       eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data)
-        console.log("Received message:", data)
+        console.log("Received SSE message:", data)
         updateGameState(data)
       }
 
@@ -66,9 +66,16 @@ export default function Game() {
     }
   }, [tableId, toast])
 
+  useEffect(() => {
+    console.log("Current player name updated:", currentPlayerName)
+    if (gameData) {
+      updateGameState(gameData)
+    }
+  }, [currentPlayerName, gameData]) // Added gameData to dependencies
+
   const updateGameState = (data: GameData) => {
     setGameData(data)
-    console.log("Current player name:", currentPlayerName)
+    console.log("Updating game state. Current player name:", currentPlayerName)
     console.log("Players:", data.players)
     const isCurrentPlayerOwner = data.players.some(
       (player: Player) => player.isOwner && player.name === currentPlayerName,

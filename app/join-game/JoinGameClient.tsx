@@ -56,6 +56,8 @@ export default function JoinGameClient() {
         throw new Error(data.error)
       }
 
+      console.log("Joining game with player name:", playerName)
+
       // Navigate to the game page
       router.push(`/game/${tableId}`)
     } catch (error: unknown) {

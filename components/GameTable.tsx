@@ -31,6 +31,16 @@ export default function GameTable({
   onPlayCard,
   gameData,
 }: GameTableProps) {
+  console.log("GameTable props:", {
+    tableId,
+    players,
+    isOwner,
+    gameStarted,
+    currentRound,
+    currentPlay,
+    currentTurn,
+    cardsOnTable,
+  })
   const currentPlayerName = localStorage.getItem("playerName")
   const currentPlayer = players.find((p) => p.name === currentPlayerName)
   const canStartGame = isOwner && players.length >= 2 && !gameStarted
