@@ -40,6 +40,7 @@ export default function JoinGameClient() {
 
     // Store player name in localStorage
     localStorage.setItem("playerName", playerName)
+    console.log("Player name stored in localStorage:", playerName)
 
     try {
       const response = await fetch("/api/sse", {

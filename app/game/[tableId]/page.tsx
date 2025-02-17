@@ -11,10 +11,15 @@ export default function Game() {
   const tableId = params?.tableId as string
   const [gameData, setGameData] = useState<GameData | null>(null)
   const [isOwner, setIsOwner] = useState(false)
+  const [currentPlayerName, setCurrentPlayerName] = useState<string | null>(null)
   const { toast } = useToast()
   const eventSourceRef = useRef<EventSource | null>(null)
 
   useEffect(() => {
+    const storedPlayerName = localStorage.getItem("playerName")
+    console.log("Retrieved player name from localStorage:", storedPlayerName)
+    setCurrentPlayerName(storedPlayerName)
+
     if (!tableId) {
       toast({
         title: "Error",
@@ -63,7 +68,6 @@ export default function Game() {
 
   const updateGameState = (data: GameData) => {
     setGameData(data)
-    const currentPlayerName = localStorage.getItem("playerName")
     console.log("Current player name:", currentPlayerName)
     console.log("Players:", data.players)
     const isCurrentPlayerOwner = data.players.some(
@@ -115,7 +119,6 @@ export default function Game() {
   const handlePlayCard = async (card: Card) => {
     if (!gameData) return
 
-    const currentPlayerName = localStorage.getItem("playerName")
     const currentPlayerIndex = gameData.players.findIndex((p) => p.name === currentPlayerName)
 
     if (currentPlayerIndex !== gameData.currentTurn) {
@@ -179,7 +182,7 @@ export default function Game() {
         onShare={handleShare}
         onStartGame={handleStartGame}
         onPlayCard={handlePlayCard}
-        gameData={gameData} // Add this line
+        gameData={gameData}
       />
     </div>
   )
