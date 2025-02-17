@@ -56,11 +56,6 @@ export async function POST(req: NextRequest) {
     // Check if the play is complete
     if (cardsOnTable.length === players.length) {
       allCardsPlayedTimestamp = Date.now()
-
-      // Don't clear the table or move to the next round yet
-      // This will be handled by the client-side after the 2-second delay
-    } else {
-      allCardsPlayedTimestamp = null
     }
 
     const gameData: GameData = {
