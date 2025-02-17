@@ -23,12 +23,30 @@ export async function GET() {
           current_turn INTEGER DEFAULT 0,
           cards_on_table JSONB DEFAULT '[]'::jsonb,
           deck JSONB DEFAULT '[]'::jsonb,
-          score_table JSONB DEFAULT '[]'::jsonb
+          score_table JSONB DEFAULT '[]'::jsonb,
+          all_cards_played_timestamp BIGINT
         );
       `
       console.log("Table 'poker_games' created successfully")
     } else {
-      // Alter the table to add missing columns
+      // Check if the all_cards_played_timestamp column exists
+      const columnExists = await sql`
+        SELECT EXISTS (
+          SELECT FROM information_schema.columns 
+          WHERE table_name = 'poker_games' AND column_name = 'all_cards_played_timestamp'
+        );
+      `
+
+      if (!columnExists.rows[0].exists) {
+        // Add the all_cards_played_timestamp column if it doesn't exist
+        await sql`
+          ALTER TABLE poker_games
+          ADD COLUMN all_cards_played_timestamp BIGINT;
+        `
+        console.log("Column 'all_cards_played_timestamp' added successfully")
+      }
+
+      // Alter the table to add missing columns (if any)
       await sql`
         ALTER TABLE poker_games
         ADD COLUMN IF NOT EXISTS game_started BOOLEAN DEFAULT FALSE,
