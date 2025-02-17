@@ -24,26 +24,27 @@ export async function GET() {
           cards_on_table JSONB DEFAULT '[]'::jsonb,
           deck JSONB DEFAULT '[]'::jsonb,
           score_table JSONB DEFAULT '[]'::jsonb,
-          all_cards_played_timestamp BIGINT
+          all_cards_played_timestamp BIGINT,
+          play_end_timestamp BIGINT
         );
       `
       console.log("Table 'poker_games' created successfully")
     } else {
-      // Check if the all_cards_played_timestamp column exists
+      // Check if the play_end_timestamp column exists
       const columnExists = await sql`
         SELECT EXISTS (
           SELECT FROM information_schema.columns 
-          WHERE table_name = 'poker_games' AND column_name = 'all_cards_played_timestamp'
+          WHERE table_name = 'poker_games' AND column_name = 'play_end_timestamp'
         );
       `
 
       if (!columnExists.rows[0].exists) {
-        // Add the all_cards_played_timestamp column if it doesn't exist
+        // Add the play_end_timestamp column if it doesn't exist
         await sql`
           ALTER TABLE poker_games
-          ADD COLUMN all_cards_played_timestamp BIGINT;
+          ADD COLUMN play_end_timestamp BIGINT;
         `
-        console.log("Column 'all_cards_played_timestamp' added successfully")
+        console.log("Column 'play_end_timestamp' added successfully")
       }
 
       // Alter the table to add missing columns (if any)
@@ -55,7 +56,9 @@ export async function GET() {
         ADD COLUMN IF NOT EXISTS current_turn INTEGER DEFAULT 0,
         ADD COLUMN IF NOT EXISTS cards_on_table JSONB DEFAULT '[]'::jsonb,
         ADD COLUMN IF NOT EXISTS deck JSONB DEFAULT '[]'::jsonb,
-        ADD COLUMN IF NOT EXISTS score_table JSONB DEFAULT '[]'::jsonb;
+        ADD COLUMN IF NOT EXISTS score_table JSONB DEFAULT '[]'::jsonb,
+        ADD COLUMN IF NOT EXISTS all_cards_played_timestamp BIGINT,
+        ADD COLUMN IF NOT EXISTS play_end_timestamp BIGINT;
       `
       console.log("Table 'poker_games' updated successfully")
     }

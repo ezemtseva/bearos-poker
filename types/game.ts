@@ -29,6 +29,7 @@ export interface Player {
     deck: Card[]
     scoreTable: ScoreTableRow[]
     allCardsPlayedTimestamp: number | null
+    playEndTimestamp: number | null
   }
   
   

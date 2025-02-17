@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
     let currentTurn = game.current_turn
     let deck = game.deck as Card[]
     let allCardsPlayedTimestamp: number | null = null
+    let playEndTimestamp: number | null = null
     const scoreTable = game.score_table
 
     // Find the current player
@@ -74,57 +75,52 @@ export async function POST(req: NextRequest) {
 
     // Check if the play is complete
     if (cardsOnTable.length === players.length) {
-      allCardsPlayedTimestamp = Date.now()
+      playEndTimestamp = Date.now()
 
       // Determine the winner of the play
-      const winnerCard =
-        cardsOnTable.length > 0
-          ? cardsOnTable.reduce((max, current) => (current.value > max.value ? current : max))
-          : null
+      const winnerCard = cardsOnTable.reduce((max, current) => (current.value > max.value ? current : max))
+      const winnerIndex = players.findIndex((p) => p.name === winnerCard.playerName)
 
-      if (winnerCard) {
-        const winnerIndex = players.findIndex((p) => p.name === winnerCard.playerName)
+      // Update scores
+      players[winnerIndex].score = (players[winnerIndex].score || 0) + 1
 
-        // Update scores
-        players[winnerIndex].score = (players[winnerIndex].score || 0) + 1
-
-        // Update score table
-        const roundIndex = currentRound - 1
-        if (!scoreTable[roundIndex]) {
-          scoreTable[roundIndex] = {
-            roundId: currentRound,
-            roundName:
-              currentRound <= 6 ? currentRound.toString() : currentRound <= 12 ? "B" : (19 - currentRound).toString(),
-            scores: {},
-          }
+      // Update score table
+      const roundIndex = currentRound - 1
+      if (!scoreTable[roundIndex]) {
+        scoreTable[roundIndex] = {
+          roundId: currentRound,
+          roundName:
+            currentRound <= 6 ? currentRound.toString() : currentRound <= 12 ? "B" : (19 - currentRound).toString(),
+          scores: {},
         }
-        players.forEach((player) => {
-          scoreTable[roundIndex].scores[player.name] = player.score
-        })
+      }
+      players.forEach((player) => {
+        scoreTable[roundIndex].scores[player.name] = player.score
+      })
 
-        // Prepare for the next play or round
-        currentPlay++
-        if (currentPlay > currentRound) {
-          currentRound++
-          currentPlay = 1
+      // Prepare for the next play or round
+      currentPlay++
+      if (currentPlay > currentRound) {
+        currentRound++
+        currentPlay = 1
+        allCardsPlayedTimestamp = Date.now()
 
-          // Deal new cards for the new round
-          deck = createDeck()
-          const cardsPerPlayer =
-            currentRound <= 6 ? currentRound : currentRound <= 12 ? 13 - currentRound : 19 - currentRound
+        // Deal new cards for the new round
+        deck = createDeck()
+        const cardsPerPlayer =
+          currentRound <= 6 ? currentRound : currentRound <= 12 ? 13 - currentRound : 19 - currentRound
 
-          players = players.map((player) => ({
-            ...player,
-            hand: deck.splice(0, cardsPerPlayer),
-          }))
-        }
+        players = players.map((player) => ({
+          ...player,
+          hand: deck.splice(0, cardsPerPlayer),
+        }))
 
         cardsOnTable = []
-        currentTurn = winnerIndex
       } else {
-        console.error("No cards on table to determine winner")
-        // Handle this edge case, perhaps by not changing the turn or scores
+        // Set up for the next play within the same round
+        cardsOnTable = []
       }
+      currentTurn = winnerIndex
     } else {
       // Move to the next turn
       currentTurn = getNextTurn(currentTurn, players.length)
@@ -141,6 +137,7 @@ export async function POST(req: NextRequest) {
       deck,
       scoreTable,
       allCardsPlayedTimestamp,
+      playEndTimestamp,
     }
 
     await sql`
@@ -153,6 +150,7 @@ export async function POST(req: NextRequest) {
           deck = ${JSON.stringify(deck)}::jsonb,
           game_started = ${game.game_started},
           all_cards_played_timestamp = ${allCardsPlayedTimestamp},
+          play_end_timestamp = ${playEndTimestamp},
           score_table = ${JSON.stringify(scoreTable)}::jsonb
       WHERE table_id = ${tableId}
     `
