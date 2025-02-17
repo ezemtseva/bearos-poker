@@ -43,7 +43,7 @@ export default function GameTable({
     setDisplayedCards(cardsOnTable)
 
     if (gameData.allCardsPlayedTimestamp) {
-      const delay = 2000 - (Date.now() - gameData.allCardsPlayedTimestamp)
+      const delay = 1000 - (Date.now() - gameData.allCardsPlayedTimestamp)
 
       if (delay > 0) {
         const timer = setTimeout(() => {
