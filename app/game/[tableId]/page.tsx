@@ -66,22 +66,17 @@ export default function Game() {
     }
   }, [tableId, toast])
 
-  useEffect(() => {
-    console.log("Current player name updated:", currentPlayerName)
-    if (gameData) {
-      updateGameState(gameData)
-    }
-  }, [currentPlayerName, gameData]) // Added gameData to dependencies
-
   const updateGameState = (data: GameData) => {
     setGameData(data)
-    console.log("Updating game state. Current player name:", currentPlayerName)
+    const storedPlayerName = localStorage.getItem("playerName")
+    console.log("Updating game state. Current player name:", storedPlayerName)
     console.log("Players:", data.players)
     const isCurrentPlayerOwner = data.players.some(
-      (player: Player) => player.isOwner && player.name === currentPlayerName,
+      (player: Player) => player.isOwner && player.name === storedPlayerName,
     )
     console.log("Is current player owner:", isCurrentPlayerOwner)
     setIsOwner(isCurrentPlayerOwner)
+    setCurrentPlayerName(storedPlayerName)
   }
 
   const handleShare = () => {
