@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
 import { v4 as uuidv4 } from "uuid"
-import type { Player } from "@/types/game"
+import type { Player, GameData } from "@/types/game"
 
 export const runtime = "edge"
 
@@ -23,14 +23,49 @@ export async function POST(req: NextRequest) {
       score: 0,
     }
 
+    const gameData: GameData = {
+      tableId,
+      players: [owner],
+      gameStarted: false,
+      currentRound: 0,
+      currentPlay: 0,
+      currentTurn: 0,
+      cardsOnTable: [],
+      deck: [],
+      scoreTable: [],
+      allCardsPlayedTimestamp: null,
+    }
+
     console.log("Attempting to insert new game into database")
     console.log("Table ID:", tableId)
     console.log("Player:", owner)
 
     try {
       const result = await sql`
-        INSERT INTO poker_games (table_id, players, game_started)
-        VALUES (${tableId}, ${JSON.stringify([owner])}::jsonb, false)
+        INSERT INTO poker_games (
+          table_id, 
+          players, 
+          game_started, 
+          current_round, 
+          current_play, 
+          current_turn, 
+          cards_on_table, 
+          deck, 
+          score_table, 
+          all_cards_played_timestamp
+        )
+        VALUES (
+          ${tableId}, 
+          ${JSON.stringify([owner])}::jsonb, 
+          false, 
+          0, 
+          0, 
+          0, 
+          '[]'::jsonb, 
+          '[]'::jsonb, 
+          '[]'::jsonb, 
+          null
+        )
         RETURNING *
       `
       console.log("Database insert result:", result)
@@ -42,7 +77,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    return NextResponse.json({ tableId, owner })
+    return NextResponse.json({ tableId, owner, gameData })
   } catch (error) {
     console.error("Error creating game:", error)
     return NextResponse.json(

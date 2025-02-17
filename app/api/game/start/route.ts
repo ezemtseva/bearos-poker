@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
         roundName: i < 6 ? (i + 1).toString() : i < 12 ? "B" : (18 - i).toString(),
         scores: {},
       })),
+      allCardsPlayedTimestamp: null, // Add this line to include the new property
     }
 
     await sql`
@@ -93,7 +94,8 @@ export async function POST(req: NextRequest) {
           current_turn = ${gameData.currentTurn},
           cards_on_table = '[]'::jsonb,
           deck = ${JSON.stringify(updatedDeck)}::jsonb,
-          score_table = ${JSON.stringify(gameData.scoreTable)}::jsonb
+          score_table = ${JSON.stringify(gameData.scoreTable)}::jsonb,
+          all_cards_played_timestamp = null
       WHERE table_id = ${tableId}
     `
 
