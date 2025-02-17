@@ -54,7 +54,7 @@ export default function GameTable({
         processRoundEnd()
       }
     }
-  }, [cardsOnTable, gameData, isProcessingRound]) // Added isProcessingRound to dependencies
+  }, [cardsOnTable, gameData, isProcessingRound])
 
   const processRoundEnd = async () => {
     setDisplayedCards([])
