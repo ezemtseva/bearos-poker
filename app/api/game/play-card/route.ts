@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
 import type { GameData, Player, Card } from "../../../../types/game"
+import { sendSSEUpdate } from "../../../utils/sse"
 
 export const runtime = "edge"
 
@@ -83,10 +84,18 @@ export async function POST(req: NextRequest) {
       players[winnerIndex].score = (players[winnerIndex].score || 0) + 1
 
       // Update score table
-      if (!scoreTable[currentRound - 1]) {
-        scoreTable[currentRound - 1] = { roundId: currentRound, roundName: currentRound.toString(), scores: {} }
+      const roundIndex = currentRound - 1
+      if (!scoreTable[roundIndex]) {
+        scoreTable[roundIndex] = {
+          roundId: currentRound,
+          roundName:
+            currentRound <= 6 ? currentRound.toString() : currentRound <= 12 ? "B" : (19 - currentRound).toString(),
+          scores: {},
+        }
       }
-      scoreTable[currentRound - 1].scores[players[winnerIndex].name] = players[winnerIndex].score
+      players.forEach((player) => {
+        scoreTable[roundIndex].scores[player.name] = player.score
+      })
 
       // Prepare for the next play or round
       currentPlay++
@@ -138,6 +147,9 @@ export async function POST(req: NextRequest) {
           score_table = ${JSON.stringify(scoreTable)}::jsonb
       WHERE table_id = ${tableId}
     `
+
+    // Send SSE update to all connected clients
+    await sendSSEUpdate(tableId, gameData)
 
     return NextResponse.json({ message: "Card played successfully", gameData })
   } catch (error) {

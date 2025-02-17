@@ -169,16 +169,6 @@ export default function Game() {
     return <div>Loading...</div>
   }
 
-  console.log("Rendering GameTable with props:", {
-    tableId: gameData.tableId,
-    players: gameData.players,
-    isOwner,
-    gameStarted: gameData.gameStarted,
-    currentRound: gameData.currentRound,
-    currentPlay: gameData.currentPlay,
-    currentTurn: gameData.currentTurn,
-  })
-
   return (
     <div className="container mx-auto px-4 py-8">
       <GameTable
