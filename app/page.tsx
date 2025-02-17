@@ -1,72 +1,81 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
-import Link from "next/link"
+
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import Modal from "../components/Modal"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { useToast } from "@/hooks/use-toast"
 
 export default function Home() {
-  const [isModalOpen, setIsModalOpen] = useState(false)
   const [playerName, setPlayerName] = useState("")
   const router = useRouter()
+  const { toast } = useToast()
 
-  const handleCreateGame = async () => {
-    if (playerName.trim() === "") {
-      alert("Please enter a name")
+  useEffect(() => {
+    const storedPlayerName = localStorage.getItem("playerName")
+    if (storedPlayerName) {
+      setPlayerName(storedPlayerName)
+    }
+  }, [])
+
+  const handleCreateGame = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!playerName) {
+      toast({
+        title: "Error",
+        description: "Please enter your name",
+        variant: "destructive",
+      })
       return
     }
 
-    const response = await fetch("/api/game", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ action: "create", playerName }),
-    })
+    localStorage.setItem("playerName", playerName)
 
-    const data = await response.json()
-    if (data.tableId) {
+    try {
+      const response = await fetch("/api/game/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ playerName }),
+      })
+
+      const data = await response.json()
+      if (data.error) {
+        throw new Error(data.error)
+      }
+
       router.push(`/game/${data.tableId}`)
+    } catch (error: unknown) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An error occurred while creating the game",
+        variant: "destructive",
+      })
     }
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <main className="container mx-auto px-4 py-8 text-center">
-        <section className="mb-12">
-          <h1 className="text-4xl font-bold mb-6">Welcome to Bearos Poker!</h1>
-          <div className="space-x-4">
-            <Button onClick={() => setIsModalOpen(true)}>Create New Game</Button>
-            <Button variant="secondary" asChild>
-              <Link href="/join-game">Join Game</Link>
-            </Button>
-          </div>
-        </section>
-
-        <section>
-          <h2 className="text-2xl font-bold mb-4">How to play?</h2>
-          <p className="text-lg max-w-2xl mx-auto">
-            Bearos Poker is a unique card game with custom rules. Players compete to create the best hand using a
-            combination of cards. The game involves strategy, bluffing, and a bit of luck. Detailed rules and gameplay
-            instructions will be provided here.
-          </p>
-        </section>
-
-        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-          <h2 className="text-xl font-bold mb-4">Create New Game</h2>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold mb-4">Create a New Game</h1>
+      <form onSubmit={handleCreateGame} className="max-w-md">
+        <div className="mb-4">
+          <label htmlFor="playerName" className="block text-sm font-medium text-gray-700">
+            Your Name
+          </label>
           <Input
             type="text"
+            id="playerName"
             value={playerName}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPlayerName(e.target.value)}
-            placeholder="Enter your name"
-            className="mb-4"
+            onChange={(e) => setPlayerName(e.target.value)}
+            className="mt-1"
+            required
           />
-          <Button onClick={handleCreateGame}>Create</Button>
-        </Modal>
-      </main>
+        </div>
+        <Button type="submit">Create Game</Button>
+      </form>
     </div>
   )
 }
