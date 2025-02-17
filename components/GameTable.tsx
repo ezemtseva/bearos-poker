@@ -36,34 +36,67 @@ export default function GameTable({
   gameData,
 }: GameTableProps) {
   const [displayedCards, setDisplayedCards] = useState<Card[]>(cardsOnTable)
+  const [isProcessingRound, setIsProcessingRound] = useState(false)
 
   useEffect(() => {
-    if (gameData.allCardsPlayedTimestamp) {
+    setDisplayedCards(cardsOnTable)
+
+    if (gameData.allCardsPlayedTimestamp && !isProcessingRound) {
+      setIsProcessingRound(true)
       const delay = 2000 - (Date.now() - gameData.allCardsPlayedTimestamp)
+
       if (delay > 0) {
         const timer = setTimeout(() => {
-          setDisplayedCards([])
+          processRoundEnd()
         }, delay)
         return () => clearTimeout(timer)
       } else {
-        setDisplayedCards([])
+        processRoundEnd()
       }
-    } else {
-      setDisplayedCards(cardsOnTable)
     }
-  }, [cardsOnTable, gameData.allCardsPlayedTimestamp])
+  }, [cardsOnTable, gameData.allCardsPlayedTimestamp, isProcessingRound]) // Added isProcessingRound to dependencies
 
-  console.log("GameTable render. Props:", {
-    tableId,
-    players,
-    isOwner,
-    gameStarted,
-    currentRound,
-    currentPlay,
-    currentTurn,
-    cardsOnTable,
-    gameData,
-  })
+  const processRoundEnd = async () => {
+    setDisplayedCards([])
+    setIsProcessingRound(false)
+
+    // Determine the winner of the play
+    const winnerCard = cardsOnTable.reduce((max, current) => (current.value > max.value ? current : max))
+    const winnerIndex = players.findIndex((p) => p.name === winnerCard.playerName)
+
+    // Update the game state
+    const updatedGameData = {
+      ...gameData,
+      players: gameData.players.map((player, index) =>
+        index === winnerIndex ? { ...player, score: (player.score || 0) + 1 } : player,
+      ),
+      currentPlay: gameData.currentPlay < gameData.currentRound ? gameData.currentPlay + 1 : 1,
+      currentRound: gameData.currentPlay < gameData.currentRound ? gameData.currentRound : gameData.currentRound + 1,
+      currentTurn: winnerIndex,
+      cardsOnTable: [],
+      allCardsPlayedTimestamp: null,
+    }
+
+    // Update the server with the new game state
+    try {
+      const response = await fetch("/api/game/update", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tableId, gameData: updatedGameData }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update game state")
+      }
+
+      // The server will broadcast the updated game state to all clients
+    } catch (error) {
+      console.error("Error updating game state:", error)
+    }
+  }
+
   const currentPlayerName = localStorage.getItem("playerName")
   const currentPlayer = players.find((p) => p.name === currentPlayerName)
   const canStartGame = isOwner && players.length >= 2 && !gameStarted
@@ -143,14 +176,14 @@ export default function GameTable({
                   suit={card.suit}
                   value={card.value}
                   onClick={() => onPlayCard(card)}
-                  disabled={!isCurrentPlayerTurn}
+                  disabled={!isCurrentPlayerTurn || isProcessingRound}
                 />
               ))
             ) : (
               <p>No cards in hand</p>
             )}
           </div>
-          {isCurrentPlayerTurn && (
+          {isCurrentPlayerTurn && !isProcessingRound && (
             <p className="text-center mt-2 text-green-600 font-bold">It's your turn! Select a card to play.</p>
           )}
         </div>

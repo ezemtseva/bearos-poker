@@ -28,8 +28,8 @@ export async function POST(req: NextRequest) {
     const game = result.rows[0]
     const players = game.players as Player[]
     const cardsOnTable = game.cards_on_table as Card[]
-    let currentRound = game.current_round
-    let currentPlay = game.current_play
+    const currentRound = game.current_round
+    const currentPlay = game.current_play
     let currentTurn = game.current_turn
     const deck = game.deck as Card[]
     let allCardsPlayedTimestamp: number | null = null
@@ -57,35 +57,10 @@ export async function POST(req: NextRequest) {
     if (cardsOnTable.length === players.length) {
       allCardsPlayedTimestamp = Date.now()
 
-      // Determine the winner of the play
-      const winnerCard = cardsOnTable.reduce((max, current) => (current.value > max.value ? current : max))
-      const winnerIndex = players.findIndex((p) => p.name === winnerCard.playerName)
-
-      // Update the score
-      players[winnerIndex].score = (players[winnerIndex].score || 0) + 1
-
-      // Move to the next play or round
-      if (currentPlay < currentRound) {
-        currentPlay++
-      } else {
-        // End of round
-        currentRound++
-        currentPlay = 1
-
-        // Check if the game is over
-        if (currentRound > 18) {
-          game.game_started = false
-        } else {
-          // Deal new cards for the next round
-          const cardsPerPlayer = currentRound <= 6 ? currentRound : currentRound <= 12 ? 6 : 18 - currentRound
-          players.forEach((player) => {
-            player.hand.push(...deck.splice(0, cardsPerPlayer))
-          })
-        }
-      }
-
-      // Set the starting player for the new play (winner of the previous play)
-      currentTurn = winnerIndex
+      // Don't clear the table or move to the next round yet
+      // This will be handled by the client-side after the 2-second delay
+    } else {
+      allCardsPlayedTimestamp = null
     }
 
     const gameData: GameData = {
