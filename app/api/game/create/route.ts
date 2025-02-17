@@ -6,23 +6,23 @@ import type { Player } from "@/types/game"
 export const runtime = "edge"
 
 export async function POST(req: NextRequest) {
-  const { playerName } = await req.json()
-
-  if (!playerName) {
-    return NextResponse.json({ error: "Player name is required" }, { status: 400 })
-  }
-
-  const tableId = uuidv4().slice(0, 8)
-
-  const owner: Player = {
-    name: playerName,
-    seatNumber: 1,
-    isOwner: true,
-    hand: [],
-    score: 0,
-  }
-
   try {
+    const { playerName } = await req.json()
+
+    if (!playerName) {
+      return NextResponse.json({ error: "Player name is required" }, { status: 400 })
+    }
+
+    const tableId = uuidv4().slice(0, 8)
+
+    const owner: Player = {
+      name: playerName,
+      seatNumber: 1,
+      isOwner: true,
+      hand: [],
+      score: 0,
+    }
+
     await sql`
       INSERT INTO poker_games (table_id, players, game_started)
       VALUES (${tableId}, ${JSON.stringify([owner])}::jsonb, false)

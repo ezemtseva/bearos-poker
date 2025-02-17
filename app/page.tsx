@@ -1,81 +1,26 @@
-"use client"
-
-import type React from "react"
-
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { useToast } from "@/hooks/use-toast"
 
 export default function Home() {
-  const [playerName, setPlayerName] = useState("")
-  const router = useRouter()
-  const { toast } = useToast()
-
-  useEffect(() => {
-    const storedPlayerName = localStorage.getItem("playerName")
-    if (storedPlayerName) {
-      setPlayerName(storedPlayerName)
-    }
-  }, [])
-
-  const handleCreateGame = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (!playerName) {
-      toast({
-        title: "Error",
-        description: "Please enter your name",
-        variant: "destructive",
-      })
-      return
-    }
-
-    localStorage.setItem("playerName", playerName)
-
-    try {
-      const response = await fetch("/api/game/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ playerName }),
-      })
-
-      const data = await response.json()
-      if (data.error) {
-        throw new Error(data.error)
-      }
-
-      router.push(`/game/${data.tableId}`)
-    } catch (error: unknown) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred while creating the game",
-        variant: "destructive",
-      })
-    }
-  }
-
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-4">Create a New Game</h1>
-      <form onSubmit={handleCreateGame} className="max-w-md">
-        <div className="mb-4">
-          <label htmlFor="playerName" className="block text-sm font-medium text-gray-700">
-            Your Name
-          </label>
-          <Input
-            type="text"
-            id="playerName"
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-            className="mt-1"
-            required
-          />
-        </div>
-        <Button type="submit">Create Game</Button>
-      </form>
+      <h1 className="text-3xl font-bold mb-4">Welcome to Bearos Poker</h1>
+      <p className="mb-4">Bearos Poker is a fun and exciting card game. Here are the basic rules:</p>
+      <ul className="list-disc list-inside mb-6">
+        <li>The game is played with 2-6 players</li>
+        <li>Each round, players are dealt a number of cards based on the round number</li>
+        <li>Players take turns playing one card at a time</li>
+        <li>The highest card wins each play</li>
+        <li>Points are awarded based on the number of plays won</li>
+      </ul>
+      <div className="space-x-4">
+        <Link href="/create-game">
+          <Button>Create Game</Button>
+        </Link>
+        <Link href="/join-game">
+          <Button variant="outline">Join Game</Button>
+        </Link>
+      </div>
     </div>
   )
 }
