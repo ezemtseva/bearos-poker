@@ -148,7 +148,11 @@ async function joinGame(tableId: string, player: Player): Promise<GameData> {
     throw new Error("Cannot join a game that has already started")
   }
 
-  const updatedPlayers = [...game.players, player]
+  const isFirstPlayer = game.players.length === 0
+  const updatedPlayer = { ...player, isOwner: isFirstPlayer }
+  const updatedPlayers = [...game.players, updatedPlayer]
+
+  console.log("Joining game. Updated players:", updatedPlayers)
 
   await sql`
     UPDATE poker_games 

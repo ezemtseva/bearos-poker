@@ -64,9 +64,12 @@ export default function Game() {
   const updateGameState = (data: GameData) => {
     setGameData(data)
     const currentPlayerName = localStorage.getItem("playerName")
+    console.log("Current player name:", currentPlayerName)
+    console.log("Players:", data.players)
     const isCurrentPlayerOwner = data.players.some(
       (player: Player) => player.isOwner && player.name === currentPlayerName,
     )
+    console.log("Is current player owner:", isCurrentPlayerOwner)
     setIsOwner(isCurrentPlayerOwner)
   }
 
@@ -151,6 +154,16 @@ export default function Game() {
   if (!gameData) {
     return <div>Loading...</div>
   }
+
+  console.log("Rendering GameTable with props:", {
+    tableId: gameData.tableId,
+    players: gameData.players,
+    isOwner,
+    gameStarted: gameData.gameStarted,
+    currentRound: gameData.currentRound,
+    currentPlay: gameData.currentPlay,
+    currentTurn: gameData.currentTurn,
+  })
 
   return (
     <div className="container mx-auto px-4 py-8">
