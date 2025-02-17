@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react"
 import { useParams } from "next/navigation"
 import GameTable from "../../../components/GameTable"
 import { useToast } from "@/hooks/use-toast"
-import type { GameData, Player, Card } from "../../../types/game"
+import type { GameData, Card } from "../../../types/game"
 
 export default function Game() {
   const params = useParams()
@@ -67,13 +67,13 @@ export default function Game() {
   }, [tableId, toast])
 
   const updateGameState = (data: GameData) => {
+    console.log("Updating game state. Received data:", data)
     setGameData(data)
     const storedPlayerName = localStorage.getItem("playerName")
-    console.log("Updating game state. Current player name:", storedPlayerName)
+    console.log("Current player name:", storedPlayerName)
     console.log("Players:", data.players)
-    const isCurrentPlayerOwner = data.players.some(
-      (player: Player) => player.isOwner && player.name === storedPlayerName,
-    )
+    const currentPlayer = data.players.find((player) => player.name === storedPlayerName)
+    const isCurrentPlayerOwner = currentPlayer?.isOwner || false
     console.log("Is current player owner:", isCurrentPlayerOwner)
     setIsOwner(isCurrentPlayerOwner)
     setCurrentPlayerName(storedPlayerName)
@@ -103,6 +103,7 @@ export default function Game() {
       }
 
       const data = await response.json()
+      console.log("Game started. Received data:", data)
       updateGameState(data.gameData)
 
       toast({
@@ -110,6 +111,7 @@ export default function Game() {
         description: "The game has been started successfully!",
       })
     } catch (error) {
+      console.error("Error starting game:", error)
       toast({
         title: "Error",
         description: "Failed to start the game. Please try again.",

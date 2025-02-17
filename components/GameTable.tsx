@@ -32,6 +32,17 @@ export default function GameTable({
   onPlayCard,
   gameData,
 }: GameTableProps) {
+  console.log("GameTable render. Props:", {
+    tableId,
+    players,
+    isOwner,
+    gameStarted,
+    currentRound,
+    currentPlay,
+    currentTurn,
+    cardsOnTable,
+    gameData,
+  })
   const currentPlayerName = localStorage.getItem("playerName")
   const currentPlayer = players.find((p) => p.name === currentPlayerName)
   const canStartGame = isOwner && players.length >= 2 && !gameStarted
@@ -104,15 +115,19 @@ export default function GameTable({
         <div className="mt-8">
           <h2 className="text-xl font-bold mb-2">Your Hand</h2>
           <div className="flex justify-center space-x-2">
-            {currentPlayer.hand.map((card, index) => (
-              <PlayingCard
-                key={index}
-                suit={card.suit}
-                value={card.value}
-                onClick={() => onPlayCard(card)}
-                disabled={!isCurrentPlayerTurn}
-              />
-            ))}
+            {currentPlayer.hand && currentPlayer.hand.length > 0 ? (
+              currentPlayer.hand.map((card, index) => (
+                <PlayingCard
+                  key={index}
+                  suit={card.suit}
+                  value={card.value}
+                  onClick={() => onPlayCard(card)}
+                  disabled={!isCurrentPlayerTurn}
+                />
+              ))
+            ) : (
+              <p>No cards in hand</p>
+            )}
           </div>
           {isCurrentPlayerTurn && (
             <p className="text-center mt-2 text-green-600 font-bold">It's your turn! Select a card to play.</p>
@@ -133,14 +148,20 @@ export default function GameTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {gameData.scoreTable.map((round) => (
-              <TableRow key={round.roundId}>
-                <TableCell>{round.roundName}</TableCell>
-                {players.map((player) => (
-                  <TableCell key={player.name}>{round.scores[player.name] || "-"}</TableCell>
-                ))}
+            {gameData.scoreTable && gameData.scoreTable.length > 0 ? (
+              gameData.scoreTable.map((round) => (
+                <TableRow key={round.roundId}>
+                  <TableCell>{round.roundName}</TableCell>
+                  {players.map((player) => (
+                    <TableCell key={player.name}>{(round.scores && round.scores[player.name]) || "-"}</TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={players.length + 1}>No scores available</TableCell>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
       </div>

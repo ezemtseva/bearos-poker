@@ -61,7 +61,8 @@ export async function POST(req: NextRequest) {
     const updatedPlayers = players.map((player, index) => ({
       ...player,
       seatNumber: index + 1,
-      score: 0, // Initialize score to 0
+      score: 0,
+      hand: [], // Initialize empty hand for each player
     }))
 
     const deck = createDeck()
@@ -76,19 +77,17 @@ export async function POST(req: NextRequest) {
       currentTurn: playersWithCards.findIndex((p) => p.isOwner),
       cardsOnTable: [],
       deck: updatedDeck,
-      scoreTable:
-        game.score_table ||
-        Array.from({ length: 18 }, (_, i) => ({
-          roundId: i + 1,
-          roundName: i < 6 ? (i + 1).toString() : i < 12 ? "B" : (18 - i).toString(),
-          scores: {},
-        })),
+      scoreTable: Array.from({ length: 18 }, (_, i) => ({
+        roundId: i + 1,
+        roundName: i < 6 ? (i + 1).toString() : i < 12 ? "B" : (18 - i).toString(),
+        scores: {},
+      })),
     }
 
     await sql`
       UPDATE poker_games
       SET game_started = true,
-          players = ${JSON.stringify(updatedPlayers)}::jsonb,
+          players = ${JSON.stringify(playersWithCards)}::jsonb,
           current_round = 1,
           current_play = 1,
           current_turn = ${gameData.currentTurn},
@@ -97,6 +96,8 @@ export async function POST(req: NextRequest) {
           score_table = ${JSON.stringify(gameData.scoreTable)}::jsonb
       WHERE table_id = ${tableId}
     `
+
+    console.log("Game started successfully. Game data:", gameData)
 
     return NextResponse.json({ message: "Game started successfully", gameData })
   } catch (error) {
