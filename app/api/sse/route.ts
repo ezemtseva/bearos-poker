@@ -71,6 +71,7 @@ async function getGameState(tableId: string): Promise<GameData> {
       cardsOnTable: [],
       deck: [],
       allCardsPlayedTimestamp: null,
+      playEndTimestamp: null,
     }
   }
   const row = result.rows[0]
@@ -85,6 +86,7 @@ async function getGameState(tableId: string): Promise<GameData> {
     cardsOnTable: row.cards_on_table || [],
     deck: row.deck || [],
     allCardsPlayedTimestamp: row.all_cards_played_timestamp || null,
+    playEndTimestamp: row.play_end_timestamp || null,
   }
 }
 
@@ -171,6 +173,7 @@ async function joinGame(tableId: string, player: Player): Promise<GameData> {
     deck: game.deck || [],
     scoreTable: game.score_table || initializeScoreTable(updatedPlayers),
     allCardsPlayedTimestamp: game.all_cards_played_timestamp || null,
+    playEndTimestamp: game.play_end_timestamp || null,
   }
 }
 
@@ -197,6 +200,7 @@ async function leaveGame(tableId: string, player: Player): Promise<GameData> {
     cardsOnTable: row.cards_on_table || [],
     deck: row.deck || [],
     allCardsPlayedTimestamp: row.all_cards_played_timestamp || null,
+    playEndTimestamp: row.play_end_timestamp || null,
   }
 }
 

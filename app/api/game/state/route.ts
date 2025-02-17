@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
       deck: game.deck,
       scoreTable: game.score_table,
       allCardsPlayedTimestamp: game.all_cards_played_timestamp,
+      playEndTimestamp: game.play_end_timestamp,
     }
 
     return NextResponse.json({ gameData })

@@ -25,7 +25,8 @@ async function getGameState(tableId: string): Promise<GameData> {
         roundName: index < 6 ? (index + 1).toString() : index < 12 ? "B" : (18 - index).toString(),
         scores: {},
       })),
-      allCardsPlayedTimestamp: null, // Add this line
+      allCardsPlayedTimestamp: null,
+      playEndTimestamp: null,
     }
   }
   const row = result.rows[0]
@@ -46,7 +47,8 @@ async function getGameState(tableId: string): Promise<GameData> {
         roundName: index < 6 ? (index + 1).toString() : index < 12 ? "B" : (18 - index).toString(),
         scores: {},
       })),
-    allCardsPlayedTimestamp: row.all_cards_played_timestamp || null, // Add this line
+    allCardsPlayedTimestamp: row.all_cards_played_timestamp || null,
+    playEndTimestamp: row.play_end_timestamp || null,
   }
 }
 
