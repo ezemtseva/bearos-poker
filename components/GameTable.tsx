@@ -1,5 +1,6 @@
+import { TableHeader } from "@/components/ui/table"
 import type { Player, Card, GameData } from "../types/game"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Table, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import PlayingCard from "./PlayingCard"
 

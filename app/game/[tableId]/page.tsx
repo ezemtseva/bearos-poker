@@ -121,7 +121,7 @@ export default function Game() {
   }
 
   const handlePlayCard = async (card: Card) => {
-    if (!gameData) return
+    if (!gameData || !currentPlayerName) return
 
     const currentPlayerIndex = gameData.players.findIndex((p) => p.name === currentPlayerName)
 
@@ -140,7 +140,7 @@ export default function Game() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ tableId, card }),
+        body: JSON.stringify({ tableId, playerName: currentPlayerName, card }),
       })
 
       if (!response.ok) {
@@ -148,8 +148,15 @@ export default function Game() {
       }
 
       const data = await response.json()
+      console.log("Card played. Received data:", data)
       updateGameState(data.gameData)
+
+      toast({
+        title: "Card Played",
+        description: "Your card has been played successfully.",
+      })
     } catch (error) {
+      console.error("Error playing card:", error)
       toast({
         title: "Error",
         description: "Failed to play the card. Please try again.",
