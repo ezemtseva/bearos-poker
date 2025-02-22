@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
     let allCardsPlayedTimestamp: number | null = game.all_cards_played_timestamp
     const scoreTable = game.score_table
     let deck = game.deck as Card[]
+    let allCardsPlayed = game.all_cards_played
 
     console.log("Initial game state:", {
       players,
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
     // Add the card to the table
     cardsOnTable.push({ ...card, playerName })
 
-    const allCardsPlayed = cardsOnTable.length === players.length
+    allCardsPlayed = cardsOnTable.length === players.length
     allCardsPlayedTimestamp = allCardsPlayed ? Date.now() : null
 
     // Send an immediate update with the new card on the table
@@ -201,8 +202,25 @@ export async function POST(req: NextRequest) {
 
       // Clear the table and reset flags
       cardsOnTable = []
-      const allCardsPlayed = false
+      allCardsPlayed = false
       allCardsPlayedTimestamp = null
+
+      // Send another update to clear the table
+      await sendSSEUpdate(tableId, {
+        tableId: game.table_id,
+        players,
+        gameStarted: game.game_started,
+        currentRound,
+        currentPlay,
+        currentTurn,
+        cardsOnTable,
+        deck,
+        scoreTable,
+        allCardsPlayedTimestamp,
+        playEndTimestamp: null,
+        lastPlayedCard: null,
+        allCardsPlayed: false,
+      })
     } else {
       // Move to the next turn
       currentTurn = getNextTurn(currentTurn, players.length)
@@ -221,7 +239,7 @@ export async function POST(req: NextRequest) {
       scoreTable,
       allCardsPlayedTimestamp,
       playEndTimestamp: null,
-      lastPlayedCard: { ...card, playerName },
+      lastPlayedCard: allCardsPlayed ? null : { ...card, playerName },
       allCardsPlayed,
     }
 

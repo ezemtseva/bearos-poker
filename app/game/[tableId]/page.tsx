@@ -89,7 +89,14 @@ export default function Game() {
       if (data.allCardsPlayed) {
         return {
           ...data,
-          cardsOnTable: prevData?.cardsOnTable || data.cardsOnTable,
+          cardsOnTable: data.cardsOnTable, // Use the received cardsOnTable
+        }
+      }
+      // If it's a new round, clear the table
+      if (prevData && data.currentRound > prevData.currentRound) {
+        return {
+          ...data,
+          cardsOnTable: [],
         }
       }
       // Otherwise, use the new game state
@@ -103,7 +110,7 @@ export default function Game() {
     console.log("Is current player owner:", isCurrentPlayerOwner)
     console.log("Current turn:", data.currentTurn)
     console.log("Is current player's turn:", data.players[data.currentTurn]?.name === storedPlayerName)
-    console.log("Last played card:", data.lastPlayedCard)
+    console.log("Cards on table:", data.cardsOnTable)
     setIsOwner(isCurrentPlayerOwner)
     setCurrentPlayerName(storedPlayerName)
   }
