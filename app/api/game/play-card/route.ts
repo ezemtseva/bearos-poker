@@ -56,7 +56,14 @@ export async function POST(req: NextRequest) {
 
       // Determine the winner of the play
       const winnerCard = cardsOnTable.reduce((max, current) => {
-        return current.value > max.value ? current : max
+        if (current.value > max.value) {
+          return current
+        } else if (current.value === max.value) {
+          // In case of a tie, the first card played wins
+          return max
+        } else {
+          return max
+        }
       })
       const winnerIndex = players.findIndex((p) => p.name === winnerCard.playerName)
 

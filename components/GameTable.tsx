@@ -2,7 +2,7 @@
 
 import { TableHeader } from "@/components/ui/table"
 import { useState, useEffect } from "react"
-import type { Player, Card, GameData } from "../types/game"
+import type { Player, Card, GameData, ScoreTableRow } from "../types/game"
 import { Table, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import PlayingCard from "./PlayingCard"
@@ -70,12 +70,6 @@ export default function GameTable({
     // Handle round end logic if needed
   }
 
-  const getRoundName = (round: number): string => {
-    if (round <= 6) return round.toString()
-    if (round <= 12) return "B"
-    return (19 - round).toString()
-  }
-
   const currentPlayerName = localStorage.getItem("playerName")
   const currentPlayer = players.find((p) => p.name === currentPlayerName)
   const canStartGame = isOwner && players.length >= 2 && !gameStarted
@@ -89,7 +83,7 @@ export default function GameTable({
         <p>Table ID: {tableId}</p>
         {gameStarted ? (
           <>
-            <p>Round: {getRoundName(currentRound)}</p>
+            <p>Round: {currentRound}</p>
             <p>Play: {currentPlay}</p>
             <p>Current Turn: {players[currentTurn]?.name}</p>
             <p>
@@ -106,8 +100,6 @@ export default function GameTable({
           </>
         )}
       </div>
-
-      <p className="text-center mt-2 italic">Remember: Trump cards (♠️) always win against other suits!</p>
 
       {/* Buttons */}
       <div className="flex justify-center space-x-4">
@@ -199,9 +191,9 @@ export default function GameTable({
           </TableHeader>
           <TableBody>
             {gameData.scoreTable && gameData.scoreTable.length > 0 ? (
-              gameData.scoreTable.map((round) => (
+              gameData.scoreTable.map((round: ScoreTableRow) => (
                 <TableRow key={round.roundId}>
-                  <TableCell>{getRoundName(round.roundId)}</TableCell>
+                  <TableCell>{round.roundName}</TableCell>
                   {players.map((player) => (
                     <TableCell key={player.name}>{(round.scores && round.scores[player.name]) || "-"}</TableCell>
                   ))}
