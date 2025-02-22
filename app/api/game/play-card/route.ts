@@ -45,6 +45,15 @@ export async function POST(req: NextRequest) {
     const scoreTable = game.score_table
     let deck = game.deck as Card[]
 
+    console.log("Initial game state:", {
+      players,
+      cardsOnTable,
+      currentRound,
+      currentPlay,
+      currentTurn,
+      allCardsPlayedTimestamp,
+    })
+
     // Find the current player
     const playerIndex = players.findIndex((p) => p.name === playerName)
     if (playerIndex === -1 || playerIndex !== currentTurn) {
@@ -79,10 +88,32 @@ export async function POST(req: NextRequest) {
       allCardsPlayed,
     })
 
-    // Check if the play is complete
+    console.log("All cards played:", allCardsPlayed)
+
     if (allCardsPlayed) {
+      console.log("All cards played, waiting 2 seconds before processing")
+
+      // Send an immediate update to show all cards on the table
+      await sendSSEUpdate(tableId, {
+        tableId: game.table_id,
+        players,
+        gameStarted: game.game_started,
+        currentRound,
+        currentPlay,
+        currentTurn,
+        cardsOnTable,
+        deck,
+        scoreTable,
+        allCardsPlayedTimestamp,
+        playEndTimestamp: null,
+        lastPlayedCard: { ...card, playerName },
+        allCardsPlayed: true,
+      })
+
       // Wait for 2 seconds to display all cards
       await new Promise((resolve) => setTimeout(resolve, 2000))
+
+      console.log("Processing end of play")
 
       // Determine the winner of the play
       const winnerCard = cardsOnTable.reduce((max, current) => {
@@ -172,23 +203,6 @@ export async function POST(req: NextRequest) {
       cardsOnTable = []
       const allCardsPlayed = false
       allCardsPlayedTimestamp = null
-
-      // Send an update to clear the table and move to the next play/round
-      await sendSSEUpdate(tableId, {
-        tableId: game.table_id,
-        players,
-        gameStarted: game.game_started,
-        currentRound,
-        currentPlay,
-        currentTurn,
-        cardsOnTable,
-        deck,
-        scoreTable,
-        allCardsPlayedTimestamp,
-        playEndTimestamp: null,
-        lastPlayedCard: null,
-        allCardsPlayed,
-      })
     } else {
       // Move to the next turn
       currentTurn = getNextTurn(currentTurn, players.length)
@@ -211,7 +225,7 @@ export async function POST(req: NextRequest) {
       allCardsPlayed,
     }
 
-    console.log("Updating game state:", finalGameData)
+    console.log("Final game state:", finalGameData)
     await sendSSEUpdate(tableId, finalGameData)
 
     await sql`

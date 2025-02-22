@@ -84,7 +84,17 @@ export default function Game() {
 
   const updateGameState = (data: GameData) => {
     console.log("Updating game state. Received data:", data)
-    setGameData(data)
+    setGameData((prevData) => {
+      // If all cards are played, keep the current cards on the table
+      if (data.allCardsPlayed) {
+        return {
+          ...data,
+          cardsOnTable: prevData?.cardsOnTable || data.cardsOnTable,
+        }
+      }
+      // Otherwise, use the new game state
+      return data
+    })
     const storedPlayerName = localStorage.getItem("playerName")
     console.log("Current player name:", storedPlayerName)
     console.log("Players:", data.players)

@@ -50,10 +50,11 @@ export default function GameTable({
         setDisplayedCards([])
       }, 2000)
       return () => clearTimeout(timer)
-    } else if (!isClearing) {
+    } else {
       setDisplayedCards(cardsOnTable)
+      setIsClearing(false)
     }
-  }, [cardsOnTable, gameData.allCardsPlayed, isClearing])
+  }, [cardsOnTable, gameData.allCardsPlayed])
 
   const currentPlayerName = localStorage.getItem("playerName")
   const currentPlayer = players.find((p) => p.name === currentPlayerName)
