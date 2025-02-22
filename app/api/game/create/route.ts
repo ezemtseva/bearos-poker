@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
       allCardsPlayedTimestamp: null,
       playEndTimestamp: null,
       lastPlayedCard: null,
+      allCardsPlayed: false, // Add this line
     }
 
     console.log("Attempting to insert new game into database")
@@ -56,7 +57,9 @@ export async function POST(req: NextRequest) {
           deck, 
           score_table, 
           all_cards_played_timestamp,
-          play_end_timestamp
+          play_end_timestamp,
+          last_played_card,
+          all_cards_played
         )
         VALUES (
           ${tableId}, 
@@ -69,7 +72,9 @@ export async function POST(req: NextRequest) {
           '[]'::jsonb, 
           '[]'::jsonb, 
           null,
-          null
+          null,
+          null,
+          false
         )
         RETURNING *
       `

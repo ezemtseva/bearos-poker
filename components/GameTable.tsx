@@ -39,21 +39,20 @@ export default function GameTable({
   lastPlayedCard,
 }: GameTableProps) {
   const [displayedCards, setDisplayedCards] = useState<Card[]>(cardsOnTable)
+  const [isClearing, setIsClearing] = useState(false)
 
   useEffect(() => {
-    setDisplayedCards(cardsOnTable)
-  }, [cardsOnTable])
-
-  useEffect(() => {
-    console.log("Game state updated:", {
-      currentRound,
-      currentPlay,
-      currentTurn,
-      isCurrentPlayerTurn,
-      currentPlayerName,
-      currentPlayerHand: currentPlayer?.hand,
-    })
-  }, [currentRound, currentPlay, currentTurn])
+    if (gameData.allCardsPlayed) {
+      setDisplayedCards(cardsOnTable)
+      setIsClearing(true)
+      const timer = setTimeout(() => {
+        setIsClearing(false)
+      }, 2000)
+      return () => clearTimeout(timer)
+    } else if (!isClearing) {
+      setDisplayedCards(cardsOnTable)
+    }
+  }, [cardsOnTable, gameData.allCardsPlayed, isClearing])
 
   const currentPlayerName = localStorage.getItem("playerName")
   const currentPlayer = players.find((p) => p.name === currentPlayerName)
@@ -62,15 +61,6 @@ export default function GameTable({
     currentPlayer && gameData.players[gameData.currentTurn]?.name === currentPlayer.name && gameStarted
 
   const cardsThisRound = currentRound <= 6 ? currentRound : currentRound <= 12 ? 13 - currentRound : 19 - currentRound
-
-  console.log("Current game state:", {
-    currentRound,
-    currentPlay,
-    currentTurn,
-    isCurrentPlayerTurn,
-    currentPlayerName,
-    currentPlayerHand: currentPlayer?.hand,
-  })
 
   return (
     <div className="space-y-8">
@@ -132,12 +122,12 @@ export default function GameTable({
 
         {/* Cards on table */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex space-x-2">
-          {displayedCards.map((card, index) => (
+          {(isClearing ? displayedCards : cardsOnTable).map((card, index) => (
             <div key={index}>
               <PlayingCard suit={card.suit} value={card.value} disabled />
             </div>
           ))}
-          {lastPlayedCard && displayedCards.length === 0 && (
+          {lastPlayedCard && cardsOnTable.length === 0 && (
             <div>
               <PlayingCard suit={lastPlayedCard.suit} value={lastPlayedCard.value} disabled />
             </div>
@@ -151,21 +141,15 @@ export default function GameTable({
           <h2 className="text-xl font-bold mb-2">Your Hand</h2>
           <div className="flex justify-center space-x-2">
             {currentPlayer.hand && currentPlayer.hand.length > 0 ? (
-              currentPlayer.hand.map((card, index) => {
-                console.log(`Rendering card ${index}:`, card, `Disabled: ${!isCurrentPlayerTurn}`)
-                return (
-                  <PlayingCard
-                    key={index}
-                    suit={card.suit}
-                    value={card.value}
-                    onClick={() => {
-                      console.log(`Attempting to play card:`, card)
-                      onPlayCard(card)
-                    }}
-                    disabled={!isCurrentPlayerTurn}
-                  />
-                )
-              })
+              currentPlayer.hand.map((card, index) => (
+                <PlayingCard
+                  key={index}
+                  suit={card.suit}
+                  value={card.value}
+                  onClick={() => onPlayCard(card)}
+                  disabled={!isCurrentPlayerTurn || isClearing}
+                />
+              ))
             ) : (
               <p>No cards in hand</p>
             )}

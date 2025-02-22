@@ -26,26 +26,27 @@ export async function GET() {
           score_table JSONB DEFAULT '[]'::jsonb,
           all_cards_played_timestamp BIGINT,
           play_end_timestamp BIGINT,
-          last_played_card JSONB
+          last_played_card JSONB,
+          all_cards_played BOOLEAN DEFAULT FALSE
         );
       `
       console.log("Table 'poker_games' created successfully")
     } else {
-      // Check if the last_played_card column exists
+      // Check if the all_cards_played column exists
       const columnExists = await sql`
         SELECT EXISTS (
           SELECT FROM information_schema.columns 
-          WHERE table_name = 'poker_games' AND column_name = 'last_played_card'
+          WHERE table_name = 'poker_games' AND column_name = 'all_cards_played'
         );
       `
 
       if (!columnExists.rows[0].exists) {
-        // Add the last_played_card column if it doesn't exist
+        // Add the all_cards_played column if it doesn't exist
         await sql`
           ALTER TABLE poker_games
-          ADD COLUMN last_played_card JSONB;
+          ADD COLUMN all_cards_played BOOLEAN DEFAULT FALSE;
         `
-        console.log("Column 'last_played_card' added successfully")
+        console.log("Column 'all_cards_played' added successfully")
       }
 
       // Alter the table to add missing columns (if any)
@@ -60,7 +61,8 @@ export async function GET() {
         ADD COLUMN IF NOT EXISTS score_table JSONB DEFAULT '[]'::jsonb,
         ADD COLUMN IF NOT EXISTS all_cards_played_timestamp BIGINT,
         ADD COLUMN IF NOT EXISTS play_end_timestamp BIGINT,
-        ADD COLUMN IF NOT EXISTS last_played_card JSONB;
+        ADD COLUMN IF NOT EXISTS last_played_card JSONB,
+        ADD COLUMN IF NOT EXISTS all_cards_played BOOLEAN DEFAULT FALSE;
       `
       console.log("Table 'poker_games' updated successfully")
     }

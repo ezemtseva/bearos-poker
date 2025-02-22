@@ -91,6 +91,7 @@ export async function POST(req: NextRequest) {
       allCardsPlayedTimestamp: null,
       playEndTimestamp: null,
       lastPlayedCard: null,
+      allCardsPlayed: false, // Add this line
     }
 
     await sql`
@@ -105,7 +106,7 @@ export async function POST(req: NextRequest) {
           score_table = ${JSON.stringify(gameData.scoreTable)}::jsonb,
           all_cards_played_timestamp = null,
           play_end_timestamp = null,
-          last_played_card = null
+          all_cards_played = false
       WHERE table_id = ${tableId}
     `
 

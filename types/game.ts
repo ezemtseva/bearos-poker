@@ -32,6 +32,7 @@ export interface Player {
     allCardsPlayedTimestamp: number | null
     playEndTimestamp: number | null
     lastPlayedCard: Card | null
+    allCardsPlayed: boolean // Add this line
   }
   
   
