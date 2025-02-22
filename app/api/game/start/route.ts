@@ -1,7 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
-import type { GameData, Player, Card } from "../../../../types/game"
+import type { GameData, Player, Card, ScoreTableRow } from "../../../../types/game"
 import { createDeck } from "../../../utils/deck"
+import { sendSSEUpdate } from "../../../utils/sse"
 
 export const runtime = "edge"
 
@@ -13,6 +14,28 @@ function dealCards(players: Player[], deck: Card[], cardsPerPlayer: number): [Pl
     roundWins: 0,
   }))
   return [updatedPlayers, deck]
+}
+
+function initializeScoreTable(players: Player[]): ScoreTableRow[] {
+  return Array.from({ length: 18 }, (_, index) => {
+    const roundId = index + 1
+    let roundName
+    if (roundId <= 6) {
+      roundName = roundId.toString()
+    } else if (roundId <= 12) {
+      roundName = "B"
+    } else {
+      roundName = (19 - roundId).toString()
+    }
+    const scores = players.reduce(
+      (acc, player) => {
+        acc[player.name] = null
+        return acc
+      },
+      {} as { [playerName: string]: number | null },
+    )
+    return { roundId, roundName, scores }
+  })
 }
 
 export async function POST(req: NextRequest) {
@@ -38,6 +61,11 @@ export async function POST(req: NextRequest) {
     // Remove empty seats
     players = players.filter((player) => player.name !== "")
 
+    // Ensure we have at least 2 players
+    if (players.length < 2) {
+      return NextResponse.json({ error: "At least 2 players are required to start the game" }, { status: 400 })
+    }
+
     // Reassign seat numbers
     players = players.map((player, index) => ({
       ...player,
@@ -59,11 +87,7 @@ export async function POST(req: NextRequest) {
       currentTurn: ownerIndex,
       cardsOnTable: [],
       deck: remainingDeck,
-      scoreTable: Array.from({ length: 18 }, (_, i) => ({
-        roundId: i + 1,
-        roundName: i < 6 ? (i + 1).toString() : i < 12 ? "B" : (18 - i).toString(),
-        scores: {},
-      })),
+      scoreTable: initializeScoreTable(playersWithCards),
       allCardsPlayedTimestamp: null,
       playEndTimestamp: null,
     }
@@ -84,6 +108,9 @@ export async function POST(req: NextRequest) {
     `
 
     console.log("Game started successfully. Game data:", gameData)
+
+    // Send SSE update to all connected clients
+    await sendSSEUpdate(tableId, gameData)
 
     return NextResponse.json({ message: "Game started successfully", gameData })
   } catch (error) {

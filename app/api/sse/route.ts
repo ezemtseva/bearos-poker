@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
       const pollInterval = setInterval(async () => {
         const latestState = await getGameState(tableId)
         sendEvent("update", JSON.stringify(latestState))
-      }, 5000) // Poll every 5 seconds
+      }, 1000) // Poll every second
 
       // Heartbeat to keep connection alive
       const heartbeat = setInterval(() => {
@@ -110,97 +110,5 @@ function initializeScoreTable(players: Player[]): ScoreTableRow[] {
     )
     return { roundId, roundName, scores }
   })
-}
-
-export async function POST(req: NextRequest) {
-  const { tableId, action, player } = await req.json()
-
-  if (!tableId || !action) {
-    return new NextResponse("Table ID and action are required", { status: 400 })
-  }
-
-  let updatedState: GameData
-
-  switch (action) {
-    case "join":
-      updatedState = await joinGame(tableId, player)
-      break
-    case "leave":
-      updatedState = await leaveGame(tableId, player)
-      break
-    default:
-      return new NextResponse("Invalid action", { status: 400 })
-  }
-
-  return new NextResponse(JSON.stringify(updatedState), {
-    headers: { "Content-Type": "application/json" },
-  })
-}
-
-async function joinGame(tableId: string, player: Player): Promise<GameData> {
-  const result = await sql`
-    SELECT * FROM poker_games
-    WHERE table_id = ${tableId};
-  `
-
-  if (result.rows.length === 0) {
-    throw new Error("Game not found")
-  }
-
-  const game = result.rows[0]
-
-  if (game.game_started) {
-    throw new Error("Cannot join a game that has already started")
-  }
-
-  const updatedPlayers = [...game.players, player]
-
-  await sql`
-    UPDATE poker_games 
-    SET players = ${JSON.stringify(updatedPlayers)}::jsonb
-    WHERE table_id = ${tableId}
-    RETURNING *;
-  `
-
-  return {
-    tableId: game.table_id,
-    players: updatedPlayers,
-    gameStarted: game.game_started,
-    currentRound: game.current_round,
-    currentPlay: game.current_play,
-    currentTurn: game.current_turn,
-    cardsOnTable: game.cards_on_table || [],
-    deck: game.deck || [],
-    scoreTable: game.score_table || initializeScoreTable(updatedPlayers),
-    allCardsPlayedTimestamp: game.all_cards_played_timestamp || null,
-    playEndTimestamp: game.play_end_timestamp || null,
-  }
-}
-
-async function leaveGame(tableId: string, player: Player): Promise<GameData> {
-  const result = await sql`
-    UPDATE poker_games 
-    SET players = (
-      SELECT jsonb_agg(p)
-      FROM jsonb_array_elements(players) p
-      WHERE p->>'name' != ${player.name}
-    )
-    WHERE table_id = ${tableId}
-    RETURNING *;
-  `
-  const row = result.rows[0]
-  return {
-    tableId: row.table_id,
-    players: row.players as Player[],
-    gameStarted: row.game_started || false,
-    scoreTable: row.score_table || initializeScoreTable(row.players),
-    currentRound: row.current_round,
-    currentPlay: row.current_play,
-    currentTurn: row.current_turn,
-    cardsOnTable: row.cards_on_table || [],
-    deck: row.deck || [],
-    allCardsPlayedTimestamp: row.all_cards_played_timestamp || null,
-    playEndTimestamp: row.play_end_timestamp || null,
-  }
 }
 

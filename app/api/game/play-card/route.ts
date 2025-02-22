@@ -13,7 +13,7 @@ function getNextTurn(currentTurn: number, playerCount: number): number {
 function dealCards(players: Player[], deck: Card[], cardsPerPlayer: number): [Player[], Card[]] {
   const updatedPlayers = players.map((player) => ({
     ...player,
-    hand: deck.splice(0, cardsPerPlayer),
+    hand: [...player.hand, ...deck.splice(0, cardsPerPlayer)],
   }))
   return [updatedPlayers, deck]
 }
@@ -103,8 +103,11 @@ export async function POST(req: NextRequest) {
           // Start new round
           const newCardsPerRound =
             currentRound <= 6 ? currentRound : currentRound <= 12 ? 13 - currentRound : 19 - currentRound
-          deck = createDeck() // Create a new deck for the new round
-          ;[players, deck] = dealCards(players, deck, newCardsPerRound)
+          if (deck.length < newCardsPerRound * players.length) {
+            deck = createDeck() // Create a new deck if needed
+          }
+          ;[players, deck] = dealCards(players, deck, 1) // Deal 1 new card to each player
+          currentTurn = (currentTurn + 1) % players.length // Move to the next player in clockwise order
         } else {
           // Game over
           const gameOverData: GameData = {
@@ -136,10 +139,10 @@ export async function POST(req: NextRequest) {
           await sendSSEUpdate(tableId, gameOverData)
           return NextResponse.json({ message: "Game over", gameData: gameOverData })
         }
+      } else {
+        // Set the starting player for the next play to the winner of the current play
+        currentTurn = winnerIndex
       }
-
-      // Set the starting player for the next play
-      currentTurn = winnerIndex
       cardsOnTable = [] // Clear the table for the next play
     } else {
       // Move to the next turn

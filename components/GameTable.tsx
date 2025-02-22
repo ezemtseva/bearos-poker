@@ -44,36 +44,21 @@ export default function GameTable({
 
     if (gameData.playEndTimestamp && !isProcessingPlay) {
       setIsProcessingPlay(true)
-      const delay = 1500 - (Date.now() - gameData.playEndTimestamp)
-
-      if (delay > 0) {
-        const timer = setTimeout(() => {
-          processPlayEnd()
-        }, delay)
-        return () => clearTimeout(timer)
-      } else {
-        processPlayEnd()
-      }
+      const delay = 2000 // 2 seconds delay
+      const timer = setTimeout(() => {
+        setDisplayedCards([])
+        setIsProcessingPlay(false)
+      }, delay)
+      return () => clearTimeout(timer)
     }
-
-    if (gameData.allCardsPlayedTimestamp) {
-      processRoundEnd()
-    }
-  }, [cardsOnTable, gameData.playEndTimestamp, gameData.allCardsPlayedTimestamp, isProcessingPlay])
-
-  const processPlayEnd = () => {
-    setIsProcessingPlay(false)
-    setDisplayedCards([])
-  }
-
-  const processRoundEnd = () => {
-    // Handle round end logic if needed
-  }
+  }, [cardsOnTable, gameData.playEndTimestamp, isProcessingPlay])
 
   const currentPlayerName = localStorage.getItem("playerName")
   const currentPlayer = players.find((p) => p.name === currentPlayerName)
   const canStartGame = isOwner && players.length >= 2 && !gameStarted
   const isCurrentPlayerTurn = currentPlayer && gameData.players[gameData.currentTurn]?.name === currentPlayer.name
+
+  const cardsThisRound = currentRound <= 6 ? currentRound : currentRound <= 12 ? 13 - currentRound : 19 - currentRound
 
   return (
     <div className="space-y-8">
@@ -86,10 +71,7 @@ export default function GameTable({
             <p>Round: {currentRound}</p>
             <p>Play: {currentPlay}</p>
             <p>Current Turn: {players[currentTurn]?.name}</p>
-            <p>
-              Cards this round:{" "}
-              {currentRound <= 6 ? currentRound : currentRound <= 12 ? 13 - currentRound : 19 - currentRound}
-            </p>
+            <p>Cards this round: {cardsThisRound}</p>
           </>
         ) : (
           <>
