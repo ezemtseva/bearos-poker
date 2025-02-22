@@ -5,7 +5,7 @@ import type { GameData, Player, Card } from "../../../../types/game"
 export const runtime = "edge"
 
 function createDeck(): Card[] {
-  const suits = ["trumps", "hearts", "diamonds", "clubs"] as const
+  const suits = ["hearts", "diamonds", "clubs", "spades"] as const
   const values = [6, 7, 8, 9, 10, 11, 12, 13, 14]
   const deck: Card[] = []
 
@@ -26,11 +26,21 @@ function shuffleDeck(deck: Card[]): Card[] {
   return deck
 }
 
-function dealCards(players: Player[], deck: Card[], cardsPerPlayer: number): [Player[], Card[]] {
+function dealCards(players: Player[], deck: Card[]): [Player[], Card[]] {
   const updatedPlayers = players.map((player) => ({
     ...player,
-    hand: deck.splice(0, cardsPerPlayer),
+    hand: [] as Card[], // Explicitly type the hand as Card[]
+    score: 0,
+    roundWins: 0,
   }))
+
+  for (let round = 1; round <= 18; round++) {
+    const cardsPerPlayer = round <= 6 ? round : round <= 12 ? 13 - round : 19 - round
+    for (let i = 0; i < players.length; i++) {
+      updatedPlayers[i].hand.push(...deck.splice(0, cardsPerPlayer))
+    }
+  }
+
   return [updatedPlayers, deck]
 }
 
@@ -58,15 +68,13 @@ export async function POST(req: NextRequest) {
     players = players.filter((player) => player.name !== "")
 
     // Reassign seat numbers
-    const updatedPlayers = players.map((player, index) => ({
+    players = players.map((player, index) => ({
       ...player,
       seatNumber: index + 1,
-      score: 0,
-      hand: [], // Initialize empty hand for each player
     }))
 
     const deck = createDeck()
-    const [playersWithCards, updatedDeck] = dealCards(updatedPlayers, deck, 1) // Deal 1 card for the first round
+    const [playersWithCards, remainingDeck] = dealCards(players, deck)
 
     // Find the owner to set as the starting player
     const ownerIndex = playersWithCards.findIndex((p) => p.isOwner)
@@ -79,7 +87,7 @@ export async function POST(req: NextRequest) {
       currentPlay: 1,
       currentTurn: ownerIndex,
       cardsOnTable: [],
-      deck: updatedDeck,
+      deck: remainingDeck,
       scoreTable: Array.from({ length: 18 }, (_, i) => ({
         roundId: i + 1,
         roundName: i < 6 ? (i + 1).toString() : i < 12 ? "B" : (18 - i).toString(),
@@ -97,7 +105,7 @@ export async function POST(req: NextRequest) {
           current_play = 1,
           current_turn = ${ownerIndex},
           cards_on_table = '[]'::jsonb,
-          deck = ${JSON.stringify(updatedDeck)}::jsonb,
+          deck = ${JSON.stringify(remainingDeck)}::jsonb,
           score_table = ${JSON.stringify(gameData.scoreTable)}::jsonb,
           all_cards_played_timestamp = null,
           play_end_timestamp = null

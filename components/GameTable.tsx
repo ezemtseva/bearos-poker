@@ -55,11 +55,19 @@ export default function GameTable({
         processPlayEnd()
       }
     }
-  }, [cardsOnTable, gameData.playEndTimestamp, isProcessingPlay])
+
+    if (gameData.allCardsPlayedTimestamp) {
+      processRoundEnd()
+    }
+  }, [cardsOnTable, gameData.playEndTimestamp, gameData.allCardsPlayedTimestamp, isProcessingPlay])
 
   const processPlayEnd = () => {
     setIsProcessingPlay(false)
     setDisplayedCards([])
+  }
+
+  const processRoundEnd = () => {
+    // Handle round end logic if needed
   }
 
   const currentPlayerName = localStorage.getItem("playerName")
@@ -78,9 +86,18 @@ export default function GameTable({
             <p>Round: {currentRound}</p>
             <p>Play: {currentPlay}</p>
             <p>Current Turn: {players[currentTurn]?.name}</p>
+            <p>
+              Cards this round:{" "}
+              {currentRound <= 6 ? currentRound : currentRound <= 12 ? 13 - currentRound : 19 - currentRound}
+            </p>
           </>
         ) : (
-          <p>Waiting for game to start...</p>
+          <>
+            <p>Waiting for game to start...</p>
+            {!gameStarted && players.length < 2 && (
+              <p className="text-yellow-600 font-semibold">Waiting for more players to join...</p>
+            )}
+          </>
         )}
       </div>
 
@@ -148,8 +165,14 @@ export default function GameTable({
               <p>No cards in hand</p>
             )}
           </div>
-          {isCurrentPlayerTurn && !isProcessingPlay && (
-            <p className="text-center mt-2 text-green-600 font-bold">It's your turn! Select a card to play.</p>
+          {gameStarted && currentRound <= 18 && (
+            <p className="text-center mt-2 font-bold">
+              {isCurrentPlayerTurn ? (
+                <span className="text-green-600">It's your turn! Select a card to play.</span>
+              ) : (
+                <span className="text-blue-600">Waiting for {players[currentTurn]?.name}'s turn...</span>
+              )}
+            </p>
           )}
         </div>
       )}
@@ -184,6 +207,29 @@ export default function GameTable({
           </TableBody>
         </Table>
       </div>
+
+      {/* Game Over Message */}
+      {currentRound > 18 && (
+        <div className="mt-8 text-center">
+          <h2 className="text-3xl font-bold mb-4">Game Over!</h2>
+          <h3 className="text-xl font-semibold mb-2">Final Scores:</h3>
+          <ul>
+            {players
+              .sort((a, b) => b.score - a.score)
+              .map((player, index) => (
+                <li key={player.name} className={`text-lg ${index === 0 ? "font-bold text-green-600" : ""}`}>
+                  {index === 0 && "🏆 "}
+                  {player.name}: {player.score} points
+                </li>
+              ))}
+          </ul>
+          {isOwner && (
+            <Button onClick={onStartGame} className="mt-4">
+              Start New Game
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

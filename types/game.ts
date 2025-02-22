@@ -4,10 +4,11 @@ export interface Player {
     isOwner: boolean
     hand: Card[]
     score: number
+    roundWins: number
   }
   
   export interface Card {
-    suit: "trumps" | "hearts" | "diamonds" | "clubs"
+    suit: "hearts" | "diamonds" | "clubs" | "spades"
     value: number // 6-14, where 11=J, 12=Q, 13=K, 14=A
     playerName?: string
   }

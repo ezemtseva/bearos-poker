@@ -9,28 +9,6 @@ function getNextTurn(currentTurn: number, playerCount: number): number {
   return (currentTurn + 1) % playerCount
 }
 
-function createDeck(): Card[] {
-  const suits = ["trumps", "hearts", "diamonds", "clubs"] as const
-  const values = [6, 7, 8, 9, 10, 11, 12, 13, 14]
-  const deck: Card[] = []
-
-  for (const suit of suits) {
-    for (const value of values) {
-      deck.push({ suit, value })
-    }
-  }
-
-  return shuffleDeck(deck)
-}
-
-function shuffleDeck(deck: Card[]): Card[] {
-  for (let i = deck.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[deck[i], deck[j]] = [deck[j], deck[i]]
-  }
-  return deck
-}
-
 export async function POST(req: NextRequest) {
   const { tableId, playerName, card } = await req.json()
 
@@ -49,14 +27,13 @@ export async function POST(req: NextRequest) {
     }
 
     const game = result.rows[0]
-    let players = game.players as Player[]
-    const cardsOnTable = game.cards_on_table as Card[]
+    const players = game.players as Player[]
+    let cardsOnTable = game.cards_on_table as Card[]
     let currentRound = game.current_round
     let currentPlay = game.current_play
     let currentTurn = game.current_turn
-    let deck = game.deck as Card[]
-    let allCardsPlayedTimestamp: number | null = null
     let playEndTimestamp: number | null = null
+    let allCardsPlayedTimestamp: number | null = game.all_cards_played_timestamp
     const scoreTable = game.score_table
 
     // Find the current player
@@ -78,53 +55,72 @@ export async function POST(req: NextRequest) {
       playEndTimestamp = Date.now()
 
       // Determine the winner of the play
-      const winnerCard = cardsOnTable.reduce((max, current) => (current.value > max.value ? current : max))
+      const winnerCard = cardsOnTable.reduce((max, current) => {
+        return current.value > max.value ? current : max
+      })
       const winnerIndex = players.findIndex((p) => p.name === winnerCard.playerName)
 
-      // Update scores
-      players[winnerIndex].score = (players[winnerIndex].score || 0) + 1
-
-      // Update score table
-      const roundIndex = currentRound - 1
-      if (!scoreTable[roundIndex]) {
-        scoreTable[roundIndex] = {
-          roundId: currentRound,
-          roundName:
-            currentRound <= 6 ? currentRound.toString() : currentRound <= 12 ? "B" : (19 - currentRound).toString(),
-          scores: {},
-        }
-      }
-      players.forEach((player) => {
-        scoreTable[roundIndex].scores[player.name] = player.score
-      })
+      // Update round wins for the winner
+      players[winnerIndex].roundWins = (players[winnerIndex].roundWins || 0) + 1
 
       // Prepare for the next play or round
       currentPlay++
-      if (currentPlay > currentRound) {
+      const cardsPerRound =
+        currentRound <= 6 ? currentRound : currentRound <= 12 ? 13 - currentRound : 19 - currentRound
+      if (currentPlay > cardsPerRound) {
+        // End of round
         allCardsPlayedTimestamp = Date.now()
+
+        // Update scores in the score table
+        const roundIndex = currentRound - 1
+        players.forEach((player) => {
+          scoreTable[roundIndex].scores[player.name] = player.roundWins
+          player.score += player.roundWins
+          player.roundWins = 0 // Reset for next round
+        })
+
         currentRound++
         currentPlay = 1
 
-        // Deal new cards for the new round
-        deck = createDeck()
-        const cardsPerPlayer =
-          currentRound <= 6 ? currentRound : currentRound <= 12 ? 13 - currentRound : 19 - currentRound
-
-        players = players.map((player) => ({
-          ...player,
-          hand: deck.splice(0, cardsPerPlayer),
-        }))
-
-        // Set the starting player for the new round
-        currentTurn = winnerIndex
-      } else {
-        // Set the starting player for the next play
-        currentTurn = winnerIndex
+        if (currentRound > 18) {
+          // Game over
+          const gameOverData: GameData = {
+            tableId: game.table_id,
+            players,
+            gameStarted: false,
+            currentRound: 18,
+            currentPlay: 0,
+            currentTurn: -1,
+            cardsOnTable: [],
+            deck: [],
+            scoreTable,
+            allCardsPlayedTimestamp: Date.now(),
+            playEndTimestamp: null,
+          }
+          await sql`
+            UPDATE poker_games
+            SET game_started = false,
+                players = ${JSON.stringify(players)}::jsonb,
+                current_round = 18,
+                current_play = 0,
+                current_turn = -1,
+                cards_on_table = '[]'::jsonb,
+                score_table = ${JSON.stringify(scoreTable)}::jsonb,
+                all_cards_played_timestamp = ${gameOverData.allCardsPlayedTimestamp},
+                play_end_timestamp = null
+            WHERE table_id = ${tableId}
+          `
+          await sendSSEUpdate(tableId, gameOverData)
+          return NextResponse.json({ message: "Game over", gameData: gameOverData })
+        }
       }
+
+      // Set the starting player for the next play
+      currentTurn = winnerIndex
+      cardsOnTable = [] // Clear the table for the next play
     } else {
-      // Move to the next turn immediately
+      // Move to the next turn
       currentTurn = getNextTurn(currentTurn, players.length)
-      playEndTimestamp = null // Reset playEndTimestamp as the play is not complete
     }
 
     const gameData: GameData = {
@@ -137,8 +133,8 @@ export async function POST(req: NextRequest) {
       cardsOnTable,
       deck: game.deck,
       scoreTable,
+      allCardsPlayedTimestamp,
       playEndTimestamp,
-      allCardsPlayedTimestamp: currentPlay > currentRound ? Date.now() : null,
     }
 
     await sql`
@@ -148,9 +144,8 @@ export async function POST(req: NextRequest) {
           current_play = ${currentPlay},
           current_turn = ${currentTurn},
           cards_on_table = ${JSON.stringify(cardsOnTable)}::jsonb,
-          deck = ${JSON.stringify(deck)}::jsonb,
           game_started = ${game.game_started},
-          all_cards_played_timestamp = ${gameData.allCardsPlayedTimestamp},
+          all_cards_played_timestamp = ${allCardsPlayedTimestamp},
           play_end_timestamp = ${playEndTimestamp},
           score_table = ${JSON.stringify(scoreTable)}::jsonb
       WHERE table_id = ${tableId}

@@ -83,12 +83,16 @@ export default function Game() {
   }, [tableId])
 
   const updateGameState = (data: GameData) => {
+    console.log("Updating game state. Received data:", data)
     setGameData(data)
     const storedPlayerName = localStorage.getItem("playerName")
+    console.log("Current player name:", storedPlayerName)
+    console.log("Players:", data.players)
     const currentPlayer = data.players.find((player) => player.name === storedPlayerName)
-    setIsOwner(currentPlayer?.isOwner || false)
-    // You might want to do something with allCardsPlayedTimestamp here if needed
-    console.log("All cards played timestamp:", data.allCardsPlayedTimestamp)
+    const isCurrentPlayerOwner = currentPlayer?.isOwner || false
+    console.log("Is current player owner:", isCurrentPlayerOwner)
+    setIsOwner(isCurrentPlayerOwner)
+    setCurrentPlayerName(storedPlayerName)
   }
 
   const handleShare = () => {
@@ -156,22 +160,30 @@ export default function Game() {
       })
 
       if (!response.ok) {
-        throw new Error("Failed to play the card")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to play the card")
       }
 
       const data = await response.json()
       console.log("Card played. Received data:", data)
       updateGameState(data.gameData)
 
-      toast({
-        title: "Card Played",
-        description: "Your card has been played successfully.",
-      })
+      if (data.message === "Game over") {
+        toast({
+          title: "Game Over",
+          description: "The game has ended. Check the final scores!",
+        })
+      } else {
+        toast({
+          title: "Card Played",
+          description: "Your card has been played successfully.",
+        })
+      }
     } catch (error) {
       console.error("Error playing card:", error)
       toast({
         title: "Error",
-        description: "Failed to play the card. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to play the card. Please try again.",
         variant: "destructive",
       })
     }
