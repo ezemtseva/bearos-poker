@@ -60,6 +60,27 @@ export async function POST(req: NextRequest) {
     // Add the card to the table
     cardsOnTable.push({ ...card, playerName })
 
+    const gameData: GameData = {
+      tableId: game.table_id,
+      players,
+      gameStarted: game.game_started,
+      currentRound,
+      currentPlay,
+      currentTurn,
+      cardsOnTable,
+      deck,
+      scoreTable,
+      allCardsPlayedTimestamp,
+      playEndTimestamp,
+    }
+
+    // After adding a card to the table
+    console.log("Sending SSE update after card played:", { ...gameData, cardsOnTable })
+    await sendSSEUpdate(tableId, {
+      ...gameData,
+      cardsOnTable,
+    })
+
     // Check if the play is complete
     if (cardsOnTable.length === players.length) {
       playEndTimestamp = Date.now()
@@ -142,13 +163,27 @@ export async function POST(req: NextRequest) {
         // Set the starting player for the next play to the winner of the current play
         currentTurn = winnerIndex
       }
+
+      // If the play is complete, wait for 2 seconds before clearing the table
+      setTimeout(async () => {
+        cardsOnTable = []
+        const updatedGameData = {
+          ...gameData,
+          cardsOnTable,
+          currentPlay: currentPlay,
+          currentTurn,
+          // Update other necessary fields
+        }
+        console.log("Sending SSE update after clearing table:", updatedGameData)
+        await sendSSEUpdate(tableId, updatedGameData)
+      }, 2000)
       cardsOnTable = [] // Clear the table for the next play
     } else {
       // Move to the next turn
       currentTurn = getNextTurn(currentTurn, players.length)
     }
 
-    const gameData: GameData = {
+    const finalGameData: GameData = {
       tableId: game.table_id,
       players,
       gameStarted: game.game_started,
@@ -161,6 +196,9 @@ export async function POST(req: NextRequest) {
       allCardsPlayedTimestamp,
       playEndTimestamp,
     }
+
+    console.log("Sending final SSE update:", finalGameData)
+    await sendSSEUpdate(tableId, finalGameData)
 
     await sql`
       UPDATE poker_games
@@ -178,9 +216,9 @@ export async function POST(req: NextRequest) {
     `
 
     // Send SSE update to all connected clients
-    await sendSSEUpdate(tableId, gameData)
+    await sendSSEUpdate(tableId, finalGameData)
 
-    return NextResponse.json({ message: "Card played successfully", gameData })
+    return NextResponse.json({ message: "Card played successfully", gameData: finalGameData })
   } catch (error) {
     console.error("Error playing card:", error)
     return NextResponse.json({ error: "Failed to play card" }, { status: 500 })

@@ -91,6 +91,8 @@ export default function Game() {
     const currentPlayer = data.players.find((player) => player.name === storedPlayerName)
     const isCurrentPlayerOwner = currentPlayer?.isOwner || false
     console.log("Is current player owner:", isCurrentPlayerOwner)
+    console.log("Current turn:", data.currentTurn)
+    console.log("Is current player's turn:", data.players[data.currentTurn]?.name === storedPlayerName)
     setIsOwner(isCurrentPlayerOwner)
     setCurrentPlayerName(storedPlayerName)
   }

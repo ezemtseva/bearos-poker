@@ -56,7 +56,8 @@ export default function GameTable({
   const currentPlayerName = localStorage.getItem("playerName")
   const currentPlayer = players.find((p) => p.name === currentPlayerName)
   const canStartGame = isOwner && players.length >= 2 && !gameStarted
-  const isCurrentPlayerTurn = currentPlayer && gameData.players[gameData.currentTurn]?.name === currentPlayer.name
+  const isCurrentPlayerTurn =
+    currentPlayer && gameData.players[gameData.currentTurn]?.name === currentPlayer.name && gameStarted
 
   const cardsThisRound = currentRound <= 6 ? currentRound : currentRound <= 12 ? 13 - currentRound : 19 - currentRound
 
