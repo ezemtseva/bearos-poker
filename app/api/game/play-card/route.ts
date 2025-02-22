@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     // Add the card to the table
     cardsOnTable.push({ ...card, playerName })
 
-    let allCardsPlayed = cardsOnTable.length === players.length
+    const allCardsPlayed = cardsOnTable.length === players.length
     allCardsPlayedTimestamp = allCardsPlayed ? Date.now() : null
 
     // Send an immediate update with the new card on the table
@@ -170,8 +170,7 @@ export async function POST(req: NextRequest) {
 
       // Clear the table and reset flags
       cardsOnTable = []
-      allCardsPlayed = false
-      allCardsPlayedTimestamp = null
+      const allCardsPlayed = false
     } else {
       // Move to the next turn
       currentTurn = getNextTurn(currentTurn, players.length)
