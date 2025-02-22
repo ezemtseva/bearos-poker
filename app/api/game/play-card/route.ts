@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
 
     // Check if the play is complete
     if (allCardsPlayed) {
-      // Wait for 2 seconds before clearing the table
+      // Wait for 2 seconds to display all cards
       await new Promise((resolve) => setTimeout(resolve, 2000))
 
       // Determine the winner of the play
@@ -171,6 +171,24 @@ export async function POST(req: NextRequest) {
       // Clear the table and reset flags
       cardsOnTable = []
       const allCardsPlayed = false
+      allCardsPlayedTimestamp = null
+
+      // Send an update to clear the table and move to the next play/round
+      await sendSSEUpdate(tableId, {
+        tableId: game.table_id,
+        players,
+        gameStarted: game.game_started,
+        currentRound,
+        currentPlay,
+        currentTurn,
+        cardsOnTable,
+        deck,
+        scoreTable,
+        allCardsPlayedTimestamp,
+        playEndTimestamp: null,
+        lastPlayedCard: null,
+        allCardsPlayed,
+      })
     } else {
       // Move to the next turn
       currentTurn = getNextTurn(currentTurn, players.length)
