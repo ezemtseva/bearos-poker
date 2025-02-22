@@ -60,8 +60,8 @@ interface PlayingCardProps {
         onClick={onClick}
         disabled={disabled}
         className={`relative w-24 h-36 bg-white rounded-lg shadow-md transition-transform 
-          ${disabled ? "opacity-50" : "hover:scale-105 hover:shadow-lg"} 
-          border border-gray-200`}
+          ${disabled ? "opacity-100" : "hover:scale-105 hover:shadow-lg"} 
+          border border-gray-300`}
         aria-label={`${displayValue} of ${suit}`}
       >
         {/* Card corners */}
