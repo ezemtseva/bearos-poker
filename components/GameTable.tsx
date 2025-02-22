@@ -40,7 +40,6 @@ export default function GameTable({
 }: GameTableProps) {
   const [displayedCards, setDisplayedCards] = useState<Card[]>(cardsOnTable)
   const [isClearing, setIsClearing] = useState(false)
-  const [localPlayers, setPlayers] = useState(players)
 
   useEffect(() => {
     if (gameData.allCardsPlayed) {
@@ -51,34 +50,18 @@ export default function GameTable({
         setDisplayedCards([])
       }, 2000)
       return () => clearTimeout(timer)
-    } else {
+    } else if (!isClearing) {
       setDisplayedCards(cardsOnTable)
-      setIsClearing(false)
     }
-  }, [cardsOnTable, gameData.allCardsPlayed])
+  }, [cardsOnTable, gameData.allCardsPlayed, isClearing])
 
   const currentPlayerName = localStorage.getItem("playerName")
-  const currentPlayer = localPlayers.find((p) => p.name === currentPlayerName)
-  const canStartGame = isOwner && localPlayers.length >= 2 && !gameStarted
+  const currentPlayer = players.find((p) => p.name === currentPlayerName)
+  const canStartGame = isOwner && players.length >= 2 && !gameStarted
   const isCurrentPlayerTurn =
     currentPlayer && gameData.players[gameData.currentTurn]?.name === currentPlayer.name && gameStarted
 
   const cardsThisRound = currentRound <= 6 ? currentRound : currentRound <= 12 ? 13 - currentRound : 19 - currentRound
-
-  const handlePlayCard = (card: Card) => {
-    if (!isCurrentPlayerTurn || isClearing) return
-
-    // Immediately remove the card from the player's hand
-    const updatedHand = currentPlayer.hand.filter((c) => !(c.suit === card.suit && c.value === card.value))
-    const updatedPlayer = { ...currentPlayer, hand: updatedHand }
-    const updatedPlayers = localPlayers.map((p) => (p.name === currentPlayer.name ? updatedPlayer : p))
-
-    // Update the local state
-    setPlayers(updatedPlayers)
-
-    // Call the original onPlayCard function
-    onPlayCard(card)
-  }
 
   return (
     <div className="space-y-8">
@@ -90,13 +73,13 @@ export default function GameTable({
           <>
             <p>Round: {currentRound}</p>
             <p>Play: {currentPlay}</p>
-            <p>Current Turn: {localPlayers[currentTurn]?.name}</p>
+            <p>Current Turn: {players[currentTurn]?.name}</p>
             <p>Cards this round: {cardsThisRound}</p>
           </>
         ) : (
           <>
             <p>Waiting for game to start...</p>
-            {!gameStarted && localPlayers.length < 2 && (
+            {!gameStarted && players.length < 2 && (
               <p className="text-yellow-600 font-semibold">Waiting for more players to join...</p>
             )}
           </>
@@ -112,8 +95,8 @@ export default function GameTable({
       {/* Table with seats */}
       <div className="relative w-[600px] h-[400px] mx-auto">
         <div className="absolute inset-0 bg-green-600 border-8 border-black rounded-[50%]"></div>
-        {localPlayers.map((player, index) => {
-          const angle = index * (360 / localPlayers.length) * (Math.PI / 180)
+        {players.map((player, index) => {
+          const angle = index * (360 / players.length) * (Math.PI / 180)
           const xRadius = 280
           const yRadius = 180
           const left = 300 + xRadius * Math.cos(angle)
@@ -123,7 +106,7 @@ export default function GameTable({
             <div
               key={index}
               className={`absolute w-20 h-20 -ml-10 -mt-10 rounded-full flex items-center justify-center text-center shadow-md ${
-                localPlayers[currentTurn]?.name === player.name ? "bg-yellow-200" : "bg-gray-200"
+                players[currentTurn]?.name === player.name ? "bg-yellow-200" : "bg-gray-200"
               }`}
               style={{
                 left: `${left}px`,
@@ -164,7 +147,7 @@ export default function GameTable({
                   key={index}
                   suit={card.suit}
                   value={card.value}
-                  onClick={() => handlePlayCard(card)}
+                  onClick={() => onPlayCard(card)}
                   disabled={!isCurrentPlayerTurn || isClearing}
                 />
               ))
@@ -177,7 +160,7 @@ export default function GameTable({
               {isCurrentPlayerTurn ? (
                 <span className="text-green-600">It's your turn! Select a card to play.</span>
               ) : (
-                <span className="text-blue-600">Waiting for {localPlayers[currentTurn]?.name}'s turn...</span>
+                <span className="text-blue-600">Waiting for {players[currentTurn]?.name}'s turn...</span>
               )}
             </p>
           )}
@@ -191,7 +174,7 @@ export default function GameTable({
           <TableHeader>
             <TableRow>
               <TableHead>Round</TableHead>
-              {localPlayers.map((player) => (
+              {players.map((player) => (
                 <TableHead key={player.name}>{player.name}</TableHead>
               ))}
             </TableRow>
@@ -201,14 +184,14 @@ export default function GameTable({
               gameData.scoreTable.map((round: ScoreTableRow) => (
                 <TableRow key={round.roundId}>
                   <TableCell>{round.roundName}</TableCell>
-                  {localPlayers.map((player) => (
+                  {players.map((player) => (
                     <TableCell key={player.name}>{(round.scores && round.scores[player.name]) || "-"}</TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={localPlayers.length + 1}>No scores available</TableCell>
+                <TableCell colSpan={players.length + 1}>No scores available</TableCell>
               </TableRow>
             )}
           </TableBody>
@@ -221,7 +204,7 @@ export default function GameTable({
           <h2 className="text-3xl font-bold mb-4">Game Over!</h2>
           <h3 className="text-xl font-semibold mb-2">Final Scores:</h3>
           <ul>
-            {localPlayers
+            {players
               .sort((a, b) => b.score - a.score)
               .map((player, index) => (
                 <li key={player.name} className={`text-lg ${index === 0 ? "font-bold text-green-600" : ""}`}>
