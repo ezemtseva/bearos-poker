@@ -68,13 +68,16 @@ export async function POST(req: NextRequest) {
     const deck = createDeck()
     const [playersWithCards, updatedDeck] = dealCards(updatedPlayers, deck, 1) // Deal 1 card for the first round
 
+    // Find the owner to set as the starting player
+    const ownerIndex = playersWithCards.findIndex((p) => p.isOwner)
+
     const gameData: GameData = {
       tableId: game.table_id,
       players: playersWithCards,
       gameStarted: true,
       currentRound: 1,
       currentPlay: 1,
-      currentTurn: playersWithCards.findIndex((p) => p.isOwner),
+      currentTurn: ownerIndex,
       cardsOnTable: [],
       deck: updatedDeck,
       scoreTable: Array.from({ length: 18 }, (_, i) => ({
@@ -92,7 +95,7 @@ export async function POST(req: NextRequest) {
           players = ${JSON.stringify(playersWithCards)}::jsonb,
           current_round = 1,
           current_play = 1,
-          current_turn = ${gameData.currentTurn},
+          current_turn = ${ownerIndex},
           cards_on_table = '[]'::jsonb,
           deck = ${JSON.stringify(updatedDeck)}::jsonb,
           score_table = ${JSON.stringify(gameData.scoreTable)}::jsonb,
