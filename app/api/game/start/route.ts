@@ -91,7 +91,8 @@ export async function POST(req: NextRequest) {
       allCardsPlayedTimestamp: null,
       playEndTimestamp: null,
       lastPlayedCard: null,
-      allCardsPlayed: false, // Add this line
+      allCardsPlayed: false,
+      highestCard: null,
     }
 
     await sql`
