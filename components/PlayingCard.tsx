@@ -6,7 +6,7 @@ interface PlayingCardProps {
   }
   
   const SuitSymbol = ({ suit, className = "" }: { suit: string; className?: string }) => {
-    // SVG paths for each suit
+    // SVG paths for each suit - simplified to match the design
     const symbols = {
       hearts: (
         <path
@@ -17,7 +17,7 @@ interface PlayingCardProps {
       diamonds: <path d="M12 2L22 12L12 22L2 12L12 2Z" fill="currentColor" />,
       spades: (
         <path
-          d="M12 2L19 12C19 15.5 16.5 17 14.5 17C13.5 17 13 16.5 12 16.5C11 16.5 10.5 17 9.5 17C7.5 17 5 15.5 5 12L12 2ZM11 17.5V21H13V17.5"
+          d="M12 3L19 13C19 16.5 16.5 18 14.5 18C13.5 18 13 17.5 12 17.5C11 17.5 10.5 18 9.5 18C7.5 18 5 16.5 5 13L12 3Z"
           fill="currentColor"
         />
       ),
@@ -59,25 +59,27 @@ interface PlayingCardProps {
       <button
         onClick={onClick}
         disabled={disabled}
-        className={`relative w-24 h-36 bg-white rounded-lg shadow-md transition-transform 
+        className={`relative w-[70px] h-[100px] bg-white rounded-lg shadow-[2px_2px_10px_rgba(0,0,0,0.15)] 
+          transition-transform hover:shadow-[2px_4px_16px_rgba(0,0,0,0.2)]
           ${disabled ? "opacity-100" : "hover:scale-105 hover:shadow-lg"} 
-          border border-gray-300`}
+          border border-gray-100`}
         aria-label={`${displayValue} of ${suit}`}
       >
-        {/* Card corners */}
+        {/* Top left corner */}
         <div className="absolute top-2 left-2 flex flex-col items-center">
-          <span className={`text-xl font-bold ${isRed ? "text-red-600" : "text-black"}`}>{displayValue}</span>
-          <SuitSymbol suit={suit} className={`w-4 h-4 ${isRed ? "text-red-600" : "text-black"}`} />
+          <span className={`text-xl font-bold ${isRed ? "text-red-500" : "text-black"}`}>{displayValue}</span>
+          <SuitSymbol suit={suit} className={`w-3 h-3 ${isRed ? "text-red-500" : "text-black"}`} />
         </div>
   
+        {/* Bottom right corner */}
         <div className="absolute bottom-2 right-2 flex flex-col items-center rotate-180">
-          <span className={`text-xl font-bold ${isRed ? "text-red-600" : "text-black"}`}>{displayValue}</span>
-          <SuitSymbol suit={suit} className={`w-4 h-4 ${isRed ? "text-red-600" : "text-black"}`} />
+          <span className={`text-xl font-bold ${isRed ? "text-red-500" : "text-black"}`}>{displayValue}</span>
+          <SuitSymbol suit={suit} className={`w-3 h-3 ${isRed ? "text-red-500" : "text-black"}`} />
         </div>
   
         {/* Center symbol */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <SuitSymbol suit={suit} className={`w-16 h-16 ${isRed ? "text-red-600" : "text-black"}`} />
+          <SuitSymbol suit={suit} className={`w-12 h-12 ${isRed ? "text-red-500" : "text-black"} transform scale-150`} />
         </div>
       </button>
     )
