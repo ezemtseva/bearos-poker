@@ -72,28 +72,10 @@ export async function POST(req: NextRequest) {
       scoreTable,
       allCardsPlayedTimestamp,
       playEndTimestamp,
-      lastPlayedCard: { ...card, playerName }, // Add this line
+      lastPlayedCard: { ...card, playerName },
     }
 
-    // After adding a card to the table
-    console.log("Sending SSE update after card played:", { ...gameData, cardsOnTable })
-
-    // Send immediate SSE update for the played card
-    await sendSSEUpdate(tableId, {
-      ...gameData,
-      cardsOnTable,
-      lastPlayedCard: { ...card, playerName },
-    })
-
-    // Set a timeout to clear the table after 2 seconds
-    setTimeout(async () => {
-      const updatedGameData = {
-        ...gameData,
-        cardsOnTable: [],
-        lastPlayedCard: null,
-      }
-      await sendSSEUpdate(tableId, updatedGameData)
-    }, 2000)
+    console.log("Card played:", { ...gameData, cardsOnTable })
 
     // Check if the play is complete
     if (cardsOnTable.length === players.length) {
@@ -131,7 +113,7 @@ export async function POST(req: NextRequest) {
           player.roundWins = 0 // Reset for next round
         })
 
-        if (currentRound <= 18) {
+        if (currentRound < 18) {
           // Start new round
           currentRound++
           currentPlay = 1
@@ -141,7 +123,10 @@ export async function POST(req: NextRequest) {
             deck = createDeck() // Create a new deck if needed
           }
           ;[players, deck] = dealCards(players, deck, newCardsPerRound) // Deal the correct number of cards for the new round
-          currentTurn = (winnerIndex + 1) % players.length // Set the turn to the player after the last round's winner
+          currentTurn = winnerIndex // Set the turn to the winner of the last round
+          console.log(
+            `Starting Round ${currentRound}. Cards dealt: ${newCardsPerRound} per player. First turn: ${players[currentTurn].name}`,
+          )
         } else {
           // Game over
           const gameOverData: GameData = {
@@ -156,7 +141,7 @@ export async function POST(req: NextRequest) {
             scoreTable,
             allCardsPlayedTimestamp: Date.now(),
             playEndTimestamp: null,
-            lastPlayedCard: null, // Add this line
+            lastPlayedCard: null,
           }
           await sql`
             UPDATE poker_games
@@ -168,7 +153,8 @@ export async function POST(req: NextRequest) {
                 cards_on_table = '[]'::jsonb,
                 score_table = ${JSON.stringify(scoreTable)}::jsonb,
                 all_cards_played_timestamp = ${gameOverData.allCardsPlayedTimestamp},
-                play_end_timestamp = null
+                play_end_timestamp = null,
+                last_played_card = null
             WHERE table_id = ${tableId}
           `
           await sendSSEUpdate(tableId, gameOverData)
@@ -179,17 +165,6 @@ export async function POST(req: NextRequest) {
         currentTurn = winnerIndex
       }
 
-      // If the play is complete, update the game state after 2 seconds
-      setTimeout(async () => {
-        const updatedGameData = {
-          ...gameData,
-          currentPlay: currentPlay,
-          currentTurn,
-          currentRound,
-          scoreTable,
-        }
-        await sendSSEUpdate(tableId, updatedGameData)
-      }, 2000)
       cardsOnTable = [] // Clear the table for the next play
     } else {
       // Move to the next turn
@@ -211,7 +186,7 @@ export async function POST(req: NextRequest) {
       lastPlayedCard: cardsOnTable.length > 0 ? cardsOnTable[cardsOnTable.length - 1] : null,
     }
 
-    console.log("Sending final SSE update:", finalGameData)
+    console.log("Updating game state:", finalGameData)
     await sendSSEUpdate(tableId, finalGameData)
 
     await sql`
@@ -229,9 +204,6 @@ export async function POST(req: NextRequest) {
           last_played_card = ${JSON.stringify(finalGameData.lastPlayedCard)}::jsonb
       WHERE table_id = ${tableId}
     `
-
-    // Send SSE update to all connected clients
-    await sendSSEUpdate(tableId, finalGameData)
 
     return NextResponse.json({ message: "Card played successfully", gameData: finalGameData })
   } catch (error) {
