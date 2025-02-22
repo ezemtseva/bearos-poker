@@ -43,13 +43,17 @@ export default function JoinGameClient() {
     console.log("Player name stored in localStorage:", playerName)
 
     try {
-      const response = await fetch("/api/sse", {
+      const response = await fetch("/api/game/join", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ action: "join", tableId, player: { name: playerName, seatNumber: 0, isOwner: false } }),
+        body: JSON.stringify({ tableId, playerName }),
       })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
 
       const data = await response.json()
       if (data.error) {
