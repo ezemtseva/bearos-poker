@@ -96,17 +96,16 @@ export async function POST(req: NextRequest) {
           player.roundWins = 0 // Reset for next round
         })
 
-        currentRound++
-        currentPlay = 1
-
         if (currentRound <= 18) {
           // Start new round
+          currentRound++
+          currentPlay = 1
           const newCardsPerRound =
             currentRound <= 6 ? currentRound : currentRound <= 12 ? 13 - currentRound : 19 - currentRound
           if (deck.length < newCardsPerRound * players.length) {
             deck = createDeck() // Create a new deck if needed
           }
-          ;[players, deck] = dealCards(players, deck, 1) // Deal 1 new card to each player
+          ;[players, deck] = dealCards(players, deck, newCardsPerRound) // Deal the correct number of cards for the new round
           currentTurn = (currentTurn + 1) % players.length // Move to the next player in clockwise order
         } else {
           // Game over
