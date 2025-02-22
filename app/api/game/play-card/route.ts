@@ -37,15 +37,13 @@ export async function POST(req: NextRequest) {
 
     const game = result.rows[0]
     let players = game.players as Player[]
-    const cardsOnTable = game.cards_on_table as Card[]
+    let cardsOnTable = game.cards_on_table as Card[]
     let currentRound = game.current_round
     let currentPlay = game.current_play
     let currentTurn = game.current_turn
-    let playEndTimestamp: number | null = null
     let allCardsPlayedTimestamp: number | null = game.all_cards_played_timestamp
     const scoreTable = game.score_table
     let deck = game.deck as Card[]
-    let allCardsPlayed = false
 
     // Find the current player
     const playerIndex = players.findIndex((p) => p.name === playerName)
@@ -61,10 +59,37 @@ export async function POST(req: NextRequest) {
     // Add the card to the table
     cardsOnTable.push({ ...card, playerName })
 
+    const gameData: GameData = {
+      tableId: game.table_id,
+      players,
+      gameStarted: game.game_started,
+      currentRound,
+      currentPlay,
+      currentTurn,
+      cardsOnTable,
+      deck,
+      scoreTable,
+      allCardsPlayedTimestamp,
+      playEndTimestamp: null,
+      lastPlayedCard: { ...card, playerName },
+      allCardsPlayed: cardsOnTable.length === players.length,
+    }
+
+    console.log("Card played:", { ...gameData, cardsOnTable })
+
     // Check if the play is complete
     if (cardsOnTable.length === players.length) {
-      allCardsPlayed = true
-      playEndTimestamp = Date.now()
+      allCardsPlayedTimestamp = Date.now()
+
+      // Send an immediate update with all cards visible
+      await sendSSEUpdate(tableId, {
+        ...gameData,
+        allCardsPlayed: true,
+        allCardsPlayedTimestamp,
+      })
+
+      // Wait for 2 seconds before clearing the table
+      await new Promise((resolve) => setTimeout(resolve, 2000))
 
       // Determine the winner of the play
       const winnerCard = cardsOnTable.reduce((max, current) => {
@@ -88,8 +113,6 @@ export async function POST(req: NextRequest) {
         currentRound <= 6 ? currentRound : currentRound <= 12 ? 13 - currentRound : 19 - currentRound
       if (currentPlay > cardsPerRound) {
         // End of round
-        allCardsPlayedTimestamp = Date.now()
-
         // Update scores in the score table
         const roundIndex = currentRound - 1
         players.forEach((player) => {
@@ -151,12 +174,16 @@ export async function POST(req: NextRequest) {
         // Set the starting player for the next play to the winner of the current play
         currentTurn = winnerIndex
       }
+
+      // Clear the table and send the final update
+      cardsOnTable = []
+      allCardsPlayedTimestamp = null
     } else {
       // Move to the next turn
       currentTurn = getNextTurn(currentTurn, players.length)
     }
 
-    const gameData: GameData = {
+    const finalGameData: GameData = {
       tableId: game.table_id,
       players,
       gameStarted: game.game_started,
@@ -167,13 +194,13 @@ export async function POST(req: NextRequest) {
       deck,
       scoreTable,
       allCardsPlayedTimestamp,
-      playEndTimestamp,
-      lastPlayedCard: { ...card, playerName },
-      allCardsPlayed,
+      playEndTimestamp: null,
+      lastPlayedCard: cardsOnTable.length > 0 ? cardsOnTable[cardsOnTable.length - 1] : null,
+      allCardsPlayed: false,
     }
 
-    console.log("Updating game state:", gameData)
-    await sendSSEUpdate(tableId, gameData)
+    console.log("Updating game state:", finalGameData)
+    await sendSSEUpdate(tableId, finalGameData)
 
     await sql`
       UPDATE poker_games
@@ -185,34 +212,14 @@ export async function POST(req: NextRequest) {
           deck = ${JSON.stringify(deck)}::jsonb,
           game_started = ${game.game_started},
           all_cards_played_timestamp = ${allCardsPlayedTimestamp},
-          play_end_timestamp = ${playEndTimestamp},
+          play_end_timestamp = null,
           score_table = ${JSON.stringify(scoreTable)}::jsonb,
-          last_played_card = ${JSON.stringify(gameData.lastPlayedCard)}::jsonb,
-          all_cards_played = ${allCardsPlayed}
+          last_played_card = ${JSON.stringify(finalGameData.lastPlayedCard)}::jsonb,
+          all_cards_played = false
       WHERE table_id = ${tableId}
     `
 
-    // If all cards are played, set a timeout to clear the table after 2 seconds
-    if (allCardsPlayed) {
-      setTimeout(async () => {
-        const updatedGameData: GameData = {
-          ...gameData,
-          cardsOnTable: [],
-          lastPlayedCard: null,
-          allCardsPlayed: false,
-        }
-        await sendSSEUpdate(tableId, updatedGameData)
-        await sql`
-          UPDATE poker_games
-          SET cards_on_table = '[]'::jsonb,
-              last_played_card = null,
-              all_cards_played = false
-          WHERE table_id = ${tableId}
-        `
-      }, 2000)
-    }
-
-    return NextResponse.json({ message: "Card played successfully", gameData })
+    return NextResponse.json({ message: "Card played successfully", gameData: finalGameData })
   } catch (error) {
     console.error("Error playing card:", error)
     return NextResponse.json({ error: "Failed to play card" }, { status: 500 })

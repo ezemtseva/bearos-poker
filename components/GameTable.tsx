@@ -47,6 +47,7 @@ export default function GameTable({
       setIsClearing(true)
       const timer = setTimeout(() => {
         setIsClearing(false)
+        setDisplayedCards([])
       }, 2000)
       return () => clearTimeout(timer)
     } else if (!isClearing) {
@@ -122,12 +123,12 @@ export default function GameTable({
 
         {/* Cards on table */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex space-x-2">
-          {(isClearing ? displayedCards : cardsOnTable).map((card, index) => (
+          {displayedCards.map((card, index) => (
             <div key={index}>
               <PlayingCard suit={card.suit} value={card.value} disabled />
             </div>
           ))}
-          {lastPlayedCard && cardsOnTable.length === 0 && (
+          {lastPlayedCard && displayedCards.length === 0 && (
             <div>
               <PlayingCard suit={lastPlayedCard.suit} value={lastPlayedCard.value} disabled />
             </div>
