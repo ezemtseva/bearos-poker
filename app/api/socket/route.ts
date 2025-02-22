@@ -27,6 +27,7 @@ async function getGameState(tableId: string): Promise<GameData> {
       })),
       allCardsPlayedTimestamp: null,
       playEndTimestamp: null,
+      lastPlayedCard: null,
     }
   }
   const row = result.rows[0]
@@ -49,6 +50,7 @@ async function getGameState(tableId: string): Promise<GameData> {
       })),
     allCardsPlayedTimestamp: row.all_cards_played_timestamp || null,
     playEndTimestamp: row.play_end_timestamp || null,
+    lastPlayedCard: row.last_played_card || null,
   }
 }
 
