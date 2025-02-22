@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     const game = result.rows[0]
     let players = game.players as Player[]
-    let cardsOnTable = game.cards_on_table as Card[]
+    const cardsOnTable = game.cards_on_table as Card[]
     let currentRound = game.current_round
     let currentPlay = game.current_play
     let currentTurn = game.current_turn
@@ -101,9 +101,9 @@ export async function POST(req: NextRequest) {
       // Prepare for the next play or round
       currentPlay++
       if (currentPlay > currentRound) {
+        allCardsPlayedTimestamp = Date.now()
         currentRound++
         currentPlay = 1
-        allCardsPlayedTimestamp = Date.now()
 
         // Deal new cards for the new round
         deck = createDeck()
@@ -114,11 +114,6 @@ export async function POST(req: NextRequest) {
           ...player,
           hand: deck.splice(0, cardsPerPlayer),
         }))
-
-        cardsOnTable = []
-      } else {
-        // Set up for the next play within the same round
-        cardsOnTable = []
       }
       currentTurn = winnerIndex
     } else {

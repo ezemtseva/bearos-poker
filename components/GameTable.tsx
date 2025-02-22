@@ -38,12 +38,27 @@ export default function GameTable({
   gameData,
 }: GameTableProps) {
   const [displayedCards, setDisplayedCards] = useState<Card[]>(cardsOnTable)
+  const [isProcessingPlay, setIsProcessingPlay] = useState(false)
 
   useEffect(() => {
     setDisplayedCards(cardsOnTable)
 
+    if (gameData.playEndTimestamp && !isProcessingPlay) {
+      setIsProcessingPlay(true)
+      const delay = 1500 - (Date.now() - gameData.playEndTimestamp)
+
+      if (delay > 0) {
+        const timer = setTimeout(() => {
+          processPlayEnd()
+        }, delay)
+        return () => clearTimeout(timer)
+      } else {
+        processPlayEnd()
+      }
+    }
+
     if (gameData.allCardsPlayedTimestamp) {
-      const delay = 1000 - (Date.now() - gameData.allCardsPlayedTimestamp)
+      const delay = 1500 - (Date.now() - gameData.allCardsPlayedTimestamp)
 
       if (delay > 0) {
         const timer = setTimeout(() => {
@@ -54,10 +69,18 @@ export default function GameTable({
         processRoundEnd()
       }
     }
-  }, [cardsOnTable, gameData])
+  }, [cardsOnTable, gameData, isProcessingPlay])
+
+  const processPlayEnd = () => {
+    setIsProcessingPlay(false)
+    if (!gameData.allCardsPlayedTimestamp) {
+      setDisplayedCards([])
+    }
+  }
 
   const processRoundEnd = async () => {
     setDisplayedCards([])
+    setIsProcessingPlay(false)
 
     // Determine the winner of the play
     const winnerCard =
@@ -74,11 +97,12 @@ export default function GameTable({
         players: gameData.players.map((player, index) =>
           index === winnerIndex ? { ...player, score: (player.score || 0) + 1 } : player,
         ),
-        currentPlay: gameData.currentPlay < gameData.currentRound ? gameData.currentPlay + 1 : 1,
-        currentRound: gameData.currentPlay < gameData.currentRound ? gameData.currentRound : gameData.currentRound + 1,
+        currentPlay: 1,
+        currentRound: gameData.currentRound + 1,
         currentTurn: winnerIndex,
         cardsOnTable: [],
         allCardsPlayedTimestamp: null,
+        playEndTimestamp: null,
       }
 
       // Update the server with the new game state
@@ -163,7 +187,7 @@ export default function GameTable({
 
         {/* Cards on table */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex space-x-2">
-          {gameData.cardsOnTable.map((card, index) => (
+          {displayedCards.map((card, index) => (
             <div key={index}>
               <PlayingCard suit={card.suit} value={card.value} disabled />
             </div>
@@ -183,14 +207,14 @@ export default function GameTable({
                   suit={card.suit}
                   value={card.value}
                   onClick={() => onPlayCard(card)}
-                  disabled={!isCurrentPlayerTurn}
+                  disabled={!isCurrentPlayerTurn || isProcessingPlay}
                 />
               ))
             ) : (
               <p>No cards in hand</p>
             )}
           </div>
-          {isCurrentPlayerTurn && (
+          {isCurrentPlayerTurn && !isProcessingPlay && (
             <p className="text-center mt-2 text-green-600 font-bold">It's your turn! Select a card to play.</p>
           )}
         </div>
