@@ -58,7 +58,7 @@ export default function GameTable({
     }
 
     if (gameData.allCardsPlayedTimestamp) {
-      const delay = 1500 - (Date.now() - gameData.allCardsPlayedTimestamp)
+      const delay = 1000 - (Date.now() - gameData.allCardsPlayedTimestamp)
 
       if (delay > 0) {
         const timer = setTimeout(() => {
@@ -73,14 +73,11 @@ export default function GameTable({
 
   const processPlayEnd = () => {
     setIsProcessingPlay(false)
-    if (!gameData.allCardsPlayedTimestamp) {
-      setDisplayedCards([])
-    }
+    setDisplayedCards([])
   }
 
   const processRoundEnd = async () => {
     setDisplayedCards([])
-    setIsProcessingPlay(false)
 
     // Determine the winner of the play
     const winnerCard =
@@ -97,8 +94,8 @@ export default function GameTable({
         players: gameData.players.map((player, index) =>
           index === winnerIndex ? { ...player, score: (player.score || 0) + 1 } : player,
         ),
-        currentPlay: 1,
-        currentRound: gameData.currentRound + 1,
+        currentPlay: gameData.currentPlay < gameData.currentRound ? gameData.currentPlay + 1 : 1,
+        currentRound: gameData.currentPlay < gameData.currentRound ? gameData.currentRound : gameData.currentRound + 1,
         currentTurn: winnerIndex,
         cardsOnTable: [],
         allCardsPlayedTimestamp: null,
