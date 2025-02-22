@@ -94,13 +94,25 @@ export default function GameTable({
       </div>
 
       {/* Table with seats */}
-      <div className="relative w-[600px] h-[400px] mx-auto">
-        <div className="absolute inset-0 bg-green-600 border-8 border-black rounded-[50%]"></div>
+      <div className="relative w-[800px] h-[400px] mx-auto">
+        {/* Table shadow */}
+        <div className="absolute inset-0 rounded-[200px/100px] bg-black/20 transform translate-y-2 blur-md"></div>
+
+        {/* Table rail (border) */}
+        <div className="absolute inset-0 rounded-[200px/100px] bg-[#e6e0d4] shadow-lg"></div>
+
+        {/* Table felt */}
+        <div className="absolute inset-[20px] rounded-[180px/90px] bg-[#0f4c81]">
+          {/* Inner felt line */}
+          <div className="absolute inset-[30px] rounded-[150px/75px] border-2 border-[#0a3d6a] opacity-50"></div>
+        </div>
+
+        {/* Player seats */}
         {players.map((player, index) => {
           const angle = index * (360 / players.length) * (Math.PI / 180)
-          const xRadius = 280
+          const xRadius = 380 // Increased radius for wider oval
           const yRadius = 180
-          const left = 300 + xRadius * Math.cos(angle)
+          const left = 400 + xRadius * Math.cos(angle)
           const top = 200 + yRadius * Math.sin(angle)
 
           return (
