@@ -70,6 +70,12 @@ export default function GameTable({
     // Handle round end logic if needed
   }
 
+  const getRoundName = (round: number): string => {
+    if (round <= 6) return round.toString()
+    if (round <= 12) return "B"
+    return (19 - round).toString()
+  }
+
   const currentPlayerName = localStorage.getItem("playerName")
   const currentPlayer = players.find((p) => p.name === currentPlayerName)
   const canStartGame = isOwner && players.length >= 2 && !gameStarted
@@ -83,7 +89,7 @@ export default function GameTable({
         <p>Table ID: {tableId}</p>
         {gameStarted ? (
           <>
-            <p>Round: {currentRound}</p>
+            <p>Round: {getRoundName(currentRound)}</p>
             <p>Play: {currentPlay}</p>
             <p>Current Turn: {players[currentTurn]?.name}</p>
             <p>
@@ -100,6 +106,8 @@ export default function GameTable({
           </>
         )}
       </div>
+
+      <p className="text-center mt-2 italic">Remember: Trump cards (♠️) always win against other suits!</p>
 
       {/* Buttons */}
       <div className="flex justify-center space-x-4">
@@ -193,7 +201,7 @@ export default function GameTable({
             {gameData.scoreTable && gameData.scoreTable.length > 0 ? (
               gameData.scoreTable.map((round) => (
                 <TableRow key={round.roundId}>
-                  <TableCell>{round.roundName}</TableCell>
+                  <TableCell>{getRoundName(round.roundId)}</TableCell>
                   {players.map((player) => (
                     <TableCell key={player.name}>{(round.scores && round.scores[player.name]) || "-"}</TableCell>
                   ))}

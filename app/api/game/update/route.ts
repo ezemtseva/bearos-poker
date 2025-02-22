@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
-import type { Card, Player } from "../../../../types/game"
+import type { Card, Player, GameData } from "../../../../types/game"
 
 export const runtime = "edge"
 
@@ -26,6 +26,12 @@ function shuffleDeck(deck: Card[]): Card[] {
   return deck
 }
 
+function cardsPerRound(round: number): number {
+  if (round <= 6) return round
+  if (round <= 12) return 6
+  return 19 - round
+}
+
 export async function POST(req: NextRequest) {
   const { tableId, gameData } = await req.json()
 
@@ -34,7 +40,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const updatedGameData = { ...gameData }
+    const updatedGameData: GameData = { ...gameData }
 
     // Check if we need to start a new round
     if (updatedGameData.currentPlay === 1) {
@@ -42,27 +48,32 @@ export async function POST(req: NextRequest) {
       const deck = createDeck()
 
       // Determine the number of cards to deal
-      const cardsPerPlayer =
-        updatedGameData.currentRound <= 6
-          ? updatedGameData.currentRound
-          : updatedGameData.currentRound <= 12
-            ? 13 - updatedGameData.currentRound
-            : 19 - updatedGameData.currentRound
+      const cardsToDeal = cardsPerRound(updatedGameData.currentRound)
 
       // Deal cards to players
       updatedGameData.players = updatedGameData.players.map((player: Player) => ({
         ...player,
-        hand: deck.splice(0, cardsPerPlayer),
+        hand: deck.splice(0, cardsToDeal),
       }))
 
       // Update the deck
       updatedGameData.deck = deck
 
-      // Set the current turn to the winner of the previous round
-      const previousRoundWinner = updatedGameData.players.findIndex(
-        (p: Player) => p.score === Math.max(...updatedGameData.players.map((p: Player) => p.score)),
-      )
-      updatedGameData.currentTurn = previousRoundWinner >= 0 ? previousRoundWinner : 0
+      // Set the current turn to the winner of the previous round or the first player for the first round
+      if (updatedGameData.currentRound === 1) {
+        updatedGameData.currentTurn = 0 // Start with the first player for the first round
+      } else {
+        const previousRoundWinner = updatedGameData.players.findIndex(
+          (p: Player) => p.roundWins === Math.max(...updatedGameData.players.map((p: Player) => p.roundWins)),
+        )
+        updatedGameData.currentTurn = previousRoundWinner >= 0 ? previousRoundWinner : 0
+      }
+
+      // Reset roundWins for all players
+      updatedGameData.players = updatedGameData.players.map((player: Player) => ({
+        ...player,
+        roundWins: 0,
+      }))
     }
 
     await sql`

@@ -137,9 +137,11 @@ export async function POST(req: NextRequest) {
       playEndTimestamp,
     }
 
+    const updatedPlayers = players
+
     await sql`
       UPDATE poker_games
-      SET players = ${JSON.stringify(players)}::jsonb,
+      SET players = ${JSON.stringify(updatedPlayers)}::jsonb,
           current_round = ${currentRound},
           current_play = ${currentPlay},
           current_turn = ${currentTurn},

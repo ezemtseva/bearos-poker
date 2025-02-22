@@ -29,16 +29,20 @@ function shuffleDeck(deck: Card[]): Card[] {
 function dealCards(players: Player[], deck: Card[]): [Player[], Card[]] {
   const updatedPlayers = players.map((player) => ({
     ...player,
-    hand: [] as Card[], // Explicitly type the hand as Card[]
+    hand: [] as Card[],
     score: 0,
     roundWins: 0,
   }))
 
-  for (let round = 1; round <= 18; round++) {
-    const cardsPerPlayer = round <= 6 ? round : round <= 12 ? 13 - round : 19 - round
-    for (let i = 0; i < players.length; i++) {
-      updatedPlayers[i].hand.push(...deck.splice(0, cardsPerPlayer))
-    }
+  const cardsPerRound = (round: number): number => {
+    if (round <= 6) return round
+    if (round <= 12) return 6
+    return 19 - round
+  }
+
+  for (let i = 0; i < players.length; i++) {
+    const cardsForPlayer = cardsPerRound(1) // We're only dealing for the first round here
+    updatedPlayers[i].hand.push(...deck.splice(0, cardsForPlayer))
   }
 
   return [updatedPlayers, deck]
