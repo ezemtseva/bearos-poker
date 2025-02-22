@@ -20,6 +20,7 @@ interface GameTableProps {
   onStartGame: () => void
   onPlayCard: (card: Card) => void
   gameData: GameData
+  lastPlayedCard: Card | null
 }
 
 export default function GameTable({
@@ -35,6 +36,7 @@ export default function GameTable({
   onStartGame,
   onPlayCard,
   gameData,
+  lastPlayedCard,
 }: GameTableProps) {
   const [displayedCards, setDisplayedCards] = useState<Card[]>(cardsOnTable)
   const [isProcessingPlay, setIsProcessingPlay] = useState(false)
@@ -126,6 +128,11 @@ export default function GameTable({
               <PlayingCard suit={card.suit} value={card.value} disabled />
             </div>
           ))}
+          {lastPlayedCard && (
+            <div>
+              <PlayingCard suit={lastPlayedCard.suit} value={lastPlayedCard.value} disabled />
+            </div>
+          )}
         </div>
       </div>
 

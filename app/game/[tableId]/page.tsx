@@ -93,6 +93,7 @@ export default function Game() {
     console.log("Is current player owner:", isCurrentPlayerOwner)
     console.log("Current turn:", data.currentTurn)
     console.log("Is current player's turn:", data.players[data.currentTurn]?.name === storedPlayerName)
+    console.log("Last played card:", data.lastPlayedCard)
     setIsOwner(isCurrentPlayerOwner)
     setCurrentPlayerName(storedPlayerName)
   }
@@ -206,6 +207,7 @@ export default function Game() {
         currentPlay={gameData.currentPlay}
         currentTurn={gameData.currentTurn}
         cardsOnTable={gameData.cardsOnTable}
+        lastPlayedCard={gameData.lastPlayedCard}
         onShare={handleShare}
         onStartGame={handleStartGame}
         onPlayCard={handlePlayCard}

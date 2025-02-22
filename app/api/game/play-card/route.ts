@@ -72,14 +72,28 @@ export async function POST(req: NextRequest) {
       scoreTable,
       allCardsPlayedTimestamp,
       playEndTimestamp,
+      lastPlayedCard: { ...card, playerName }, // Add this line
     }
 
     // After adding a card to the table
     console.log("Sending SSE update after card played:", { ...gameData, cardsOnTable })
+
+    // Send immediate SSE update for the played card
     await sendSSEUpdate(tableId, {
       ...gameData,
       cardsOnTable,
+      lastPlayedCard: { ...card, playerName },
     })
+
+    // Set a timeout to clear the table after 2 seconds
+    setTimeout(async () => {
+      const updatedGameData = {
+        ...gameData,
+        cardsOnTable: [],
+        lastPlayedCard: null,
+      }
+      await sendSSEUpdate(tableId, updatedGameData)
+    }, 2000)
 
     // Check if the play is complete
     if (cardsOnTable.length === players.length) {
@@ -127,7 +141,7 @@ export async function POST(req: NextRequest) {
             deck = createDeck() // Create a new deck if needed
           }
           ;[players, deck] = dealCards(players, deck, newCardsPerRound) // Deal the correct number of cards for the new round
-          currentTurn = (currentTurn + 1) % players.length // Move to the next player in clockwise order
+          currentTurn = (winnerIndex + 1) % players.length // Set the turn to the player after the last round's winner
         } else {
           // Game over
           const gameOverData: GameData = {
@@ -142,6 +156,7 @@ export async function POST(req: NextRequest) {
             scoreTable,
             allCardsPlayedTimestamp: Date.now(),
             playEndTimestamp: null,
+            lastPlayedCard: null, // Add this line
           }
           await sql`
             UPDATE poker_games
@@ -164,17 +179,15 @@ export async function POST(req: NextRequest) {
         currentTurn = winnerIndex
       }
 
-      // If the play is complete, wait for 2 seconds before clearing the table
+      // If the play is complete, update the game state after 2 seconds
       setTimeout(async () => {
-        cardsOnTable = []
         const updatedGameData = {
           ...gameData,
-          cardsOnTable,
           currentPlay: currentPlay,
           currentTurn,
-          // Update other necessary fields
+          currentRound,
+          scoreTable,
         }
-        console.log("Sending SSE update after clearing table:", updatedGameData)
         await sendSSEUpdate(tableId, updatedGameData)
       }, 2000)
       cardsOnTable = [] // Clear the table for the next play
@@ -195,6 +208,7 @@ export async function POST(req: NextRequest) {
       scoreTable,
       allCardsPlayedTimestamp,
       playEndTimestamp,
+      lastPlayedCard: cardsOnTable.length > 0 ? cardsOnTable[cardsOnTable.length - 1] : null,
     }
 
     console.log("Sending final SSE update:", finalGameData)
@@ -211,7 +225,8 @@ export async function POST(req: NextRequest) {
           game_started = ${game.game_started},
           all_cards_played_timestamp = ${allCardsPlayedTimestamp},
           play_end_timestamp = ${playEndTimestamp},
-          score_table = ${JSON.stringify(scoreTable)}::jsonb
+          score_table = ${JSON.stringify(scoreTable)}::jsonb,
+          last_played_card = ${JSON.stringify(finalGameData.lastPlayedCard)}::jsonb
       WHERE table_id = ${tableId}
     `
 

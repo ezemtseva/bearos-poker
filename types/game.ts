@@ -31,6 +31,7 @@ export interface Player {
     scoreTable: ScoreTableRow[]
     allCardsPlayedTimestamp: number | null
     playEndTimestamp: number | null
+    lastPlayedCard: Card | null
   }
   
   
