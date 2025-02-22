@@ -18,6 +18,20 @@ function dealCards(players: Player[], deck: Card[], cardsPerPlayer: number): [Pl
   return [updatedPlayers, deck]
 }
 
+function determineHighestCard(cards: Card[]): Card | null {
+  if (cards.length === 0) return null
+  return cards.reduce((max, current) => {
+    if (current.value > max.value) {
+      return current
+    } else if (current.value === max.value) {
+      // In case of a tie, the first card played wins
+      return max
+    } else {
+      return max
+    }
+  })
+}
+
 export async function POST(req: NextRequest) {
   const { tableId, playerName, card } = await req.json()
 
@@ -69,10 +83,15 @@ export async function POST(req: NextRequest) {
     // Add the card to the table
     cardsOnTable.push({ ...card, playerName })
 
+    // Determine the highest card
+    const highestCard = determineHighestCard(cardsOnTable)
+
+    // Update the database with the new game state
     await sql`
       UPDATE poker_games
       SET players = ${JSON.stringify(players)}::jsonb,
-          cards_on_table = ${JSON.stringify(cardsOnTable)}::jsonb
+          cards_on_table = ${JSON.stringify(cardsOnTable)}::jsonb,
+          highest_card = ${JSON.stringify(highestCard)}::jsonb
       WHERE table_id = ${tableId}
     `
 
@@ -94,6 +113,7 @@ export async function POST(req: NextRequest) {
       playEndTimestamp: null,
       lastPlayedCard: { ...card, playerName },
       allCardsPlayed,
+      highestCard,
     })
 
     console.log("All cards played:", allCardsPlayed)
@@ -101,40 +121,13 @@ export async function POST(req: NextRequest) {
     if (allCardsPlayed) {
       console.log("All cards played, waiting 2 seconds before processing")
 
-      // Send an immediate update to show all cards on the table
-      await sendSSEUpdate(tableId, {
-        tableId: game.table_id,
-        players,
-        gameStarted: game.game_started,
-        currentRound,
-        currentPlay,
-        currentTurn,
-        cardsOnTable,
-        deck,
-        scoreTable,
-        allCardsPlayedTimestamp,
-        playEndTimestamp: null,
-        lastPlayedCard: { ...card, playerName },
-        allCardsPlayed: true,
-      })
-
       // Wait for 2 seconds to display all cards
       await new Promise((resolve) => setTimeout(resolve, 2000))
 
       console.log("Processing end of play")
 
-      // Determine the winner of the play
-      const winnerCard = cardsOnTable.reduce((max, current) => {
-        if (current.value > max.value) {
-          return current
-        } else if (current.value === max.value) {
-          // In case of a tie, the first card played wins
-          return max
-        } else {
-          return max
-        }
-      })
-      const winnerIndex = players.findIndex((p) => p.name === winnerCard.playerName)
+      // The winner is the player who played the highest card
+      const winnerIndex = players.findIndex((p) => p.name === highestCard?.playerName)
 
       // Update round wins for the winner
       players[winnerIndex].roundWins = (players[winnerIndex].roundWins || 0) + 1
@@ -183,6 +176,7 @@ export async function POST(req: NextRequest) {
             playEndTimestamp: null,
             lastPlayedCard: null,
             allCardsPlayed: false,
+            highestCard: null,
           }
           await sql`
             UPDATE poker_games
@@ -196,7 +190,8 @@ export async function POST(req: NextRequest) {
                 all_cards_played_timestamp = ${gameOverData.allCardsPlayedTimestamp},
                 play_end_timestamp = null,
                 last_played_card = null,
-                all_cards_played = false
+                all_cards_played = false,
+                highest_card = null
             WHERE table_id = ${tableId}
           `
           await sendSSEUpdate(tableId, gameOverData)
@@ -227,6 +222,7 @@ export async function POST(req: NextRequest) {
         playEndTimestamp: null,
         lastPlayedCard: null,
         allCardsPlayed: false,
+        highestCard: null,
       })
     } else {
       // Move to the next turn
@@ -248,6 +244,7 @@ export async function POST(req: NextRequest) {
       playEndTimestamp: null,
       lastPlayedCard: allCardsPlayed ? null : { ...card, playerName },
       allCardsPlayed,
+      highestCard,
     }
 
     console.log("Final game state:", finalGameData)
@@ -266,7 +263,8 @@ export async function POST(req: NextRequest) {
           play_end_timestamp = null,
           score_table = ${JSON.stringify(scoreTable)}::jsonb,
           last_played_card = ${JSON.stringify({ ...card, playerName })}::jsonb,
-          all_cards_played = ${allCardsPlayed}
+          all_cards_played = ${allCardsPlayed},
+          highest_card = ${JSON.stringify(highestCard)}::jsonb
       WHERE table_id = ${tableId}
     `
 

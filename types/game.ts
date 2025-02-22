@@ -33,6 +33,7 @@ export interface Player {
     playEndTimestamp: number | null
     lastPlayedCard: Card | null
     allCardsPlayed: boolean // Add this line
+    highestCard: Card | null
   }
   
   
