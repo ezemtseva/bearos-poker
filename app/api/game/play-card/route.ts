@@ -60,30 +60,27 @@ export async function POST(req: NextRequest) {
     cardsOnTable.push({ ...card, playerName })
 
     let allCardsPlayed = cardsOnTable.length === players.length
+    allCardsPlayedTimestamp = allCardsPlayed ? Date.now() : null
 
-    allCardsPlayedTimestamp = null
+    // Send an immediate update with the new card on the table
+    await sendSSEUpdate(tableId, {
+      tableId: game.table_id,
+      players,
+      gameStarted: game.game_started,
+      currentRound,
+      currentPlay,
+      currentTurn,
+      cardsOnTable,
+      deck,
+      scoreTable,
+      allCardsPlayedTimestamp,
+      playEndTimestamp: null,
+      lastPlayedCard: { ...card, playerName },
+      allCardsPlayed,
+    })
 
     // Check if the play is complete
     if (allCardsPlayed) {
-      allCardsPlayedTimestamp = Date.now()
-
-      // Send an immediate update with all cards visible
-      await sendSSEUpdate(tableId, {
-        tableId: game.table_id,
-        players,
-        gameStarted: game.game_started,
-        currentRound,
-        currentPlay,
-        currentTurn,
-        cardsOnTable,
-        deck,
-        scoreTable,
-        allCardsPlayedTimestamp,
-        playEndTimestamp: null,
-        lastPlayedCard: { ...card, playerName },
-        allCardsPlayed: true,
-      })
-
       // Wait for 2 seconds before clearing the table
       await new Promise((resolve) => setTimeout(resolve, 2000))
 
@@ -193,7 +190,7 @@ export async function POST(req: NextRequest) {
       scoreTable,
       allCardsPlayedTimestamp,
       playEndTimestamp: null,
-      lastPlayedCard: cardsOnTable.length > 0 ? cardsOnTable[cardsOnTable.length - 1] : null,
+      lastPlayedCard: { ...card, playerName },
       allCardsPlayed,
     }
 
@@ -212,7 +209,7 @@ export async function POST(req: NextRequest) {
           all_cards_played_timestamp = ${allCardsPlayedTimestamp},
           play_end_timestamp = null,
           score_table = ${JSON.stringify(scoreTable)}::jsonb,
-          last_played_card = ${JSON.stringify(finalGameData.lastPlayedCard)}::jsonb,
+          last_played_card = ${JSON.stringify({ ...card, playerName })}::jsonb,
           all_cards_played = ${allCardsPlayed}
       WHERE table_id = ${tableId}
     `
