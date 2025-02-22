@@ -110,21 +110,22 @@ export async function POST(req: NextRequest) {
         const cardsPerPlayer =
           currentRound <= 6 ? currentRound : currentRound <= 12 ? 13 - currentRound : 19 - currentRound
 
-        console.log(`Moving to Round: ${currentRound}, Play: ${currentPlay}, Cards per player: ${cardsPerPlayer}`)
-
         players = players.map((player) => ({
           ...player,
           hand: deck.splice(0, cardsPerPlayer),
-          score: 0, // Reset score for the new round
         }))
-      }
-      currentTurn = winnerIndex
-    } else {
-      // Move to the next turn
-      currentTurn = getNextTurn(currentTurn, players.length)
-    }
 
-    playEndTimestamp = Date.now()
+        // Set the starting player for the new round
+        currentTurn = winnerIndex
+      } else {
+        // Set the starting player for the next play
+        currentTurn = winnerIndex
+      }
+    } else {
+      // Move to the next turn immediately
+      currentTurn = getNextTurn(currentTurn, players.length)
+      playEndTimestamp = null // Reset playEndTimestamp as the play is not complete
+    }
 
     const gameData: GameData = {
       tableId: game.table_id,

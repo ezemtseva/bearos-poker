@@ -58,16 +58,7 @@ export default function GameTable({
     }
 
     if (gameData.allCardsPlayedTimestamp) {
-      const delay = 1000 - (Date.now() - gameData.allCardsPlayedTimestamp)
-
-      if (delay > 0) {
-        const timer = setTimeout(() => {
-          processRoundEnd()
-        }, delay)
-        return () => clearTimeout(timer)
-      } else {
-        processRoundEnd()
-      }
+      processRoundEnd()
     }
   }, [cardsOnTable, gameData, isProcessingPlay])
 
@@ -76,53 +67,9 @@ export default function GameTable({
     setDisplayedCards([])
   }
 
-  const processRoundEnd = async () => {
+  const processRoundEnd = () => {
     setDisplayedCards([])
-
-    // Determine the winner of the play
-    const winnerCard =
-      cardsOnTable.length > 0
-        ? cardsOnTable.reduce((max, current) => (current.value > max.value ? current : max))
-        : null
-
-    if (winnerCard) {
-      const winnerIndex = players.findIndex((p) => p.name === winnerCard.playerName)
-
-      // Update the game state
-      const updatedGameData = {
-        ...gameData,
-        players: gameData.players.map((player, index) =>
-          index === winnerIndex ? { ...player, score: (player.score || 0) + 1 } : player,
-        ),
-        currentPlay: gameData.currentPlay < gameData.currentRound ? gameData.currentPlay + 1 : 1,
-        currentRound: gameData.currentPlay < gameData.currentRound ? gameData.currentRound : gameData.currentRound + 1,
-        currentTurn: winnerIndex,
-        cardsOnTable: [],
-        allCardsPlayedTimestamp: null,
-        playEndTimestamp: null,
-      }
-
-      // Update the server with the new game state
-      try {
-        const response = await fetch("/api/game/update", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ tableId, gameData: updatedGameData }),
-        })
-
-        if (!response.ok) {
-          throw new Error("Failed to update game state")
-        }
-
-        // The server will broadcast the updated game state to all clients
-      } catch (error) {
-        console.error("Error updating game state:", error)
-      }
-    } else {
-      console.error("No cards on table to determine winner")
-    }
+    setIsProcessingPlay(false)
   }
 
   const currentPlayerName = localStorage.getItem("playerName")
