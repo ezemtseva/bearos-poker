@@ -1,5 +1,5 @@
 interface PlayingCardProps {
-    suit: "hearts" | "diamonds" | "clubs" | "spades"
+    suit: "spades" | "hearts" | "diamonds" | "clubs"
     value: number
     onClick?: () => void
     disabled?: boolean

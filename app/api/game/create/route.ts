@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
       isOwner: true,
       hand: [],
       score: 0,
+      roundWins: 0,
     }
 
     const gameData: GameData = {

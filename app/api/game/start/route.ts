@@ -5,7 +5,7 @@ import type { GameData, Player, Card } from "../../../../types/game"
 export const runtime = "edge"
 
 function createDeck(): Card[] {
-  const suits = ["hearts", "diamonds", "clubs", "spades"] as const
+  const suits = ["spades", "hearts", "diamonds", "clubs"] as const
   const values = [6, 7, 8, 9, 10, 11, 12, 13, 14]
   const deck: Card[] = []
 

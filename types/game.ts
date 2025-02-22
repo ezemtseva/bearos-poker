@@ -8,7 +8,7 @@ export interface Player {
   }
   
   export interface Card {
-    suit: "hearts" | "diamonds" | "clubs" | "spades"
+    suit: "spades" | "hearts" | "diamonds" | "clubs"
     value: number // 6-14, where 11=J, 12=Q, 13=K, 14=A
     playerName?: string
   }
