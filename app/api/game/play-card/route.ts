@@ -59,33 +59,29 @@ export async function POST(req: NextRequest) {
     // Add the card to the table
     cardsOnTable.push({ ...card, playerName })
 
-    const gameData: GameData = {
-      tableId: game.table_id,
-      players,
-      gameStarted: game.game_started,
-      currentRound,
-      currentPlay,
-      currentTurn,
-      cardsOnTable,
-      deck,
-      scoreTable,
-      allCardsPlayedTimestamp,
-      playEndTimestamp: null,
-      lastPlayedCard: { ...card, playerName },
-      allCardsPlayed: cardsOnTable.length === players.length,
-    }
+    let allCardsPlayed = cardsOnTable.length === players.length
 
-    console.log("Card played:", { ...gameData, cardsOnTable })
+    allCardsPlayedTimestamp = null
 
     // Check if the play is complete
-    if (cardsOnTable.length === players.length) {
+    if (allCardsPlayed) {
       allCardsPlayedTimestamp = Date.now()
 
       // Send an immediate update with all cards visible
       await sendSSEUpdate(tableId, {
-        ...gameData,
-        allCardsPlayed: true,
+        tableId: game.table_id,
+        players,
+        gameStarted: game.game_started,
+        currentRound,
+        currentPlay,
+        currentTurn,
+        cardsOnTable,
+        deck,
+        scoreTable,
         allCardsPlayedTimestamp,
+        playEndTimestamp: null,
+        lastPlayedCard: { ...card, playerName },
+        allCardsPlayed: true,
       })
 
       // Wait for 2 seconds before clearing the table
@@ -175,14 +171,16 @@ export async function POST(req: NextRequest) {
         currentTurn = winnerIndex
       }
 
-      // Clear the table and send the final update
+      // Clear the table and reset flags
       cardsOnTable = []
+      allCardsPlayed = false
       allCardsPlayedTimestamp = null
     } else {
       // Move to the next turn
       currentTurn = getNextTurn(currentTurn, players.length)
     }
 
+    // Create final gameData object
     const finalGameData: GameData = {
       tableId: game.table_id,
       players,
@@ -196,7 +194,7 @@ export async function POST(req: NextRequest) {
       allCardsPlayedTimestamp,
       playEndTimestamp: null,
       lastPlayedCard: cardsOnTable.length > 0 ? cardsOnTable[cardsOnTable.length - 1] : null,
-      allCardsPlayed: false,
+      allCardsPlayed,
     }
 
     console.log("Updating game state:", finalGameData)
@@ -215,7 +213,7 @@ export async function POST(req: NextRequest) {
           play_end_timestamp = null,
           score_table = ${JSON.stringify(scoreTable)}::jsonb,
           last_played_card = ${JSON.stringify(finalGameData.lastPlayedCard)}::jsonb,
-          all_cards_played = false
+          all_cards_played = ${allCardsPlayed}
       WHERE table_id = ${tableId}
     `
 
