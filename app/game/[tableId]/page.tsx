@@ -83,16 +83,12 @@ export default function Game() {
   }, [tableId])
 
   const updateGameState = (data: GameData) => {
-    console.log("Updating game state. Received data:", data)
     setGameData(data)
     const storedPlayerName = localStorage.getItem("playerName")
-    console.log("Current player name:", storedPlayerName)
-    console.log("Players:", data.players)
     const currentPlayer = data.players.find((player) => player.name === storedPlayerName)
-    const isCurrentPlayerOwner = currentPlayer?.isOwner || false
-    console.log("Is current player owner:", isCurrentPlayerOwner)
-    setIsOwner(isCurrentPlayerOwner)
-    setCurrentPlayerName(storedPlayerName)
+    setIsOwner(currentPlayer?.isOwner || false)
+    // You might want to do something with allCardsPlayedTimestamp here if needed
+    console.log("All cards played timestamp:", data.allCardsPlayedTimestamp)
   }
 
   const handleShare = () => {

@@ -135,10 +135,10 @@ export async function POST(req: NextRequest) {
       currentPlay,
       currentTurn,
       cardsOnTable,
-      deck,
+      deck: game.deck,
       scoreTable,
-      allCardsPlayedTimestamp,
       playEndTimestamp,
+      allCardsPlayedTimestamp: currentPlay > currentRound ? Date.now() : null,
     }
 
     await sql`
@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
           cards_on_table = ${JSON.stringify(cardsOnTable)}::jsonb,
           deck = ${JSON.stringify(deck)}::jsonb,
           game_started = ${game.game_started},
-          all_cards_played_timestamp = ${allCardsPlayedTimestamp},
+          all_cards_played_timestamp = ${gameData.allCardsPlayedTimestamp},
           play_end_timestamp = ${playEndTimestamp},
           score_table = ${JSON.stringify(scoreTable)}::jsonb
       WHERE table_id = ${tableId}

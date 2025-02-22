@@ -1,7 +1,6 @@
 "use client"
 
 import { TableHeader } from "@/components/ui/table"
-
 import { useState, useEffect } from "react"
 import type { Player, Card, GameData } from "../types/game"
 import { Table, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table"
@@ -56,20 +55,11 @@ export default function GameTable({
         processPlayEnd()
       }
     }
-
-    if (gameData.allCardsPlayedTimestamp) {
-      processRoundEnd()
-    }
-  }, [cardsOnTable, gameData, isProcessingPlay])
+  }, [cardsOnTable, gameData.playEndTimestamp, isProcessingPlay])
 
   const processPlayEnd = () => {
     setIsProcessingPlay(false)
     setDisplayedCards([])
-  }
-
-  const processRoundEnd = () => {
-    setDisplayedCards([])
-    setIsProcessingPlay(false)
   }
 
   const currentPlayerName = localStorage.getItem("playerName")
@@ -131,7 +121,7 @@ export default function GameTable({
 
         {/* Cards on table */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex space-x-2">
-          {displayedCards.slice(-gameData.players.length).map((card, index) => (
+          {displayedCards.map((card, index) => (
             <div key={index}>
               <PlayingCard suit={card.suit} value={card.value} disabled />
             </div>
