@@ -69,6 +69,13 @@ export async function POST(req: NextRequest) {
     // Add the card to the table
     cardsOnTable.push({ ...card, playerName })
 
+    await sql`
+      UPDATE poker_games
+      SET players = ${JSON.stringify(players)}::jsonb,
+          cards_on_table = ${JSON.stringify(cardsOnTable)}::jsonb
+      WHERE table_id = ${tableId}
+    `
+
     allCardsPlayed = cardsOnTable.length === players.length
     allCardsPlayedTimestamp = allCardsPlayed ? Date.now() : null
 
