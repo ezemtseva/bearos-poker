@@ -2,11 +2,20 @@ import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
 import type { GameData, Player, Card } from "../../../../types/game"
 import { sendSSEUpdate } from "../../../utils/sse"
+import { createDeck } from "../../../utils/deck"
 
 export const runtime = "edge"
 
 function getNextTurn(currentTurn: number, playerCount: number): number {
   return (currentTurn + 1) % playerCount
+}
+
+function dealCards(players: Player[], deck: Card[], cardsPerPlayer: number): [Player[], Card[]] {
+  const updatedPlayers = players.map((player) => ({
+    ...player,
+    hand: deck.splice(0, cardsPerPlayer),
+  }))
+  return [updatedPlayers, deck]
 }
 
 export async function POST(req: NextRequest) {
@@ -27,7 +36,7 @@ export async function POST(req: NextRequest) {
     }
 
     const game = result.rows[0]
-    const players = game.players as Player[]
+    let players = game.players as Player[]
     let cardsOnTable = game.cards_on_table as Card[]
     let currentRound = game.current_round
     let currentPlay = game.current_play
@@ -35,6 +44,7 @@ export async function POST(req: NextRequest) {
     let playEndTimestamp: number | null = null
     let allCardsPlayedTimestamp: number | null = game.all_cards_played_timestamp
     const scoreTable = game.score_table
+    let deck = game.deck as Card[]
 
     // Find the current player
     const playerIndex = players.findIndex((p) => p.name === playerName)
@@ -89,7 +99,13 @@ export async function POST(req: NextRequest) {
         currentRound++
         currentPlay = 1
 
-        if (currentRound > 18) {
+        if (currentRound <= 18) {
+          // Start new round
+          const newCardsPerRound =
+            currentRound <= 6 ? currentRound : currentRound <= 12 ? 13 - currentRound : 19 - currentRound
+          deck = createDeck() // Create a new deck for the new round
+          ;[players, deck] = dealCards(players, deck, newCardsPerRound)
+        } else {
           // Game over
           const gameOverData: GameData = {
             tableId: game.table_id,
@@ -138,21 +154,20 @@ export async function POST(req: NextRequest) {
       currentPlay,
       currentTurn,
       cardsOnTable,
-      deck: game.deck,
+      deck,
       scoreTable,
       allCardsPlayedTimestamp,
       playEndTimestamp,
     }
 
-    const updatedPlayers = players
-
     await sql`
       UPDATE poker_games
-      SET players = ${JSON.stringify(updatedPlayers)}::jsonb,
+      SET players = ${JSON.stringify(players)}::jsonb,
           current_round = ${currentRound},
           current_play = ${currentPlay},
           current_turn = ${currentTurn},
           cards_on_table = ${JSON.stringify(cardsOnTable)}::jsonb,
+          deck = ${JSON.stringify(deck)}::jsonb,
           game_started = ${game.game_started},
           all_cards_played_timestamp = ${allCardsPlayedTimestamp},
           play_end_timestamp = ${playEndTimestamp},

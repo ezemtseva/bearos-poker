@@ -1,50 +1,17 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
 import type { GameData, Player, Card } from "../../../../types/game"
+import { createDeck } from "../../../utils/deck"
 
 export const runtime = "edge"
 
-function createDeck(): Card[] {
-  const suits = ["spades", "hearts", "diamonds", "clubs"] as const
-  const values = [6, 7, 8, 9, 10, 11, 12, 13, 14]
-  const deck: Card[] = []
-
-  for (const suit of suits) {
-    for (const value of values) {
-      deck.push({ suit, value })
-    }
-  }
-
-  return shuffleDeck(deck)
-}
-
-function shuffleDeck(deck: Card[]): Card[] {
-  for (let i = deck.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[deck[i], deck[j]] = [deck[j], deck[i]]
-  }
-  return deck
-}
-
-function dealCards(players: Player[], deck: Card[]): [Player[], Card[]] {
+function dealCards(players: Player[], deck: Card[], cardsPerPlayer: number): [Player[], Card[]] {
   const updatedPlayers = players.map((player) => ({
     ...player,
-    hand: [] as Card[],
+    hand: deck.splice(0, cardsPerPlayer),
     score: 0,
     roundWins: 0,
   }))
-
-  const cardsPerRound = (round: number): number => {
-    if (round <= 6) return round
-    if (round <= 12) return 6
-    return 19 - round
-  }
-
-  for (let i = 0; i < players.length; i++) {
-    const cardsForPlayer = cardsPerRound(1) // We're only dealing for the first round here
-    updatedPlayers[i].hand.push(...deck.splice(0, cardsForPlayer))
-  }
-
   return [updatedPlayers, deck]
 }
 
@@ -78,7 +45,7 @@ export async function POST(req: NextRequest) {
     }))
 
     const deck = createDeck()
-    const [playersWithCards, remainingDeck] = dealCards(players, deck)
+    const [playersWithCards, remainingDeck] = dealCards(players, deck, 1) // Deal 1 card for the first round
 
     // Find the owner to set as the starting player
     const ownerIndex = playersWithCards.findIndex((p) => p.isOwner)
