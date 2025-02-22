@@ -75,13 +75,16 @@ export async function POST(req: NextRequest) {
       allCardsPlayed: cardsOnTable.length === players.length,
     }
 
+    // Send an immediate update with the new card on the table
+    await sendSSEUpdate(tableId, gameData)
+
     console.log("Card played:", { ...gameData, cardsOnTable })
 
     // Check if the play is complete
-    if (cardsOnTable.length === players.length) {
+    if (gameData.allCardsPlayed) {
       allCardsPlayedTimestamp = Date.now()
 
-      // Send an immediate update with all cards visible
+      // Send an update to show all cards are played
       await sendSSEUpdate(tableId, {
         ...gameData,
         allCardsPlayed: true,
