@@ -23,10 +23,17 @@ export function removeClient(tableId: string, send: (data: string) => void) {
 
 // Update the sendSSEUpdate function signature
 export async function sendSSEUpdate(tableId: string, gameData: ExtendedGameData) {
+  console.log("[SSE] Attempting to send update for table:", tableId)
   const clients = connectedClients.get(tableId)
   if (clients) {
+    console.log(`[SSE] Found ${clients.size} connected clients for table:`, tableId)
     const message = `data: ${JSON.stringify(gameData)}\n\n`
-    clients.forEach((send) => send(message))
+    clients.forEach((send) => {
+      console.log("[SSE] Sending update to client for table:", tableId)
+      send(message)
+    })
+  } else {
+    console.log("[SSE] No connected clients found for table:", tableId)
   }
 }
 

@@ -18,34 +18,41 @@ export async function GET(req: NextRequest) {
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
     async start(controller) {
+      console.log("[SSE] Stream started for table:", tableId)
+
       const sendEvent = (event: string, data: string) => {
+        console.log(`[SSE] Sending event: ${event} for table: ${tableId}`)
         controller.enqueue(encoder.encode(`event: ${event}\ndata: ${data}\n\n`))
       }
 
       // Send initial game state
       const initialState = await getGameState(tableId)
-      console.log("[SSE] Sending initial game state:", initialState)
+      console.log("[SSE] Sending initial game state for table:", tableId, initialState)
       sendEvent("init", JSON.stringify(initialState))
 
       // Set up polling for game updates
       const pollInterval = setInterval(async () => {
+        console.log("[SSE] Polling for updates for table:", tableId)
         const latestState = await getGameState(tableId)
         sendEvent("update", JSON.stringify(latestState))
       }, 1000) // Poll every second
 
       // Heartbeat to keep connection alive
       const heartbeat = setInterval(() => {
+        console.log("[SSE] Sending heartbeat for table:", tableId)
         sendEvent("heartbeat", "ping")
       }, 30000)
 
       // Clean up on close
       req.signal.addEventListener("abort", () => {
+        console.log("[SSE] Connection aborted for table:", tableId)
         clearInterval(pollInterval)
         clearInterval(heartbeat)
       })
     },
   })
 
+  console.log("[SSE] Returning stream for table:", tableId)
   return new NextResponse(stream, {
     headers: {
       "Content-Type": "text/event-stream",
@@ -56,10 +63,12 @@ export async function GET(req: NextRequest) {
 }
 
 async function getGameState(tableId: string): Promise<GameData> {
+  console.log("[SSE] Fetching game state for table:", tableId)
   const result = await sql`
     SELECT * FROM poker_games WHERE table_id = ${tableId};
   `
   if (result.rows.length === 0) {
+    console.log("[SSE] No game found for table:", tableId)
     return {
       tableId,
       players: [],
@@ -73,10 +82,11 @@ async function getGameState(tableId: string): Promise<GameData> {
       allCardsPlayedTimestamp: null,
       playEndTimestamp: null,
       lastPlayedCard: null,
-      allCardsPlayed: false, // Add this line
+      allCardsPlayed: false,
     }
   }
   const row = result.rows[0]
+  console.log("[SSE] Game state fetched for table:", tableId, row)
   return {
     tableId: row.table_id,
     players: row.players as Player[],
@@ -90,7 +100,7 @@ async function getGameState(tableId: string): Promise<GameData> {
     allCardsPlayedTimestamp: row.all_cards_played_timestamp || null,
     playEndTimestamp: row.play_end_timestamp || null,
     lastPlayedCard: row.last_played_card || null,
-    allCardsPlayed: row.all_cards_played || false, // Add this line
+    allCardsPlayed: row.all_cards_played || false,
   }
 }
 
