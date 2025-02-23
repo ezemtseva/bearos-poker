@@ -126,7 +126,7 @@ export default function GameTable({
               }}
             >
               <div>
-                <p className="font-bold text-sm">{player.name}</p>
+                <p className="font-bold text-sm text-black">{player.name}</p>
                 {player.isOwner && <p className="text-xs text-green-700">(Owner)</p>}
               </div>
             </div>
