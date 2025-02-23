@@ -56,24 +56,28 @@ export default function CreateGame() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-4">Create a New Game</h1>
-      <form onSubmit={handleCreateGame} className="max-w-md">
-        <div className="mb-4">
-          <label htmlFor="playerName" className="block text-sm font-medium text-gray-700">
-            Your Name
-          </label>
-          <Input
-            type="text"
-            id="playerName"
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-            className="mt-1"
-            required
-          />
-        </div>
-        <Button type="submit">Create Game</Button>
-      </form>
+    <div className="container mx-auto px-4 min-h-screen flex items-center justify-center">
+      <div className="max-w-md w-full">
+        <h1 className="text-2xl font-bold mb-4 text-center text-white">New Game</h1>
+        <form onSubmit={handleCreateGame} className="space-y-4">
+          <div>
+            <label htmlFor="playerName" className="block text-sm font-medium text-white mb-1">
+              Enter Your Name
+            </label>
+            <Input
+              type="text"
+              id="playerName"
+              value={playerName}
+              onChange={(e) => setPlayerName(e.target.value)}
+              className="w-full"
+              required
+            />
+          </div>
+          <Button type="submit" className="mx-auto block w-[120px] h-[40px]">
+            Create
+          </Button>
+        </form>
+      </div>
     </div>
   )
 }

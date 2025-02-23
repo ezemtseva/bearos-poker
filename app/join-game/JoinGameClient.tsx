@@ -20,7 +20,6 @@ export default function JoinGameClient() {
       setTableId(tableIdParam)
     }
 
-    // Load player name from localStorage if it exists
     const storedPlayerName = localStorage.getItem("playerName")
     if (storedPlayerName) {
       setPlayerName(storedPlayerName)
@@ -38,7 +37,6 @@ export default function JoinGameClient() {
       return
     }
 
-    // Store player name in localStorage
     localStorage.setItem("playerName", playerName)
     console.log("Player name stored in localStorage:", playerName)
 
@@ -62,7 +60,6 @@ export default function JoinGameClient() {
 
       console.log("Joining game with player name:", playerName)
 
-      // Navigate to the game page
       router.push(`/game/${tableId}`)
     } catch (error: unknown) {
       toast({
@@ -74,37 +71,42 @@ export default function JoinGameClient() {
   }
 
   return (
-    <form onSubmit={handleJoinGame} className="max-w-md mx-auto">
-      <div className="mb-4">
-        <label htmlFor="tableId" className="block text-sm font-medium text-gray-700">
-          Table ID
-        </label>
-        <Input
-          type="text"
-          id="tableId"
-          value={tableId}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTableId(e.target.value)}
-          className="mt-1"
-          required
-        />
+    <div className="container mx-auto px-4 min-h-screen flex items-center justify-center">
+      <div className="max-w-md w-full">
+        <h1 className="text-2xl font-bold mb-4 text-center text-white">Join Game</h1>
+        <form onSubmit={handleJoinGame} className="space-y-4">
+          <div>
+            <label htmlFor="tableId" className="block text-sm font-medium text-white mb-1">
+              Table ID
+            </label>
+            <Input
+              type="text"
+              id="tableId"
+              value={tableId}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTableId(e.target.value)}
+              className="w-full"
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="playerName" className="block text-sm font-medium text-white mb-1">
+              Enter Your Name
+            </label>
+            <Input
+              type="text"
+              id="playerName"
+              value={playerName}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPlayerName(e.target.value)}
+              className="w-full"
+              required
+            />
+          </div>
+          <Button type="submit" className="mx-auto block w-[120px] h-[40px]">
+            Join
+          </Button>
+        </form>
       </div>
-      <div className="mb-4">
-        <label htmlFor="playerName" className="block text-sm font-medium text-gray-700">
-          Your Name
-        </label>
-        <Input
-          type="text"
-          id="playerName"
-          value={playerName}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPlayerName(e.target.value)}
-          className="mt-1"
-          required
-        />
-      </div>
-      <Button type="submit" className="w-full">
-        Join Game
-      </Button>
-    </form>
+    </div>
   )
 }
 
