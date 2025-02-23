@@ -137,18 +137,19 @@ export default function GameTable({
         {/* Cards on table */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex space-x-2">
           {cardsOnTable.map((card, index) => (
-            <div
+            <PlayingCard
               key={index}
+              suit={card.suit}
+              value={card.value}
+              disabled
               className={
                 gameData.highestCard &&
                 card.suit === gameData.highestCard.suit &&
                 card.value === gameData.highestCard.value
-                  ? "bg-yellow-100 rounded-2xl" // Highlight for the highest card
-                  : ""
+                  ? "bg-yellow-100"
+                  : "bg-white"
               }
-            >
-              <PlayingCard suit={card.suit} value={card.value} disabled />
-            </div>
+            />
           ))}
         </div>
       </div>

@@ -3,7 +3,7 @@ interface PlayingCardProps {
   value: number
   onClick?: () => void
   disabled?: boolean
-  isHighest?: boolean
+  className?: string
 }
 
 const SuitSymbol = ({ suit, className = "" }: { suit: string; className?: string }) => {
@@ -52,7 +52,7 @@ const valueToDisplay = (value: number): string => {
   }
 }
 
-export default function PlayingCard({ suit, value, onClick, disabled = false, isHighest = false }: PlayingCardProps) {
+export default function PlayingCard({ suit, value, onClick, disabled = false, className = "" }: PlayingCardProps) {
   const isRed = suit === "hearts" || suit === "diamonds"
   const displayValue = valueToDisplay(value)
 
@@ -62,8 +62,7 @@ export default function PlayingCard({ suit, value, onClick, disabled = false, is
       disabled={disabled}
       className={`relative w-24 h-36 rounded-2xl shadow-md transition-transform 
         ${disabled ? "opacity-100" : "hover:scale-105 hover:shadow-lg"} 
-        ${isHighest ? "bg-yellow-100" : "bg-white"}
-        border border-gray-300 overflow-hidden`}
+        border border-gray-300 overflow-hidden ${className}`}
       aria-label={`${displayValue} of ${suit}`}
     >
       {/* Card corners */}
