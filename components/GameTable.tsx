@@ -68,7 +68,6 @@ export default function GameTable({
     <div className="space-y-8">
       {/* Game Info */}
       <div className="text-center">
-        <h1 className="text-2xl font-bold mb-2">Bearos Poker</h1>
         <p>Table ID: {tableId}</p>
         {gameStarted ? (
           <>
