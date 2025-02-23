@@ -156,7 +156,7 @@ export default function GameTable({
       {/* Player's hand */}
       {currentPlayer && gameStarted && (
         <div className="mt-8">
-          <h2 className="text-xl font-bold mb-2">Your Hand</h2>
+          <h2 className="text-xl font-bold mb-2 text-center">Your Hand</h2>
           <div className="flex justify-center space-x-2">
             {currentPlayer.hand && currentPlayer.hand.length > 0 ? (
               currentPlayer.hand.map((card, index) => (
