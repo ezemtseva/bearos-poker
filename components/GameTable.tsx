@@ -143,7 +143,7 @@ export default function GameTable({
                 gameData.highestCard &&
                 card.suit === gameData.highestCard.suit &&
                 card.value === gameData.highestCard.value
-                  ? "bg-yellow-100 rounded-2xl" // New highlighting style
+                  ? "bg-yellow-100 rounded-2xl" // Highlight for the highest card
                   : ""
               }
             >
