@@ -167,6 +167,7 @@ export default function GameTable({
                   value={card.value}
                   onClick={() => onPlayCard(card)}
                   disabled={!isCurrentPlayerTurn || isClearing}
+                  className="bg-white"
                 />
               ))
             ) : (
