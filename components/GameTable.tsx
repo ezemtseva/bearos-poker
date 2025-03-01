@@ -146,7 +146,9 @@ export default function GameTable({
                 card.suit === gameData.highestCard.suit &&
                 card.value === gameData.highestCard.value
                   ? "bg-yellow-100"
-                  : "bg-white"
+                  : card.suit === "diamonds"
+                    ? "bg-red-100"
+                    : "bg-white"
               }
             />
           ))}
@@ -166,7 +168,7 @@ export default function GameTable({
                   value={card.value}
                   onClick={() => onPlayCard(card)}
                   disabled={!isCurrentPlayerTurn || isClearing}
-                  className="bg-white"
+                  className={card.suit === "diamonds" ? "bg-red-100" : "bg-white"}
                 />
               ))
             ) : (
