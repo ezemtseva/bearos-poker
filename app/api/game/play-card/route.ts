@@ -173,9 +173,8 @@ export async function POST(req: NextRequest) {
       // The winner is the player who played the highest card
       const winnerIndex = players.findIndex((p) => p.name === highestCard?.playerName)
 
-      // Update round wins and score for the winner
+      // Update round wins for the winner
       players[winnerIndex].roundWins = (players[winnerIndex].roundWins || 0) + 1
-      players[winnerIndex].score += 10 // Now we give 10 points for a win
 
       // Prepare for the next play or round
       currentPlay++
@@ -185,11 +184,33 @@ export async function POST(req: NextRequest) {
         // End of round
         // Update scores in the score table
         const roundIndex = currentRound - 1
+        const isRoundB = scoreTable[roundIndex].roundName === "B"
+        const multiplier = isRoundB ? 2 : 1
+
         players.forEach((player) => {
+          const playsWon = player.roundWins
+          const playerBet = player.bet
+
+          let roundPoints = 0
+          if (playerBet !== null) {
+            if (playsWon > playerBet) {
+              // Player won more plays than they bet
+              roundPoints = playsWon * multiplier
+            } else if (playsWon === playerBet) {
+              // Player won exactly as many plays as they bet
+              roundPoints = playsWon * 10 * multiplier
+            } else {
+              // Player won fewer plays than they bet
+              roundPoints = (playsWon - playerBet) * 10 * multiplier
+            }
+          }
+
+          player.score += roundPoints
+
           const playerScore: PlayerScore = {
             cumulativePoints: player.score,
-            roundPoints: player.roundWins * 10,
-            bet: player.bet,
+            roundPoints: roundPoints,
+            bet: playerBet,
           }
           scoreTable[roundIndex].scores[player.name] = playerScore
           player.roundWins = 0 // Reset for next round
