@@ -32,6 +32,18 @@ function determineHighestCard(cards: Card[]): Card | null {
   })
 }
 
+function getNextRoundStartPlayer(currentRound: number, players: Player[]): number {
+  if (currentRound === 1) {
+    // First round always starts with the owner (seat 1)
+    return players.findIndex((player) => player.seatNumber === 1)
+  }
+
+  const targetSeatNumber = currentRound <= players.length ? currentRound : ((currentRound - 1) % players.length) + 1
+  const nextStartPlayer = players.findIndex((player) => player.seatNumber === targetSeatNumber)
+
+  return nextStartPlayer !== -1 ? nextStartPlayer : 0 // Fallback to owner if seat not found
+}
+
 export async function POST(req: NextRequest) {
   const { tableId, playerName, card } = await req.json()
 
@@ -68,7 +80,6 @@ export async function POST(req: NextRequest) {
       currentPlay,
       currentTurn,
       allCardsPlayedTimestamp,
-      roundStartPlayerIndex,
     })
 
     // Find the current player
@@ -159,8 +170,11 @@ export async function POST(req: NextRequest) {
             deck = createDeck() // Create a new deck if needed
           }
           ;[players, deck] = dealCards(players, deck, newCardsPerRound) // Deal the correct number of cards for the new round
-          currentTurn = winnerIndex // Set the turn to the winner of the last round
-          roundStartPlayerIndex = winnerIndex
+
+          // Set the starting player for the new round
+          roundStartPlayerIndex = getNextRoundStartPlayer(currentRound, players)
+          currentTurn = roundStartPlayerIndex
+
           console.log(
             `Starting Round ${currentRound}. Cards dealt: ${newCardsPerRound} per player. First turn: ${players[currentTurn].name}`,
           )
@@ -197,7 +211,7 @@ export async function POST(req: NextRequest) {
                 last_played_card = null,
                 all_cards_played = false,
                 highest_card = null,
-                round_start_player_index = ${gameOverData.roundStartPlayerIndex}
+                round_start_player_index = ${roundStartPlayerIndex}
             WHERE table_id = ${tableId}
           `
           await sendSSEUpdate(tableId, gameOverData)
