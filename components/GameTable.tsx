@@ -44,7 +44,7 @@ export default function GameTable({
   const [displayedCards, setDisplayedCards] = useState<Card[]>(cardsOnTable)
   const [isClearing, setIsClearing] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [betAmount, setBetAmount] = useState<number | null>(null)
+  const [betAmount, setBetAmount] = useState<number | null>(0)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -292,10 +292,20 @@ export default function GameTable({
             <div className="flex flex-col items-center space-y-2">
               <Input
                 type="number"
-                min="0"
+                min={0}
                 max={cardsThisRound}
-                value={betAmount !== null ? betAmount : ""}
-                onChange={(e) => setBetAmount(Number.parseInt(e.target.value) || null)}
+                value={betAmount !== null ? betAmount.toString() : ""}
+                onChange={(e) => {
+                  const value = e.target.value
+                  if (value === "" || value === "-") {
+                    setBetAmount(null)
+                  } else {
+                    const numValue = Number.parseInt(value, 10)
+                    if (!isNaN(numValue) && numValue >= 0 && numValue <= cardsThisRound) {
+                      setBetAmount(numValue)
+                    }
+                  }
+                }}
                 className="w-20 text-center"
               />
               <Button onClick={handlePlaceBet}>Confirm Bet</Button>
