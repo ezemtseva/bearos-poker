@@ -12,6 +12,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Table ID, player name, and bet are required" }, { status: 400 })
   }
 
+  if (bet < 0) {
+    return NextResponse.json({ error: "Bet must be 0 or a positive number" }, { status: 400 })
+  }
+
   try {
     const result = await sql`
       SELECT * FROM poker_games
@@ -45,9 +49,11 @@ export async function POST(req: NextRequest) {
     // Update the database
     await sql`
       UPDATE poker_games
-      SET players = ${JSON.stringify(players)}::jsonb,
-          score_table = ${JSON.stringify(scoreTable)}::jsonb,
-          all_bets_placed = ${allBetsPlaced}
+      SET players = jsonb_set(
+        players,
+        array[${playerIndex}::text, 'bet'],
+        ${bet}::jsonb
+      )
       WHERE table_id = ${tableId}
     `
 

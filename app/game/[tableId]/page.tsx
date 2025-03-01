@@ -209,6 +209,39 @@ export default function Game() {
     }
   }
 
+  const handlePlaceBet = async (bet: number, playerName: string) => {
+    try {
+      const response = await fetch("/api/game/place-bet", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tableId, playerName, bet }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to place bet")
+      }
+
+      const data = await response.json()
+      console.log("Bet placed. Received data:", data)
+      // The game state will be updated through the SSE connection
+
+      toast({
+        title: "Bet Placed",
+        description: `Your bet of ${bet} has been placed successfully.`,
+      })
+    } catch (error) {
+      console.error("Error placing bet:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to place bet. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
   if (!gameData) {
     return <div>Loading...</div>
   }
@@ -229,6 +262,7 @@ export default function Game() {
         onStartGame={handleStartGame}
         onPlayCard={handlePlayCard}
         gameData={gameData}
+        onPlaceBet={handlePlaceBet}
       />
     </div>
   )
