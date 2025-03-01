@@ -1,8 +1,8 @@
 "use client"
 
-import React, { useState } from "react"
+import React from "react"
 import { TableHeader } from "@/components/ui/table"
-import { useEffect } from "react"
+import { useState, useEffect } from "react"
 import type { Player, Card, GameData, ScoreTableRow, PlayerScore } from "../types/game"
 import { Table, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
@@ -24,7 +24,6 @@ interface GameTableProps {
   onPlayCard: (card: Card) => void
   gameData: GameData
   lastPlayedCard: Card | null
-  onPlaceBet: (bet: number, playerName: string) => void
 }
 
 export default function GameTable({
@@ -41,12 +40,11 @@ export default function GameTable({
   onPlayCard,
   gameData,
   lastPlayedCard,
-  onPlaceBet,
 }: GameTableProps) {
   const [displayedCards, setDisplayedCards] = useState<Card[]>(cardsOnTable)
   const [isClearing, setIsClearing] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [betAmount, setBetAmount] = useState<string>("")
+  const [betAmount, setBetAmount] = useState<number | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -89,6 +87,15 @@ export default function GameTable({
   }
 
   const handlePlayCard = async (card: Card) => {
+    if (!gameData.allBetsPlaced) {
+      toast({
+        title: "Cannot play card",
+        description: "Please wait for all players to place their bets.",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (!isValidPlay(card)) {
       setErrorMessage(
         "Invalid card play. You must follow the leading suit if possible, or play a trump if you don't have the leading suit.",
@@ -103,21 +110,86 @@ export default function GameTable({
     }
 
     setErrorMessage(null)
-    onPlayCard(card)
+
+    try {
+      const response = await fetch("/api/game/play-card", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tableId, playerName: currentPlayerName, card }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to play the card")
+      }
+
+      const data = await response.json()
+      console.log("Card played. Received data:", data)
+      // The game state will be updated through the SSE connection
+
+      if (data.message === "Game over") {
+        toast({
+          title: "Game Over",
+          description: "The game has ended. Check the final scores!",
+        })
+      } else {
+        toast({
+          title: "Card Played",
+          description: "Your card has been played successfully.",
+        })
+      }
+    } catch (error) {
+      console.error("Error playing card:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to play the card. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
-  const handlePlaceBet = () => {
-    const bet = Number.parseInt(betAmount)
-    if (isNaN(bet) || bet < 0) {
+  const handlePlaceBet = async () => {
+    if (betAmount === null || betAmount < 0 || betAmount > cardsThisRound) {
       toast({
         title: "Invalid Bet",
-        description: "Bet must be 0 or a positive number.",
+        description: `Please enter a bet between 0 and ${cardsThisRound}.`,
         variant: "destructive",
       })
       return
     }
-    onPlaceBet(bet, currentPlayerName!)
-    setBetAmount("")
+
+    try {
+      const response = await fetch("/api/game/place-bet", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tableId, playerName: currentPlayerName, bet: betAmount }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to place the bet")
+      }
+
+      const data = await response.json()
+      console.log("Bet placed. Received data:", data)
+      // The game state will be updated through the SSE connection
+
+      toast({
+        title: "Bet Placed",
+        description: `Your bet of ${betAmount} has been placed successfully.`,
+      })
+    } catch (error) {
+      console.error("Error placing bet:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to place the bet. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
@@ -147,21 +219,6 @@ export default function GameTable({
         {!gameStarted && <Button onClick={onShare}>Share Game Link</Button>}
         {canStartGame && <Button onClick={onStartGame}>Start Game</Button>}
       </div>
-
-      {/* Your Bet Section */}
-      {gameStarted && currentPlayer && currentPlayer.bet === null && (
-        <div className="flex justify-center items-center space-x-2">
-          <Input
-            type="number"
-            min="0"
-            value={betAmount}
-            onChange={(e) => setBetAmount(e.target.value)}
-            placeholder="Enter your bet"
-            className="w-32"
-          />
-          <Button onClick={handlePlaceBet}>Place Bet</Button>
-        </div>
-      )}
 
       {/* Table with seats */}
       <div className="relative w-[800px] h-[400px] mx-auto">
@@ -199,9 +256,6 @@ export default function GameTable({
               <div>
                 <p className="font-bold text-sm text-black">{player.name}</p>
                 {player.isOwner && <p className="text-xs text-green-700">(Owner)</p>}
-                {player.bet !== null && (
-                  <p className="text-xs text-blue-700">Bet: {player.bet === 0 ? "Pass" : player.bet}</p>
-                )}
               </div>
             </div>
           )
@@ -229,21 +283,42 @@ export default function GameTable({
         </div>
       </div>
 
-      {/* Player's hand */}
-      {currentPlayer && gameStarted && (
-        <div className="mt-8">
+      {/* Betting and Player's hand */}
+      <div className="flex justify-between mt-8">
+        {/* Your Bet section */}
+        <div className="w-1/3">
+          <h2 className="text-xl font-bold mb-2 text-center">Your Bet</h2>
+          {gameStarted && currentPlayer && currentPlayer.bet === null ? (
+            <div className="flex flex-col items-center space-y-2">
+              <Input
+                type="number"
+                min="0"
+                max={cardsThisRound}
+                value={betAmount !== null ? betAmount : ""}
+                onChange={(e) => setBetAmount(Number.parseInt(e.target.value) || null)}
+                className="w-20 text-center"
+              />
+              <Button onClick={handlePlaceBet}>Confirm Bet</Button>
+            </div>
+          ) : (
+            <p className="text-center">Your bet: {currentPlayer?.bet}</p>
+          )}
+        </div>
+
+        {/* Player's hand */}
+        <div className="w-2/3">
           <h2 className="text-xl font-bold mb-2 text-center">Your Hand</h2>
           <div className="flex justify-center space-x-2">
-            {currentPlayer.hand && currentPlayer.hand.length > 0 ? (
+            {currentPlayer && currentPlayer.hand && currentPlayer.hand.length > 0 ? (
               currentPlayer.hand.map((card, index) => (
                 <PlayingCard
                   key={index}
                   suit={card.suit}
                   value={card.value}
                   onClick={() => handlePlayCard(card)}
-                  disabled={!isCurrentPlayerTurn || isClearing || !isValidPlay(card)}
+                  disabled={!isCurrentPlayerTurn || isClearing || !isValidPlay(card) || !gameData.allBetsPlaced}
                   className={`${card.suit === "diamonds" ? "bg-red-100" : "bg-white"} ${
-                    !isValidPlay(card) ? "opacity-50" : ""
+                    !isValidPlay(card) || !gameData.allBetsPlaced ? "opacity-50" : ""
                   }`}
                 />
               ))
@@ -253,7 +328,9 @@ export default function GameTable({
           </div>
           {gameStarted && currentRound <= 18 && (
             <p className="text-center mt-2 font-bold">
-              {isCurrentPlayerTurn ? (
+              {!gameData.allBetsPlaced ? (
+                <span className="text-yellow-600">Make your bet and wait until all players bet the round.</span>
+              ) : isCurrentPlayerTurn ? (
                 <span className="text-green-600">It's your turn! Select a card to play.</span>
               ) : (
                 <span className="text-blue-600">Waiting for {players[currentTurn]?.name}'s turn...</span>
@@ -262,7 +339,7 @@ export default function GameTable({
           )}
           {errorMessage && <p className="text-red-600 text-center mt-2">{errorMessage}</p>}
         </div>
-      )}
+      </div>
 
       {/* Score Table */}
       <div className="max-w-5xl mx-auto mt-8 overflow-x-auto">
@@ -271,6 +348,14 @@ export default function GameTable({
           <TableHeader>
             <TableRow>
               <TableHead>Round</TableHead>
+              {players.map((player) => (
+                <TableHead key={player.name} colSpan={3} className="text-center">
+                  {player.name}
+                </TableHead>
+              ))}
+            </TableRow>
+            <TableRow>
+              <TableHead></TableHead>
               {players.map((player) => (
                 <React.Fragment key={player.name}>
                   <TableHead className="text-center">Bet</TableHead>
@@ -294,7 +379,7 @@ export default function GameTable({
                     return (
                       <React.Fragment key={player.name}>
                         <TableCell className="text-center">
-                          {playerScore.bet === null ? "-" : playerScore.bet === 0 ? "Pass" : playerScore.bet}
+                          {playerScore.bet !== null ? playerScore.bet : "-"}
                         </TableCell>
                         <TableCell className="text-center">{playerScore.cumulativePoints}</TableCell>
                         <TableCell className={`text-center ${playerScore.roundPoints > 0 ? "text-green-600" : ""}`}>
