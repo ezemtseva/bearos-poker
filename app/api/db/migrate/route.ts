@@ -29,28 +29,12 @@ export async function GET() {
           last_played_card JSONB,
           all_cards_played BOOLEAN DEFAULT FALSE,
           highest_card JSONB,
-          round_start_player_index INTEGER DEFAULT 0
+          round_start_player_index INTEGER DEFAULT 0,
+          all_bets_placed BOOLEAN DEFAULT FALSE
         );
       `
       console.log("Table 'poker_games' created successfully")
     } else {
-      // Check if the all_cards_played column exists
-      const columnExists = await sql`
-        SELECT EXISTS (
-          SELECT FROM information_schema.columns 
-          WHERE table_name = 'poker_games' AND column_name = 'all_cards_played'
-        );
-      `
-
-      if (!columnExists.rows[0].exists) {
-        // Add the all_cards_played column if it doesn't exist
-        await sql`
-          ALTER TABLE poker_games
-          ADD COLUMN all_cards_played BOOLEAN DEFAULT FALSE;
-        `
-        console.log("Column 'all_cards_played' added successfully")
-      }
-
       // Alter the table to add missing columns (if any)
       await sql`
         ALTER TABLE poker_games
@@ -66,7 +50,8 @@ export async function GET() {
         ADD COLUMN IF NOT EXISTS last_played_card JSONB,
         ADD COLUMN IF NOT EXISTS all_cards_played BOOLEAN DEFAULT FALSE,
         ADD COLUMN IF NOT EXISTS highest_card JSONB,
-        ADD COLUMN IF NOT EXISTS round_start_player_index INTEGER DEFAULT 0;
+        ADD COLUMN IF NOT EXISTS round_start_player_index INTEGER DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS all_bets_placed BOOLEAN DEFAULT FALSE;
       `
       console.log("Table 'poker_games' updated successfully")
     }

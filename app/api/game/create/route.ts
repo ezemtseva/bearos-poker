@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
       hand: [],
       score: 0,
       roundWins: 0,
+      bet: null, // Add the missing 'bet' property
     }
 
     const gameData: GameData = {
@@ -40,6 +41,7 @@ export async function POST(req: NextRequest) {
       allCardsPlayed: false,
       highestCard: null,
       roundStartPlayerIndex: 0,
+      allBetsPlaced: false, // Add the missing 'allBetsPlaced' property
     }
 
     console.log("Attempting to insert new game into database")
@@ -62,7 +64,8 @@ export async function POST(req: NextRequest) {
           play_end_timestamp,
           last_played_card,
           all_cards_played,
-          round_start_player_index
+          round_start_player_index,
+          all_bets_placed
         )
         VALUES (
           ${tableId}, 
@@ -78,7 +81,8 @@ export async function POST(req: NextRequest) {
           null,
           null,
           false,
-          0
+          0,
+          false
         )
         RETURNING *
       `

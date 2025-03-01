@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
       hand: [],
       score: 0,
       roundWins: 0,
+      bet: null, // Add the missing 'bet' property
     }
     players.push(newPlayer)
 
@@ -70,6 +71,7 @@ export async function POST(req: NextRequest) {
       allCardsPlayed: game.all_cards_played || false,
       highestCard: game.highest_card || null,
       roundStartPlayerIndex: game.round_start_player_index || 0,
+      allBetsPlaced: game.all_bets_placed || false, // Add the missing 'allBetsPlaced' property
     }
 
     // Send SSE update to all connected clients

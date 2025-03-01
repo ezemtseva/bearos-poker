@@ -5,12 +5,7 @@ export interface Player {
   hand: Card[]
   score: number
   roundWins: number
-}
-
-export interface Card {
-  suit: "spades" | "hearts" | "diamonds" | "clubs"
-  value: number // 6-14, where 11=J, 12=Q, 13=K, 14=A
-  playerName?: string
+  bet: number | null
 }
 
 export interface ScoreTableRow {
@@ -22,6 +17,13 @@ export interface ScoreTableRow {
 export interface PlayerScore {
   cumulativePoints: number
   roundPoints: number
+  bet: number | null
+}
+
+export interface Card {
+  suit: "spades" | "hearts" | "diamonds" | "clubs"
+  value: number // 6-14, where 11=J, 12=Q, 13=K, 14=A
+  playerName?: string
 }
 
 export interface GameData {
@@ -40,5 +42,6 @@ export interface GameData {
   allCardsPlayed: boolean
   highestCard: Card | null
   roundStartPlayerIndex: number
+  allBetsPlaced: boolean
 }
 

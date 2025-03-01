@@ -29,7 +29,7 @@ function initializeScoreTable(players: Player[]): ScoreTableRow[] {
     }
     const scores: { [playerName: string]: PlayerScore } = players.reduce(
       (acc, player) => {
-        acc[player.name] = { cumulativePoints: 0, roundPoints: 0 }
+        acc[player.name] = { cumulativePoints: 0, roundPoints: 0, bet: null }
         return acc
       },
       {} as { [playerName: string]: PlayerScore },
@@ -66,10 +66,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "At least 2 players are required to start the game" }, { status: 400 })
     }
 
-    // Reassign seat numbers
+    // Reassign seat numbers and reset bets
     players = players.map((player, index) => ({
       ...player,
       seatNumber: index + 1,
+      bet: null,
     }))
 
     const deck = createDeck()
@@ -93,7 +94,8 @@ export async function POST(req: NextRequest) {
       lastPlayedCard: null,
       allCardsPlayed: false,
       highestCard: null,
-      roundStartPlayerIndex: ownerIndex, // Add this new field to track the starting player for each round
+      roundStartPlayerIndex: ownerIndex,
+      allBetsPlaced: false,
     }
 
     await sql`
@@ -109,7 +111,8 @@ export async function POST(req: NextRequest) {
           all_cards_played_timestamp = null,
           play_end_timestamp = null,
           all_cards_played = false,
-          round_start_player_index = ${ownerIndex}
+          round_start_player_index = ${ownerIndex},
+          all_bets_placed = false
       WHERE table_id = ${tableId}
     `
 

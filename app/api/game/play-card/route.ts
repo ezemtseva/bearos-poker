@@ -89,6 +89,7 @@ export async function POST(req: NextRequest) {
     let deck = game.deck as Card[]
     let allCardsPlayed = game.all_cards_played
     let roundStartPlayerIndex = game.round_start_player_index
+    let allBetsPlaced = game.all_bets_placed
 
     console.log("Initial game state:", {
       players,
@@ -156,6 +157,7 @@ export async function POST(req: NextRequest) {
       allCardsPlayed,
       highestCard,
       roundStartPlayerIndex,
+      allBetsPlaced,
     })
 
     console.log("All cards played:", allCardsPlayed)
@@ -187,9 +189,11 @@ export async function POST(req: NextRequest) {
           const playerScore: PlayerScore = {
             cumulativePoints: player.score,
             roundPoints: player.roundWins * 10,
+            bet: player.bet,
           }
           scoreTable[roundIndex].scores[player.name] = playerScore
           player.roundWins = 0 // Reset for next round
+          player.bet = null // Reset bet for next round
         })
 
         if (currentRound < 18) {
@@ -206,6 +210,9 @@ export async function POST(req: NextRequest) {
           // Set the starting player for the new round
           roundStartPlayerIndex = getNextRoundStartPlayer(currentRound, players)
           currentTurn = roundStartPlayerIndex
+
+          // Reset all bets placed flag
+          allBetsPlaced = false
 
           console.log(
             `Starting Round ${currentRound}. Cards dealt: ${newCardsPerRound} per player. First turn: ${players[currentTurn].name}`,
@@ -228,6 +235,7 @@ export async function POST(req: NextRequest) {
             allCardsPlayed: false,
             highestCard: null,
             roundStartPlayerIndex,
+            allBetsPlaced: false,
           }
           await sql`
             UPDATE poker_games
@@ -243,7 +251,8 @@ export async function POST(req: NextRequest) {
                 last_played_card = null,
                 all_cards_played = false,
                 highest_card = null,
-                round_start_player_index = ${roundStartPlayerIndex}
+                round_start_player_index = ${roundStartPlayerIndex},
+                all_bets_placed = false
             WHERE table_id = ${tableId}
           `
           await sendSSEUpdate(tableId, gameOverData)
@@ -276,6 +285,7 @@ export async function POST(req: NextRequest) {
         allCardsPlayed: false,
         highestCard: null,
         roundStartPlayerIndex,
+        allBetsPlaced,
       })
     } else {
       // Move to the next turn
@@ -299,6 +309,7 @@ export async function POST(req: NextRequest) {
       allCardsPlayed,
       highestCard,
       roundStartPlayerIndex,
+      allBetsPlaced,
     }
 
     console.log("Final game state:", finalGameData)
@@ -319,7 +330,8 @@ export async function POST(req: NextRequest) {
           last_played_card = ${JSON.stringify({ ...card, playerName })}::jsonb,
           all_cards_played = ${allCardsPlayed},
           highest_card = ${JSON.stringify(highestCard)}::jsonb,
-          round_start_player_index = ${roundStartPlayerIndex}
+          round_start_player_index = ${roundStartPlayerIndex},
+          all_bets_placed = ${allBetsPlaced}
       WHERE table_id = ${tableId}
     `
 
