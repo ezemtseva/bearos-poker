@@ -8,6 +8,7 @@ import type { Player, Card, GameData, ScoreTableRow, PlayerScore } from "../type
 import { Table, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import PlayingCard from "./PlayingCard"
+import { useToast } from "@/hooks/use-toast"
 
 interface GameTableProps {
   tableId: string
@@ -42,6 +43,8 @@ export default function GameTable({
 }: GameTableProps) {
   const [displayedCards, setDisplayedCards] = useState<Card[]>(cardsOnTable)
   const [isClearing, setIsClearing] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const { toast } = useToast()
 
   useEffect(() => {
     if (gameData.allCardsPlayed) {
@@ -65,6 +68,77 @@ export default function GameTable({
     currentPlayer && gameData.players[gameData.currentTurn]?.name === currentPlayer.name && gameStarted
 
   const cardsThisRound = currentRound <= 6 ? currentRound : currentRound <= 12 ? 13 - currentRound : 19 - currentRound
+
+  const isValidPlay = (card: Card): boolean => {
+    if (currentPlayer?.hand.length === 1) return true // Player can play their last card regardless of suit
+
+    if (cardsOnTable.length === 0) return true // First player can play any card
+
+    const leadingSuit = cardsOnTable[0].suit
+    const hasSuit = currentPlayer?.hand.some((c) => c.suit === leadingSuit)
+    const hasTrumps = currentPlayer?.hand.some((c) => c.suit === "diamonds")
+
+    if (card.suit === leadingSuit) return true // Following the leading suit
+    if (!hasSuit && card.suit === "diamonds") return true // Playing a trump when no leading suit
+    if (!hasSuit && !hasTrumps) return true // Can play any card if no leading suit or trumps
+
+    return false // Invalid play
+  }
+
+  const handlePlayCard = async (card: Card) => {
+    if (!isValidPlay(card)) {
+      setErrorMessage(
+        "Invalid card play. You must follow the leading suit if possible, or play a trump if you don't have the leading suit.",
+      )
+      toast({
+        title: "Invalid Play",
+        description:
+          "You must follow the leading suit if possible, or play a trump if you don't have the leading suit.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setErrorMessage(null)
+
+    try {
+      const response = await fetch("/api/game/play-card", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tableId, playerName: currentPlayerName, card }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to play the card")
+      }
+
+      const data = await response.json()
+      console.log("Card played. Received data:", data)
+      // The game state will be updated through the SSE connection
+
+      if (data.message === "Game over") {
+        toast({
+          title: "Game Over",
+          description: "The game has ended. Check the final scores!",
+        })
+      } else {
+        toast({
+          title: "Card Played",
+          description: "Your card has been played successfully.",
+        })
+      }
+    } catch (error) {
+      console.error("Error playing card:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to play the card. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -168,9 +242,11 @@ export default function GameTable({
                   key={index}
                   suit={card.suit}
                   value={card.value}
-                  onClick={() => onPlayCard(card)}
-                  disabled={!isCurrentPlayerTurn || isClearing}
-                  className={card.suit === "diamonds" ? "bg-red-100" : "bg-white"}
+                  onClick={() => handlePlayCard(card)}
+                  disabled={!isCurrentPlayerTurn || isClearing || !isValidPlay(card)}
+                  className={`${card.suit === "diamonds" ? "bg-red-100" : "bg-white"} ${
+                    !isValidPlay(card) ? "opacity-50" : ""
+                  }`}
                 />
               ))
             ) : (
@@ -186,6 +262,7 @@ export default function GameTable({
               )}
             </p>
           )}
+          {errorMessage && <p className="text-red-600 text-center mt-2">{errorMessage}</p>}
         </div>
       )}
 

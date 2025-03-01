@@ -25,7 +25,7 @@ function determineHighestCard(cards: Card[]): Card | null {
       return current
     } else if (max.suit === "diamonds" && current.suit !== "diamonds") {
       return max
-    } else if (current.value > max.value) {
+    } else if (current.suit === max.suit && current.value > max.value) {
       return current
     } else {
       return max
@@ -43,6 +43,22 @@ function getNextRoundStartPlayer(currentRound: number, players: Player[]): numbe
   const nextStartPlayer = players.findIndex((player) => player.seatNumber === targetSeatNumber)
 
   return nextStartPlayer !== -1 ? nextStartPlayer : 0 // Fallback to owner if seat not found
+}
+
+function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[]): boolean {
+  if (playerHand.length === 1) return true // Player can play their last card regardless of suit
+
+  if (cardsOnTable.length === 0) return true // First player can play any card
+
+  const leadingSuit = cardsOnTable[0].suit
+  const hasSuit = playerHand.some((c) => c.suit === leadingSuit)
+  const hasTrumps = playerHand.some((c) => c.suit === "diamonds")
+
+  if (card.suit === leadingSuit) return true // Following the leading suit
+  if (!hasSuit && card.suit === "diamonds") return true // Playing a trump when no leading suit
+  if (!hasSuit && !hasTrumps) return true // Can play any card if no leading suit or trumps
+
+  return false // Invalid play
 }
 
 export async function POST(req: NextRequest) {
@@ -87,6 +103,17 @@ export async function POST(req: NextRequest) {
     const playerIndex = players.findIndex((p) => p.name === playerName)
     if (playerIndex === -1 || playerIndex !== currentTurn) {
       return NextResponse.json({ error: "It's not your turn" }, { status: 400 })
+    }
+
+    // Check if the play is valid according to the new rule
+    if (!isValidPlay(card, players[playerIndex].hand, cardsOnTable)) {
+      return NextResponse.json(
+        {
+          error:
+            "Invalid card play. You must follow the leading suit if possible, or play a trump if you don't have the leading suit.",
+        },
+        { status: 400 },
+      )
     }
 
     // Remove the played card from the player's hand
