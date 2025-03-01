@@ -193,7 +193,10 @@ export async function POST(req: NextRequest) {
 
           let roundPoints = 0
           if (playerBet !== null) {
-            if (playsWon > playerBet) {
+            if (playsWon === 0 && playerBet === 0) {
+              // New rule: Player bet 0 and didn't win any plays
+              roundPoints = 5 * multiplier
+            } else if (playsWon > playerBet) {
               // Player won more plays than they bet
               roundPoints = playsWon * multiplier
             } else if (playsWon === playerBet) {

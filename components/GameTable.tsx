@@ -392,7 +392,15 @@ export default function GameTable({
                           {playerScore.bet !== null ? playerScore.bet : "-"}
                         </TableCell>
                         <TableCell className="text-center">{playerScore.cumulativePoints}</TableCell>
-                        <TableCell className={`text-center ${playerScore.roundPoints > 0 ? "text-green-600" : ""}`}>
+                        <TableCell
+                          className={`text-center ${
+                            playerScore.roundPoints < 0
+                              ? "text-red-600"
+                              : playerScore.roundPoints > 0
+                                ? "text-green-600"
+                                : ""
+                          }`}
+                        >
                           {playerScore.roundPoints > 0
                             ? `+${playerScore.roundPoints}`
                             : playerScore.roundPoints === 0
