@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
-import type { GameData, Player, Card } from "../../../../types/game"
+import type { GameData, Player, Card, ScoreTableRow, PlayerScore } from "../../../../types/game"
 import { sendSSEUpdate } from "../../../utils/sse"
 import { createDeck } from "../../../utils/deck"
 
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     let currentPlay = game.current_play
     let currentTurn = game.current_turn
     let allCardsPlayedTimestamp: number | null = game.all_cards_played_timestamp
-    const scoreTable = game.score_table
+    const scoreTable = game.score_table as ScoreTableRow[]
     let deck = game.deck as Card[]
     let allCardsPlayed = game.all_cards_played
     let roundStartPlayerIndex = game.round_start_player_index
@@ -144,8 +144,9 @@ export async function POST(req: NextRequest) {
       // The winner is the player who played the highest card
       const winnerIndex = players.findIndex((p) => p.name === highestCard?.playerName)
 
-      // Update round wins for the winner
+      // Update round wins and score for the winner
       players[winnerIndex].roundWins = (players[winnerIndex].roundWins || 0) + 1
+      players[winnerIndex].score += 10 // Now we give 10 points for a win
 
       // Prepare for the next play or round
       currentPlay++
@@ -156,8 +157,11 @@ export async function POST(req: NextRequest) {
         // Update scores in the score table
         const roundIndex = currentRound - 1
         players.forEach((player) => {
-          scoreTable[roundIndex].scores[player.name] = player.roundWins
-          player.score += player.roundWins
+          const playerScore: PlayerScore = {
+            cumulativePoints: player.score,
+            roundPoints: player.roundWins * 10,
+          }
+          scoreTable[roundIndex].scores[player.name] = playerScore
           player.roundWins = 0 // Reset for next round
         })
 

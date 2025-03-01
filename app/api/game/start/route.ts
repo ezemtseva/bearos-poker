@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
-import type { GameData, Player, Card, ScoreTableRow } from "../../../../types/game"
+import type { GameData, Player, Card, ScoreTableRow, PlayerScore } from "../../../../types/game"
 import { createDeck } from "../../../utils/deck"
 import { sendSSEUpdate } from "../../../utils/sse"
 
@@ -27,12 +27,12 @@ function initializeScoreTable(players: Player[]): ScoreTableRow[] {
     } else {
       roundName = (19 - roundId).toString()
     }
-    const scores = players.reduce(
+    const scores: { [playerName: string]: PlayerScore } = players.reduce(
       (acc, player) => {
-        acc[player.name] = null
+        acc[player.name] = { cumulativePoints: 0, roundPoints: 0 }
         return acc
       },
-      {} as { [playerName: string]: number | null },
+      {} as { [playerName: string]: PlayerScore },
     )
     return { roundId, roundName, scores }
   })

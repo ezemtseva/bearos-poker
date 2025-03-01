@@ -1,8 +1,10 @@
 "use client"
 
+import React from "react"
+
 import { TableHeader } from "@/components/ui/table"
 import { useState, useEffect } from "react"
-import type { Player, Card, GameData, ScoreTableRow } from "../types/game"
+import type { Player, Card, GameData, ScoreTableRow, PlayerScore } from "../types/game"
 import { Table, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import PlayingCard from "./PlayingCard"
@@ -188,14 +190,25 @@ export default function GameTable({
       )}
 
       {/* Score Table */}
-      <div className="max-w-3xl mx-auto mt-8">
+      <div className="max-w-5xl mx-auto mt-8 overflow-x-auto">
         <h2 className="text-2xl font-bold mb-4">Score Table</h2>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Round</TableHead>
               {players.map((player) => (
-                <TableHead key={player.name}>{player.name}</TableHead>
+                <TableHead key={player.name} colSpan={2} className="text-center">
+                  {player.name}
+                </TableHead>
+              ))}
+            </TableRow>
+            <TableRow>
+              <TableHead></TableHead>
+              {players.map((player) => (
+                <React.Fragment key={player.name}>
+                  <TableHead className="text-center">Total</TableHead>
+                  <TableHead className="text-center">Round</TableHead>
+                </React.Fragment>
               ))}
             </TableRow>
           </TableHeader>
@@ -204,14 +217,29 @@ export default function GameTable({
               gameData.scoreTable.map((round: ScoreTableRow) => (
                 <TableRow key={round.roundId}>
                   <TableCell>{round.roundName}</TableCell>
-                  {players.map((player) => (
-                    <TableCell key={player.name}>{(round.scores && round.scores[player.name]) || "-"}</TableCell>
-                  ))}
+                  {players.map((player) => {
+                    const playerScore: PlayerScore = round.scores[player.name] || {
+                      cumulativePoints: 0,
+                      roundPoints: 0,
+                    }
+                    return (
+                      <React.Fragment key={player.name}>
+                        <TableCell className="text-center">{playerScore.cumulativePoints}</TableCell>
+                        <TableCell className={`text-center ${playerScore.roundPoints > 0 ? "text-green-600" : ""}`}>
+                          {playerScore.roundPoints > 0
+                            ? `+${playerScore.roundPoints}`
+                            : playerScore.roundPoints === 0
+                              ? "-"
+                              : playerScore.roundPoints}
+                        </TableCell>
+                      </React.Fragment>
+                    )
+                  })}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={players.length + 1}>No scores available</TableCell>
+                <TableCell colSpan={players.length * 2 + 1}>No scores available</TableCell>
               </TableRow>
             )}
           </TableBody>

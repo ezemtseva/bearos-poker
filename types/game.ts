@@ -16,7 +16,12 @@ export interface Card {
 export interface ScoreTableRow {
   roundId: number
   roundName: string
-  scores: { [playerName: string]: number | null }
+  scores: { [playerName: string]: PlayerScore }
+}
+
+export interface PlayerScore {
+  cumulativePoints: number
+  roundPoints: number
 }
 
 export interface GameData {
