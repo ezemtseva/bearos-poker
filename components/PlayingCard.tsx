@@ -62,6 +62,7 @@ export default function PlayingCard({ suit, value, onClick, disabled = false, cl
       disabled={disabled}
       className={`relative w-24 h-36 rounded-2xl shadow-md transition-transform 
         ${disabled ? "opacity-100" : "hover:scale-105 hover:shadow-lg"} 
+        ${suit === "diamonds" ? "border-2 border-yellow-400" : ""}
         border border-gray-300 overflow-hidden ${className}`}
       aria-label={`${displayValue} of ${suit}`}
     >

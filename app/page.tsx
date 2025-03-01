@@ -12,6 +12,7 @@ export default function Home() {
           <li>Each round, players are dealt a number of cards based on the round number</li>
           <li>Players take turns playing one card at a time</li>
           <li>The highest card wins each play</li>
+          <li>Diamond cards are always trump and beat any other suit</li>
           <li>Points are awarded based on the number of plays won</li>
         </ul>
         <div className="flex justify-center space-x-4">

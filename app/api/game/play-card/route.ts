@@ -21,11 +21,12 @@ function dealCards(players: Player[], deck: Card[], cardsPerPlayer: number): [Pl
 function determineHighestCard(cards: Card[]): Card | null {
   if (cards.length === 0) return null
   return cards.reduce((max, current) => {
-    if (current.value > max.value) {
+    if (current.suit === "diamonds" && max.suit !== "diamonds") {
       return current
-    } else if (current.value === max.value) {
-      // In case of a tie, the first card played wins
+    } else if (max.suit === "diamonds" && current.suit !== "diamonds") {
       return max
+    } else if (current.value > max.value) {
+      return current
     } else {
       return max
     }
