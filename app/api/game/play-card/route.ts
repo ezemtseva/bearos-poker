@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
     const scoreTable = game.score_table
     let deck = game.deck as Card[]
     let allCardsPlayed = game.all_cards_played
+    let roundStartPlayerIndex = game.round_start_player_index
 
     console.log("Initial game state:", {
       players,
@@ -67,6 +68,7 @@ export async function POST(req: NextRequest) {
       currentPlay,
       currentTurn,
       allCardsPlayedTimestamp,
+      roundStartPlayerIndex,
     })
 
     // Find the current player
@@ -114,6 +116,7 @@ export async function POST(req: NextRequest) {
       lastPlayedCard: { ...card, playerName },
       allCardsPlayed,
       highestCard,
+      roundStartPlayerIndex,
     })
 
     console.log("All cards played:", allCardsPlayed)
@@ -157,6 +160,7 @@ export async function POST(req: NextRequest) {
           }
           ;[players, deck] = dealCards(players, deck, newCardsPerRound) // Deal the correct number of cards for the new round
           currentTurn = winnerIndex // Set the turn to the winner of the last round
+          roundStartPlayerIndex = winnerIndex
           console.log(
             `Starting Round ${currentRound}. Cards dealt: ${newCardsPerRound} per player. First turn: ${players[currentTurn].name}`,
           )
@@ -177,6 +181,7 @@ export async function POST(req: NextRequest) {
             lastPlayedCard: null,
             allCardsPlayed: false,
             highestCard: null,
+            roundStartPlayerIndex,
           }
           await sql`
             UPDATE poker_games
@@ -191,7 +196,8 @@ export async function POST(req: NextRequest) {
                 play_end_timestamp = null,
                 last_played_card = null,
                 all_cards_played = false,
-                highest_card = null
+                highest_card = null,
+                round_start_player_index = ${gameOverData.roundStartPlayerIndex}
             WHERE table_id = ${tableId}
           `
           await sendSSEUpdate(tableId, gameOverData)
@@ -223,6 +229,7 @@ export async function POST(req: NextRequest) {
         lastPlayedCard: null,
         allCardsPlayed: false,
         highestCard: null,
+        roundStartPlayerIndex,
       })
     } else {
       // Move to the next turn
@@ -245,6 +252,7 @@ export async function POST(req: NextRequest) {
       lastPlayedCard: allCardsPlayed ? null : { ...card, playerName },
       allCardsPlayed,
       highestCard,
+      roundStartPlayerIndex,
     }
 
     console.log("Final game state:", finalGameData)
@@ -264,7 +272,8 @@ export async function POST(req: NextRequest) {
           score_table = ${JSON.stringify(scoreTable)}::jsonb,
           last_played_card = ${JSON.stringify({ ...card, playerName })}::jsonb,
           all_cards_played = ${allCardsPlayed},
-          highest_card = ${JSON.stringify(highestCard)}::jsonb
+          highest_card = ${JSON.stringify(highestCard)}::jsonb,
+          round_start_player_index = ${roundStartPlayerIndex}
       WHERE table_id = ${tableId}
     `
 

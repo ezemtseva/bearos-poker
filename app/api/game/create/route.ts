@@ -38,7 +38,8 @@ export async function POST(req: NextRequest) {
       playEndTimestamp: null,
       lastPlayedCard: null,
       allCardsPlayed: false,
-      highestCard: null, // Add this line
+      highestCard: null,
+      roundStartPlayerIndex: 0,
     }
 
     console.log("Attempting to insert new game into database")
@@ -60,7 +61,8 @@ export async function POST(req: NextRequest) {
           all_cards_played_timestamp,
           play_end_timestamp,
           last_played_card,
-          all_cards_played
+          all_cards_played,
+          round_start_player_index
         )
         VALUES (
           ${tableId}, 
@@ -75,7 +77,8 @@ export async function POST(req: NextRequest) {
           null,
           null,
           null,
-          false
+          false,
+          0
         )
         RETURNING *
       `

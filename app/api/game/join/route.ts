@@ -69,6 +69,7 @@ export async function POST(req: NextRequest) {
       lastPlayedCard: game.last_played_card || null,
       allCardsPlayed: game.all_cards_played || false,
       highestCard: game.highest_card || null,
+      roundStartPlayerIndex: game.round_start_player_index || 0,
     }
 
     // Send SSE update to all connected clients

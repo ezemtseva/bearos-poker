@@ -27,7 +27,9 @@ export async function GET() {
           all_cards_played_timestamp BIGINT,
           play_end_timestamp BIGINT,
           last_played_card JSONB,
-          all_cards_played BOOLEAN DEFAULT FALSE
+          all_cards_played BOOLEAN DEFAULT FALSE,
+          highest_card JSONB,
+          round_start_player_index INTEGER DEFAULT 0
         );
       `
       console.log("Table 'poker_games' created successfully")
@@ -63,7 +65,8 @@ export async function GET() {
         ADD COLUMN IF NOT EXISTS play_end_timestamp BIGINT,
         ADD COLUMN IF NOT EXISTS last_played_card JSONB,
         ADD COLUMN IF NOT EXISTS all_cards_played BOOLEAN DEFAULT FALSE,
-        ADD COLUMN IF NOT EXISTS highest_card JSONB;
+        ADD COLUMN IF NOT EXISTS highest_card JSONB,
+        ADD COLUMN IF NOT EXISTS round_start_player_index INTEGER DEFAULT 0;
       `
       console.log("Table 'poker_games' updated successfully")
     }

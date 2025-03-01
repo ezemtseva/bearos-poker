@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
       lastPlayedCard: game.last_played_card,
       allCardsPlayed: game.all_cards_played,
       highestCard: game.highest_card,
+      roundStartPlayerIndex: game.round_start_player_index || 0,
     }
 
     return NextResponse.json({ gameData })

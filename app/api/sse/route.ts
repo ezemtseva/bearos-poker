@@ -84,6 +84,7 @@ async function getGameState(tableId: string): Promise<GameData> {
       lastPlayedCard: null,
       allCardsPlayed: false,
       highestCard: null,
+      roundStartPlayerIndex: 0,
     }
   }
   const row = result.rows[0]
@@ -103,6 +104,7 @@ async function getGameState(tableId: string): Promise<GameData> {
     lastPlayedCard: row.last_played_card || null,
     allCardsPlayed: row.all_cards_played || false,
     highestCard: row.highest_card || null,
+    roundStartPlayerIndex: row.round_start_player_index || 0,
   }
 }
 

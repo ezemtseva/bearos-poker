@@ -93,6 +93,7 @@ export async function POST(req: NextRequest) {
       lastPlayedCard: null,
       allCardsPlayed: false,
       highestCard: null,
+      roundStartPlayerIndex: ownerIndex, // Add this new field to track the starting player for each round
     }
 
     await sql`
@@ -107,7 +108,8 @@ export async function POST(req: NextRequest) {
           score_table = ${JSON.stringify(gameData.scoreTable)}::jsonb,
           all_cards_played_timestamp = null,
           play_end_timestamp = null,
-          all_cards_played = false
+          all_cards_played = false,
+          round_start_player_index = ${ownerIndex}
       WHERE table_id = ${tableId}
     `
 

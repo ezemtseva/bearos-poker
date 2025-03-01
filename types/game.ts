@@ -32,7 +32,8 @@ export interface GameData {
   allCardsPlayedTimestamp: number | null
   playEndTimestamp: number | null
   lastPlayedCard: Card | null
-  allCardsPlayed: boolean // Add this line
+  allCardsPlayed: boolean
   highestCard: Card | null
+  roundStartPlayerIndex: number
 }
 
