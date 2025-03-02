@@ -194,6 +194,9 @@ export default function GameTable({
 
   const highestScore = Math.max(...players.map((p) => p.score))
 
+  const isBlindRound = gameData.scoreTable[currentRound - 1]?.roundName === "B"
+  const shouldShowCardBacks = isBlindRound && !gameData.allBetsPlaced
+
   return (
     <div className="space-y-8">
       {/* Game Info */}
@@ -331,7 +334,7 @@ export default function GameTable({
               <Button onClick={handlePlaceBet}>Confirm Bet</Button>
             </div>
           ) : (
-            <p className="text-center">Your bet: {currentPlayer?.bet}</p>
+            <p className="text-center"> {currentPlayer?.bet}</p>
           )}
         </div>
 
@@ -347,6 +350,7 @@ export default function GameTable({
                   value={card.value}
                   onClick={() => handlePlayCard(card)}
                   disabled={!isCurrentPlayerTurn || isClearing || !isValidPlay(card) || !gameData.allBetsPlaced}
+                  showBack={shouldShowCardBacks}
                   className={`${card.suit === "diamonds" ? "bg-red-100" : "bg-white"} ${
                     !isValidPlay(card) || !gameData.allBetsPlaced ? "opacity-50" : ""
                   }`}

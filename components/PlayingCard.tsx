@@ -1,13 +1,15 @@
+import CardBack from "./CardBack"
+
 interface PlayingCardProps {
   suit: "spades" | "hearts" | "diamonds" | "clubs"
   value: number
   onClick?: () => void
   disabled?: boolean
   className?: string
+  showBack?: boolean
 }
 
 const SuitSymbol = ({ suit, className = "" }: { suit: string; className?: string }) => {
-  // SVG paths for each suit
   const symbols = {
     hearts: (
       <path
@@ -18,7 +20,7 @@ const SuitSymbol = ({ suit, className = "" }: { suit: string; className?: string
     diamonds: <path d="M12 3L20 12L12 21L4 12L12 3Z" fill="currentColor" />,
     spades: (
       <path
-        d="M12 4.5l1.15 1.05C17.6 9.7 20.5 12.3 20.5 15.1 20.5 17.6 18.6 19.5 16.2 19.5c-1.5 0-2.94-.7-4.2-1.8-1.26 1.1-2.7 1.8-4.2 1.8-2.4 0-4.3-1.9-4.3-4.4 0-2.8 2.9-5.4 7.35-9.55L12 4.5ZM12 17L14 20.5H10L12 17Z"
+        d="M12 5l1 0.9C16.8 9.4 19.5 11.7 19.5 14.2 19.5 16.4 17.8 18 15.8 18c-1.3 0-2.6-0.6-3.8-1.6-1.2 1-2.5 1.6-3.8 1.6-2 0-3.7-1.6-3.7-3.8 0-2.4 2.4-4.6 6.1-8.1L12 5ZM12 16.5L13.8 19.5H10.2L12 16.5Z"
         fill="currentColor"
       />
     ),
@@ -52,7 +54,18 @@ const valueToDisplay = (value: number): string => {
   }
 }
 
-export default function PlayingCard({ suit, value, onClick, disabled = false, className = "" }: PlayingCardProps) {
+export default function PlayingCard({
+  suit,
+  value,
+  onClick,
+  disabled = false,
+  className = "",
+  showBack = false,
+}: PlayingCardProps) {
+  if (showBack) {
+    return <CardBack className={className} />
+  }
+
   const isRed = suit === "hearts" || suit === "diamonds"
   const displayValue = valueToDisplay(value)
 
