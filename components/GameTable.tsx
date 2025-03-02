@@ -65,10 +65,10 @@ export default function GameTable({
   }, [cardsOnTable, gameData.allCardsPlayed])
 
   useEffect(() => {
-    if (currentRound > 18) {
+    if (gameData.currentRound > 18) {
       setShowResultsDialog(true)
     }
-  }, [currentRound])
+  }, [gameData.currentRound])
 
   const currentPlayerName = localStorage.getItem("playerName")
   const currentPlayer = players.find((p) => p.name === currentPlayerName)
@@ -204,6 +204,8 @@ export default function GameTable({
 
   const isBlindRound = gameData.scoreTable[currentRound - 1]?.roundName === "B"
   const shouldShowCardBacks = isBlindRound && !gameData.allBetsPlaced
+
+  console.log("Current round:", gameData.currentRound, "Show dialog:", showResultsDialog)
 
   return (
     <div className="space-y-8">
@@ -342,7 +344,7 @@ export default function GameTable({
               <Button onClick={handlePlaceBet}>Confirm Bet</Button>
             </div>
           ) : (
-            <p className="text-center">Your bet: {currentPlayer?.bet}</p>
+            <p className="text-center"> {currentPlayer?.bet}</p>
           )}
         </div>
 
