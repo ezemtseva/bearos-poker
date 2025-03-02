@@ -192,6 +192,8 @@ export default function GameTable({
     }
   }
 
+  const highestScore = Math.max(...players.map((p) => p.score))
+
   return (
     <div className="space-y-8">
       {/* Game Info */}
@@ -242,20 +244,38 @@ export default function GameTable({
           const left = 400 + xRadius * Math.cos(angle)
           const top = 200 + yRadius * Math.sin(angle)
 
+          // Determine chip color based on score
+          let chipColor = player.score === highestScore ? "bg-yellow-500" : "bg-green-700"
+          if (player.score === 0) {
+            chipColor = "bg-gray-500"
+          } else if (player.score < 0) {
+            chipColor = "bg-red-600"
+          }
+
           return (
             <div
               key={index}
-              className={`absolute w-20 h-20 -ml-10 -mt-10 rounded-full flex items-center justify-center text-center shadow-md ${
-                players[currentTurn]?.name === player.name ? "bg-yellow-200" : "bg-gray-200"
-              }`}
+              className="absolute"
               style={{
                 left: `${left}px`,
                 top: `${top}px`,
               }}
             >
-              <div>
-                <p className="font-bold text-sm text-black">{player.name}</p>
-                {player.isOwner && <p className="text-xs text-green-700">(Owner)</p>}
+              <div
+                className={`relative w-20 h-20 -ml-10 -mt-10 rounded-full flex items-center justify-center text-center shadow-md ${
+                  players[currentTurn]?.name === player.name ? "bg-yellow-200" : "bg-gray-200"
+                }`}
+              >
+                <div>
+                  <p className="font-bold text-sm text-black">{player.name}</p>
+                  {player.isOwner && <p className="text-xs text-gray-600">(Owner)</p>}
+                </div>
+                {/* Points Chip */}
+                <div
+                  className={`absolute -bottom-2 -left-2 w-8 h-8 rounded-full ${chipColor} flex items-center justify-center text-white text-xs font-bold shadow-md`}
+                >
+                  {player.score}
+                </div>
               </div>
             </div>
           )
@@ -357,9 +377,9 @@ export default function GameTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Round</TableHead>
+              <TableHead className="text-white font-bold">Round</TableHead>
               {players.map((player) => (
-                <TableHead key={player.name} colSpan={3} className="text-center">
+                <TableHead key={player.name} colSpan={3} className="text-center text-white font-bold">
                   {player.name}
                 </TableHead>
               ))}
@@ -378,7 +398,13 @@ export default function GameTable({
           <TableBody>
             {gameData.scoreTable && gameData.scoreTable.length > 0 ? (
               gameData.scoreTable.map((round: ScoreTableRow) => (
-                <TableRow key={round.roundId}>
+                <TableRow
+                  key={round.roundId}
+                  className={`
+                    ${round.roundId === currentRound ? "bg-blue-400/70" : ""}
+                    ${round.roundId < currentRound ? "bg-gray-600/70" : ""}
+                  `}
+                >
                   <TableCell>{round.roundName}</TableCell>
                   {players.map((player) => {
                     const playerScore: PlayerScore = round.scores[player.name] || {
