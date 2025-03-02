@@ -468,27 +468,6 @@ export default function GameTable({
         </Table>
       </div>
 
-      {gameData.gameOver && (
-        <div className="mt-8 text-center">
-          <h2 className="text-3xl font-bold mb-4">Game Over!</h2>
-          <h3 className="text-xl font-semibold mb-2">Final Scores:</h3>
-          <ul>
-            {players
-              .sort((a, b) => b.score - a.score)
-              .map((player, index) => (
-                <li key={player.name} className={`text-lg ${index === 0 ? "font-bold text-green-600" : ""}`}>
-                  {index === 0 && "🏆 "}
-                  {player.name}: {player.score} points
-                </li>
-              ))}
-          </ul>
-          {isOwner && (
-            <Button onClick={onStartGame} className="mt-4">
-              Start New Game
-            </Button>
-          )}
-        </div>
-      )}
       <GameResultsDialog isOpen={showResultsDialog} onClose={() => setShowResultsDialog(false)} players={players} />
     </div>
   )
