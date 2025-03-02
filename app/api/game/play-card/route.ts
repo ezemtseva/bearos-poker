@@ -61,6 +61,12 @@ function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[]): bool
   return false // Invalid play
 }
 
+function cardsPerRound(round: number): number {
+  if (round <= 6) return round
+  if (round <= 12) return 6
+  return 19 - round
+}
+
 export async function POST(req: NextRequest) {
   const { tableId, playerName, card } = await req.json()
 
@@ -178,9 +184,8 @@ export async function POST(req: NextRequest) {
 
       // Prepare for the next play or round
       currentPlay++
-      const cardsPerRound =
-        currentRound <= 6 ? currentRound : currentRound <= 12 ? 13 - currentRound : 19 - currentRound
-      if (currentPlay > cardsPerRound) {
+      const cardsPerRoundValue = cardsPerRound(currentRound)
+      if (currentPlay > cardsPerRoundValue) {
         // End of round
         // Update scores in the score table
         const roundIndex = currentRound - 1
@@ -224,8 +229,7 @@ export async function POST(req: NextRequest) {
           // Start new round
           currentRound++
           currentPlay = 1
-          const newCardsPerRound =
-            currentRound <= 6 ? currentRound : currentRound <= 12 ? 13 - currentRound : 19 - currentRound
+          const newCardsPerRound = cardsPerRound(currentRound)
           if (deck.length < newCardsPerRound * players.length) {
             deck = createDeck() // Create a new deck if needed
           }
