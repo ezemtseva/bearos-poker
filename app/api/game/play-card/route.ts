@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
     let allCardsPlayedTimestamp: number | null = game.all_cards_played_timestamp
     const scoreTable = game.score_table as ScoreTableRow[]
     let deck = game.deck as Card[]
-    let allCardsPlayed = game.all_cards_played
+    let allCardsPlayed = game.cards_on_table.length === players.length
     let roundStartPlayerIndex = game.round_start_player_index
     let allBetsPlaced = game.all_bets_placed
 
@@ -164,6 +164,7 @@ export async function POST(req: NextRequest) {
       highestCard,
       roundStartPlayerIndex,
       allBetsPlaced,
+      gameOver: false, // Add this line
     })
 
     console.log("All cards played:", allCardsPlayed)
@@ -264,6 +265,7 @@ export async function POST(req: NextRequest) {
             highestCard: null,
             roundStartPlayerIndex,
             allBetsPlaced: false,
+            gameOver: true,
           }
           await sql`
             UPDATE poker_games
@@ -280,7 +282,8 @@ export async function POST(req: NextRequest) {
                 all_cards_played = false,
                 highest_card = null,
                 round_start_player_index = ${roundStartPlayerIndex},
-                all_bets_placed = false
+                all_bets_placed = false,
+                game_over = true
             WHERE table_id = ${tableId}
           `
           await sendSSEUpdate(tableId, gameOverData)
@@ -314,6 +317,7 @@ export async function POST(req: NextRequest) {
         highestCard: null,
         roundStartPlayerIndex,
         allBetsPlaced,
+        gameOver: false, // Add this line
       })
     } else {
       // Move to the next turn
@@ -338,6 +342,7 @@ export async function POST(req: NextRequest) {
       highestCard,
       roundStartPlayerIndex,
       allBetsPlaced,
+      gameOver: currentRound > 18, // Add this line
     }
 
     console.log("Final game state:", finalGameData)

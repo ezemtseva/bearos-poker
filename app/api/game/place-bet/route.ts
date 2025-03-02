@@ -69,6 +69,7 @@ export async function POST(req: NextRequest) {
       highestCard: game.highest_card,
       roundStartPlayerIndex: game.round_start_player_index,
       allBetsPlaced: allBetsPlaced,
+      gameOver: game.game_over || false, // Add this line to include the gameOver property
     }
 
     // Send SSE update

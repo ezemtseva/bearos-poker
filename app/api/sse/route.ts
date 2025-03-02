@@ -86,6 +86,7 @@ async function getGameState(tableId: string): Promise<GameData> {
       highestCard: null,
       roundStartPlayerIndex: 0,
       allBetsPlaced: false,
+      gameOver: false, // Add this line to include the gameOver property
     }
   }
   const row = result.rows[0]
@@ -107,6 +108,7 @@ async function getGameState(tableId: string): Promise<GameData> {
     highestCard: row.highest_card || null,
     roundStartPlayerIndex: row.round_start_player_index || 0,
     allBetsPlaced: row.all_bets_placed || false,
+    gameOver: row.game_over || false, // Add this line to include the gameOver property
   }
 }
 

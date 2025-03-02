@@ -43,5 +43,6 @@ export interface GameData {
   highestCard: Card | null
   roundStartPlayerIndex: number
   allBetsPlaced: boolean
+  gameOver: boolean
 }
 

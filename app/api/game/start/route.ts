@@ -96,6 +96,7 @@ export async function POST(req: NextRequest) {
       highestCard: null,
       roundStartPlayerIndex: ownerIndex,
       allBetsPlaced: false,
+      gameOver: false, // Add this line to include the gameOver property
     }
 
     await sql`
@@ -112,7 +113,8 @@ export async function POST(req: NextRequest) {
           play_end_timestamp = null,
           all_cards_played = false,
           round_start_player_index = ${ownerIndex},
-          all_bets_placed = false
+          all_bets_placed = false,
+          game_over = false
       WHERE table_id = ${tableId}
     `
 

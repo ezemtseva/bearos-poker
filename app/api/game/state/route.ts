@@ -40,6 +40,7 @@ export async function GET(req: NextRequest) {
       highestCard: game.highest_card,
       roundStartPlayerIndex: game.round_start_player_index || 0,
       allBetsPlaced: game.all_bets_placed || false,
+      gameOver: game.game_over || false, // Add this line to include the gameOver property
     }
 
     return NextResponse.json({ gameData })
