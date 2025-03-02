@@ -16,11 +16,11 @@ export default function GameResultsDialog({ isOpen, onClose, players }: GameResu
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          {/* <DialogTitle className="text-2xl font-bold text-center">Game Over!</DialogTitle> */}
-          <DialogDescription className="text-center text-lg">Congratulations to {winner.name}!</DialogDescription>
+          <DialogDescription className="text-center text-lg font-bold">
+            Congratulations to {winner.name}!
+          </DialogDescription>
         </DialogHeader>
         <div className="py-4">
-          {/* <h3 className="text-lg font-semibold mb-2">Final Scores:</h3> */}
           <ul className="space-y-2">
             {sortedPlayers.map((player, index) => (
               <li
@@ -35,7 +35,7 @@ export default function GameResultsDialog({ isOpen, onClose, players }: GameResu
             ))}
           </ul>
         </div>
-        <DialogFooter>
+        <DialogFooter className="sm:justify-center">
           <Button onClick={onClose} className="w-[120px] h-[40px]">
             Close
           </Button>
