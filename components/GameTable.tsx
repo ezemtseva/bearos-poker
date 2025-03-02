@@ -351,7 +351,7 @@ export default function GameTable({
               <Button onClick={handlePlaceBet}>Confirm Bet</Button>
             </div>
           ) : (
-            <p className="text-center">Your bet: {currentPlayer?.bet}</p>
+            <p className="text-center"> {currentPlayer?.bet}</p>
           )}
         </div>
 

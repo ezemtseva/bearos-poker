@@ -14,7 +14,7 @@ export default function GameResultsDialog({ isOpen, onClose, players }: GameResu
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] shadow-[0_0_15px_5px_rgba(255,215,0,0.7)]">
         <DialogHeader>
           <DialogDescription className="text-center text-lg font-bold">
             Congratulations to {winner.name}!
