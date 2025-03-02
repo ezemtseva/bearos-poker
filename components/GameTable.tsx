@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import PlayingCard from "./PlayingCard"
 import { useToast } from "@/hooks/use-toast"
+import GameResultsDialog from "./GameResultsDialog"
 
 interface GameTableProps {
   tableId: string
@@ -45,6 +46,7 @@ export default function GameTable({
   const [isClearing, setIsClearing] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [betAmount, setBetAmount] = useState<number | null>(0)
+  const [showResultsDialog, setShowResultsDialog] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -61,6 +63,12 @@ export default function GameTable({
       setIsClearing(false)
     }
   }, [cardsOnTable, gameData.allCardsPlayed])
+
+  useEffect(() => {
+    if (currentRound > 18) {
+      setShowResultsDialog(true)
+    }
+  }, [currentRound])
 
   const currentPlayerName = localStorage.getItem("playerName")
   const currentPlayer = players.find((p) => p.name === currentPlayerName)
@@ -334,7 +342,7 @@ export default function GameTable({
               <Button onClick={handlePlaceBet}>Confirm Bet</Button>
             </div>
           ) : (
-            <p className="text-center"> {currentPlayer?.bet}</p>
+            <p className="text-center">Your bet: {currentPlayer?.bet}</p>
           )}
         </div>
 
@@ -473,6 +481,7 @@ export default function GameTable({
           )}
         </div>
       )}
+      <GameResultsDialog isOpen={showResultsDialog} onClose={() => setShowResultsDialog(false)} players={players} />
     </div>
   )
 }
