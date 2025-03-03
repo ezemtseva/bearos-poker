@@ -21,9 +21,11 @@ function dealCards(players: Player[], deck: Card[], cardsPerPlayer: number): [Pl
 function determineHighestCard(cards: Card[]): Card | null {
   if (cards.length === 0) return null
 
+  // 7 of spades with Trumps always wins (NEW rule)
   const sevenOfSpadesWithTrumps = cards.find((c) => c.suit === "spades" && c.value === 7 && c.pokerOption === "Trumps")
   if (sevenOfSpadesWithTrumps) return sevenOfSpadesWithTrumps
 
+  // 7 of spades with Poker always wins
   const sevenOfSpadesWithPoker = cards.find((c) => c.suit === "spades" && c.value === 7 && c.pokerOption === "Poker")
   if (sevenOfSpadesWithPoker) return sevenOfSpadesWithPoker
 
