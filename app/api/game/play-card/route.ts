@@ -18,24 +18,24 @@ function dealCards(players: Player[], deck: Card[], cardsPerPlayer: number): [Pl
   return [updatedPlayers, deck]
 }
 
-function determineHighestCard(cards: Card[], pokerOption?: string): Card | null {
+function determineHighestCard(cards: Card[]): Card | null {
   if (cards.length === 0) return null
 
-  const pokerCard = cards.find((c) => c.suit === "spades" && c.value === 7 && c.pokerOption === "Trumps")
-  if (pokerCard) return pokerCard
+  const sevenOfSpadesWithTrumps = cards.find((c) => c.suit === "spades" && c.value === 7 && c.pokerOption === "Trumps")
+  if (sevenOfSpadesWithTrumps) return sevenOfSpadesWithTrumps
 
+  const sevenOfSpadesWithPoker = cards.find((c) => c.suit === "spades" && c.value === 7 && c.pokerOption === "Poker")
+  if (sevenOfSpadesWithPoker) return sevenOfSpadesWithPoker
+
+  const leadingSuit = cards[0].suit
   const trumpCards = cards.filter((c) => c.suit === "diamonds")
+
   if (trumpCards.length > 0) {
     return trumpCards.reduce((max, current) => (current.value > max.value ? current : max))
   }
 
-  return cards.reduce((max, current) => {
-    if (current.suit === max.suit && current.value > max.value) {
-      return current
-    } else {
-      return max
-    }
-  })
+  const leadingSuitCards = cards.filter((c) => c.suit === leadingSuit)
+  return leadingSuitCards.reduce((max, current) => (current.value > max.value ? current : max))
 }
 
 function getNextRoundStartPlayer(currentRound: number, players: Player[]): number {
@@ -50,22 +50,28 @@ function getNextRoundStartPlayer(currentRound: number, players: Player[]): numbe
   return nextStartPlayer !== -1 ? nextStartPlayer : 0 // Fallback to owner if seat not found
 }
 
-function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[], pokerOption?: string): boolean {
+function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[]): boolean {
   if (playerHand.length === 1) return true // Player can play their last card regardless of suit
 
   if (cardsOnTable.length === 0) return true // First player can play any card
 
-  const leadingSuit = cardsOnTable[0].suit
+  const firstCard = cardsOnTable[0]
+  const leadingSuit = firstCard.suit
   const hasSuit = playerHand.some((c) => c.suit === leadingSuit)
   const hasTrumps = playerHand.some((c) => c.suit === "diamonds")
 
+  // Special case for 7 of spades
   if (card.suit === "spades" && card.value === 7) {
-    return true // Allow 7 of spades to be played anytime
+    return !hasSuit // Can play 7 of spades only if player doesn't have the leading suit
   }
 
   if (card.suit === leadingSuit) return true // Following the leading suit
-  if (!hasSuit && card.suit === "diamonds") return true // Playing a trump when no leading suit
-  if (!hasSuit && !hasTrumps) return true // Can play any card if no leading suit or trumps
+  if (!hasSuit) {
+    if (hasTrumps) {
+      return card.suit === "diamonds" // Must play a trump if they have one
+    }
+    return true // Can play any card if no leading suit and no trumps
+  }
 
   return false // Invalid play
 }
@@ -132,34 +138,41 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "It's not your turn" }, { status: 400 })
     }
 
-    // Check if the play is valid
-    if (
-      game.last_played_card?.suit === "spades" &&
-      game.last_played_card.value === 7 &&
-      game.last_played_card.pokerOption === "Trumps"
-    ) {
-      const validCards = getValidCardsAfterTrumps(players[playerIndex].hand)
-      if (!validCards.some((c) => c.suit === card.suit && c.value === card.value)) {
-        return NextResponse.json(
-          { error: "You must play your highest trump card or highest card if you have no trumps." },
-          { status: 400 },
-        )
-      }
-    } else if (!isValidPlay(card, players[playerIndex].hand, cardsOnTable, pokerOption)) {
-      return NextResponse.json(
-        {
-          error:
-            "Invalid card play. You must follow the leading suit if possible, or play a trump if you don't have the leading suit.",
-        },
-        { status: 400 },
-      )
-    }
-
     // Handle 7 of spades special case
     if (card.suit === "spades" && card.value === 7) {
       if (!pokerOption) {
         return NextResponse.json(
           { error: "You must select an option (Trumps, Poker, or Simple) when playing the 7 of spades." },
+          { status: 400 },
+        )
+      }
+      if (cardsOnTable.length > 0 && pokerOption === "Trumps") {
+        return NextResponse.json(
+          { error: "You can only play 7 of spades as Trumps when it's the first card." },
+          { status: 400 },
+        )
+      }
+    }
+
+    // Check if the play is valid
+    if (!isValidPlay(card, players[playerIndex].hand, cardsOnTable)) {
+      if (
+        cardsOnTable[0]?.suit === "spades" &&
+        cardsOnTable[0]?.value === 7 &&
+        cardsOnTable[0]?.pokerOption === "Trumps"
+      ) {
+        const diamonds = players[playerIndex].hand.filter((c) => c.suit === "diamonds")
+        if (diamonds.length > 0) {
+          return NextResponse.json({ error: "You must play your highest diamond card." }, { status: 400 })
+        } else {
+          return NextResponse.json({ error: "You must play your highest card." }, { status: 400 })
+        }
+      } else {
+        return NextResponse.json(
+          {
+            error:
+              "Invalid card play. You must follow the leading suit if possible, or play a trump if you don't have the leading suit.",
+          },
           { status: 400 },
         )
       }
@@ -177,7 +190,7 @@ export async function POST(req: NextRequest) {
     cardsOnTable.push({ ...card, playerName })
 
     // Determine the highest card
-    const highestCard = determineHighestCard(cardsOnTable, pokerOption)
+    const highestCard = determineHighestCard(cardsOnTable)
 
     // Update the database with the new game state
     await sql`

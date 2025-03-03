@@ -7,6 +7,7 @@ interface PokerCardDialogProps {
   onOptionSelect: (option: "Trumps" | "Poker" | "Simple") => void
   isFirstCard: boolean
   isValidSimple: boolean
+  availableOptions: ("Trumps" | "Poker" | "Simple")[]
 }
 
 export default function PokerCardDialog({
@@ -15,6 +16,7 @@ export default function PokerCardDialog({
   onOptionSelect,
   isFirstCard,
   isValidSimple,
+  availableOptions,
 }: PokerCardDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -24,28 +26,34 @@ export default function PokerCardDialog({
         </DialogHeader>
         <div className="py-4">
           <div className="space-y-2">
-            <Button
-              onClick={() => onOptionSelect("Trumps")}
-              className="w-full justify-start text-left bg-red-100 hover:bg-red-200"
-              variant="outline"
-            >
-              Trumps
-            </Button>
-            <Button
-              onClick={() => onOptionSelect("Poker")}
-              className="w-full justify-start text-left bg-yellow-100 hover:bg-yellow-200"
-              variant="outline"
-            >
-              Poker
-            </Button>
-            <Button
-              onClick={() => onOptionSelect("Simple")}
-              className="w-full justify-start text-left bg-blue-100 hover:bg-blue-200"
-              variant="outline"
-              disabled={!isValidSimple}
-            >
-              Simple
-            </Button>
+            {availableOptions.includes("Trumps") && (
+              <Button
+                onClick={() => onOptionSelect("Trumps")}
+                className="w-full justify-start text-left bg-red-100 hover:bg-red-200"
+                variant="outline"
+              >
+                Trumps
+              </Button>
+            )}
+            {availableOptions.includes("Poker") && (
+              <Button
+                onClick={() => onOptionSelect("Poker")}
+                className="w-full justify-start text-left bg-yellow-100 hover:bg-yellow-200"
+                variant="outline"
+              >
+                Poker
+              </Button>
+            )}
+            {availableOptions.includes("Simple") && (
+              <Button
+                onClick={() => onOptionSelect("Simple")}
+                className="w-full justify-start text-left bg-blue-100 hover:bg-blue-200"
+                variant="outline"
+                disabled={!isValidSimple}
+              >
+                Simple
+              </Button>
+            )}
           </div>
         </div>
         <DialogFooter className="flex justify-center">

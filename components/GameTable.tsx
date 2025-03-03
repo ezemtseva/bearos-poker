@@ -88,17 +88,13 @@ export default function GameTable({
 
     const leadingSuit = cardsOnTable[0].suit
     const hasSuit = currentPlayer?.hand.some((c) => c.suit === leadingSuit)
-    const hasTrumps = currentPlayer?.hand.some((c) => c.suit === "diamonds")
 
     if (card.suit === "spades" && card.value === 7) {
-      if (leadingSuit === "diamonds") return true // New rule: 7 of spades can be played when diamonds are leading
-      if (!hasSuit && !hasTrumps) return true // Can play 7 of spades if no leading suit and no trumps
-      return false
+      return !hasSuit // Can play 7 of spades only if player doesn't have the leading suit
     }
 
     if (card.suit === leadingSuit) return true // Following the leading suit
-    if (!hasSuit && card.suit === "diamonds") return true // Playing a trump when no leading suit
-    if (!hasSuit && !hasTrumps) return true // Can play any card if no leading suit or trumps
+    if (!hasSuit) return true // Can play any card if no leading suit
 
     return false // Invalid play
   }
@@ -114,6 +110,8 @@ export default function GameTable({
     }
 
     if (card.suit === "spades" && card.value === 7) {
+      const availableOptions = cardsOnTable.length === 0 ? ["Trumps", "Poker", "Simple"] : ["Poker", "Simple"]
+      setPokerCardOption(null)
       setShowPokerCardDialog(true)
       return
     }
@@ -238,10 +236,9 @@ export default function GameTable({
 
   const isValidSimplePlay = () => {
     if (cardsOnTable.length === 0) return true
-    if (currentPlayer?.hand.length === 1) return true
     const leadingSuit = cardsOnTable[0].suit
-    // Allow 'Simple' option when diamonds are leading
-    return true
+    const hasLeadingSuit = currentPlayer?.hand.some((c) => c.suit === leadingSuit)
+    return !hasLeadingSuit
   }
 
   const getValidCardsAfterTrumps = (hand: Card[]): Card[] => {
@@ -548,6 +545,7 @@ export default function GameTable({
         onOptionSelect={handlePokerCardOptionSelect}
         isFirstCard={cardsOnTable.length === 0}
         isValidSimple={isValidSimplePlay()}
+        availableOptions={cardsOnTable.length === 0 ? ["Trumps", "Poker", "Simple"] : ["Poker", "Simple"]}
       />
     </div>
   )
