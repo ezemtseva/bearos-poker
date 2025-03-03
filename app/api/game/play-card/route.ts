@@ -56,17 +56,32 @@ function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[]): bool
   if (cardsOnTable.length === 0) return true // First player can play any card
 
   const firstCard = cardsOnTable[0]
+
+  // Special case for 7 of spades with 'Trumps' option
+  if (firstCard.suit === "spades" && firstCard.value === 7 && firstCard.pokerOption === "Trumps") {
+    const diamonds = playerHand.filter((c) => c.suit === "diamonds")
+    if (diamonds.length > 0) {
+      // Player must play their highest diamond
+      const highestDiamond = diamonds.reduce((max, current) => (current.value > max.value ? current : max))
+      return card.suit === "diamonds" && card.value === highestDiamond.value
+    } else {
+      // Player must play their highest card of any suit
+      const highestCard = playerHand.reduce((max, current) => (current.value > max.value ? current : max))
+      return card.suit === highestCard.suit && card.value === highestCard.value
+    }
+  }
+
+  // Normal play
   const leadingSuit = firstCard.suit
   const hasSuit = playerHand.some((c) => c.suit === leadingSuit)
-  const hasTrumps = playerHand.some((c) => c.suit === "diamonds")
 
-  // Special case for 7 of spades
   if (card.suit === "spades" && card.value === 7) {
     return !hasSuit // Can play 7 of spades only if player doesn't have the leading suit
   }
 
   if (card.suit === leadingSuit) return true // Following the leading suit
   if (!hasSuit) {
+    const hasTrumps = playerHand.some((c) => c.suit === "diamonds")
     if (hasTrumps) {
       return card.suit === "diamonds" // Must play a trump if they have one
     }
@@ -165,7 +180,12 @@ export async function POST(req: NextRequest) {
         if (diamonds.length > 0) {
           return NextResponse.json({ error: "You must play your highest diamond card." }, { status: 400 })
         } else {
-          return NextResponse.json({ error: "You must play your highest card." }, { status: 400 })
+          const highestCard = players[playerIndex].hand.reduce((max, current) =>
+            current.value > max.value ? current : max,
+          )
+          if (card.suit !== highestCard.suit || card.value !== highestCard.value) {
+            return NextResponse.json({ error: "You must play your highest card of any suit." }, { status: 400 })
+          }
         }
       } else {
         return NextResponse.json(
