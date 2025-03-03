@@ -71,6 +71,11 @@ function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[]): bool
     }
   }
 
+  // Special case for 7 of spades with 'Poker' option as the first card
+  if (firstCard.suit === "spades" && firstCard.value === 7 && firstCard.pokerOption === "Poker") {
+    return true // Any card can be played
+  }
+
   // Normal play
   const leadingSuit = firstCard.suit
   const hasSuit = playerHand.some((c) => c.suit === leadingSuit)
@@ -80,13 +85,7 @@ function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[]): bool
   }
 
   if (card.suit === leadingSuit) return true // Following the leading suit
-  if (!hasSuit) {
-    const hasTrumps = playerHand.some((c) => c.suit === "diamonds")
-    if (hasTrumps) {
-      return card.suit === "diamonds" // Must play a trump if they have one
-    }
-    return true // Can play any card if no leading suit and no trumps
-  }
+  if (!hasSuit) return true // Can play any card if no leading suit
 
   return false // Invalid play
 }

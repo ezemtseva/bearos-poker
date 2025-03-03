@@ -97,7 +97,14 @@ export default function GameTable({
 
     if (cardsOnTable.length === 0) return true // First player can play any card
 
-    const leadingSuit = cardsOnTable[0].suit
+    const firstCard = cardsOnTable[0]
+
+    // Special case for 7 of spades with 'Poker' option as the first card
+    if (firstCard.suit === "spades" && firstCard.value === 7 && firstCard.pokerOption === "Poker") {
+      return true // Any card can be played
+    }
+
+    const leadingSuit = firstCard.suit
     const hasSuit = currentPlayer?.hand.some((c) => c.suit === leadingSuit)
 
     if (card.suit === "spades" && card.value === 7) {
@@ -139,6 +146,7 @@ export default function GameTable({
           return
         }
       }
+      // Remove special handling for 'Poker' option here
     } else if (!isValidPlay(card)) {
       setErrorMessage(
         "Invalid card play. You must follow the leading suit if possible, or play a trump if you don't have the leading suit.",
