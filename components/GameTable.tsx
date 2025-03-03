@@ -112,7 +112,19 @@ export default function GameTable({
       return
     }
 
-    if (!isValidPlay(card)) {
+    if (gameData.lastPlayedCard?.suit === "spades" && gameData.lastPlayedCard.value === 7) {
+      if (gameData.lastPlayedCard.pokerOption === "Trumps") {
+        const validCards = getValidCardsAfterTrumps(currentPlayer?.hand || [])
+        if (!validCards.some((c) => c.suit === card.suit && c.value === card.value)) {
+          toast({
+            title: "Invalid Play",
+            description: "You must play your highest trump card.",
+            variant: "destructive",
+          })
+          return
+        }
+      }
+    } else if (!isValidPlay(card)) {
       setErrorMessage(
         "Invalid card play. You must follow the leading suit if possible, or play a trump if you don't have the leading suit.",
       )
@@ -221,7 +233,19 @@ export default function GameTable({
   const isValidSimplePlay = () => {
     if (cardsOnTable.length === 0) return true
     if (currentPlayer?.hand.length === 1) return true
-    return cardsOnTable[0].suit === "spades"
+    const leadingSuit = cardsOnTable[0].suit
+    const hasLeadingSuit = currentPlayer?.hand.some((c) => c.suit === leadingSuit)
+    const hasTrumps = currentPlayer?.hand.some((c) => c.suit === "diamonds")
+    return !hasLeadingSuit && !hasTrumps
+  }
+
+  const getValidCardsAfterTrumps = (hand: Card[]): Card[] => {
+    const trumps = hand.filter((c) => c.suit === "diamonds")
+    if (trumps.length > 0) {
+      const highestTrump = trumps.reduce((max, card) => (card.value > max.value ? card : max))
+      return [highestTrump]
+    }
+    return hand
   }
 
   const highestScore = Math.max(...players.map((p) => p.score))
@@ -344,7 +368,10 @@ export default function GameTable({
                 }
               />
               {card.suit === "spades" && card.value === 7 && card.pokerOption && (
-                <div className="absolute bottom-0 left-0 right-0 bg-blue-500 text-white text-xs py-1 px-2 text-center">
+                <div
+                  className={`absolute bottom-0 left-0 right-0 text-white text-xs py-1 px-2 text-center
+    ${card.pokerOption === "Trumps" ? "bg-red-300" : card.pokerOption === "Poker" ? "bg-yellow-300" : "bg-blue-300"}`}
+                >
                   {card.pokerOption}
                 </div>
               )}
@@ -390,19 +417,28 @@ export default function GameTable({
           <h2 className="text-xl font-bold mb-2 text-center">Your Hand</h2>
           <div className="flex justify-center space-x-2">
             {currentPlayer && currentPlayer.hand && currentPlayer.hand.length > 0 ? (
-              currentPlayer.hand.map((card, index) => (
-                <PlayingCard
-                  key={index}
-                  suit={card.suit}
-                  value={card.value}
-                  onClick={() => handlePlayCard(card)}
-                  disabled={!isCurrentPlayerTurn || isClearing || !isValidPlay(card) || !gameData.allBetsPlaced}
-                  showBack={shouldShowCardBacks}
-                  className={`${card.suit === "diamonds" ? "bg-red-100" : "bg-white"} ${
-                    !isValidPlay(card) || !gameData.allBetsPlaced ? "opacity-50" : ""
-                  }`}
-                />
-              ))
+              currentPlayer.hand.map((card, index) => {
+                const isValidCardToPlay =
+                  gameData.lastPlayedCard?.suit === "spades" &&
+                  gameData.lastPlayedCard.value === 7 &&
+                  gameData.lastPlayedCard.pokerOption === "Trumps"
+                    ? getValidCardsAfterTrumps(currentPlayer.hand).some(
+                        (c) => c.suit === card.suit && c.value === card.value,
+                      )
+                    : isValidPlay(card)
+
+                return (
+                  <PlayingCard
+                    key={index}
+                    suit={card.suit}
+                    value={card.value}
+                    onClick={() => handlePlayCard(card)}
+                    disabled={!isCurrentPlayerTurn || isClearing || !isValidCardToPlay || !gameData.allBetsPlaced}
+                    showBack={shouldShowCardBacks}
+                    className={`${!isValidCardToPlay || !gameData.allBetsPlaced ? "opacity-50" : ""}`}
+                  />
+                )
+              })
             ) : (
               <p>No cards in hand</p>
             )}

@@ -56,7 +56,12 @@ function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[], poker
 
   if (card.suit === "spades" && card.value === 7) {
     if (pokerOption === "Trumps" || pokerOption === "Poker") return true
-    if (pokerOption === "Simple" && cardsOnTable[0].suit === "spades") return true
+    if (pokerOption === "Simple") {
+      const leadingSuit = cardsOnTable[0].suit
+      const hasLeadingSuit = playerHand.some((c) => c.suit === leadingSuit)
+      const hasTrumps = playerHand.some((c) => c.suit === "diamonds")
+      return !hasLeadingSuit && !hasTrumps
+    }
     return false
   }
 
@@ -75,6 +80,15 @@ function cardsPerRound(round: number): number {
   if (round <= 6) return round
   if (round <= 12) return 6
   return 19 - round
+}
+
+function getValidCardsAfterTrumps(hand: Card[]): Card[] {
+  const trumps = hand.filter((c) => c.suit === "diamonds")
+  if (trumps.length > 0) {
+    const highestTrump = trumps.reduce((max, card) => (card.value > max.value ? card : max))
+    return [highestTrump]
+  }
+  return hand
 }
 
 export async function POST(req: NextRequest) {
@@ -123,7 +137,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if the play is valid
-    if (!isValidPlay(card, players[playerIndex].hand, cardsOnTable, pokerOption)) {
+    if (
+      game.last_played_card?.suit === "spades" &&
+      game.last_played_card.value === 7 &&
+      game.last_played_card.pokerOption === "Trumps"
+    ) {
+      const validCards = getValidCardsAfterTrumps(players[playerIndex].hand)
+      if (!validCards.some((c) => c.suit === card.suit && c.value === card.value)) {
+        return NextResponse.json({ error: "You must play your highest trump card." }, { status: 400 })
+      }
+    } else if (!isValidPlay(card, players[playerIndex].hand, cardsOnTable, pokerOption)) {
       return NextResponse.json(
         {
           error:

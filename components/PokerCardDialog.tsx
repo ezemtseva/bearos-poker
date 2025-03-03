@@ -20,34 +20,31 @@ export default function PokerCardDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Play 7 of Spades</DialogTitle>
+          <DialogTitle>How would you like to play?</DialogTitle>
         </DialogHeader>
         <div className="py-4">
-          <p className="text-sm text-gray-500 mb-4">Choose how to play the 7 of Spades:</p>
           <div className="space-y-2">
-            {isFirstCard && (
-              <Button
-                onClick={() => onOptionSelect("Trumps")}
-                className="w-full justify-start text-left"
-                variant="outline"
-              >
-                Trumps: Unbeatable, others play highest card
-              </Button>
-            )}
             <Button
-              onClick={() => onOptionSelect("Poker")}
-              className="w-full justify-start text-left"
+              onClick={() => onOptionSelect("Trumps")}
+              className="w-full justify-start text-left bg-red-100 hover:bg-red-200"
               variant="outline"
             >
-              Poker: Unbeatable, others play any card
+              Trumps
+            </Button>
+            <Button
+              onClick={() => onOptionSelect("Poker")}
+              className="w-full justify-start text-left bg-yellow-100 hover:bg-yellow-200"
+              variant="outline"
+            >
+              Poker
             </Button>
             <Button
               onClick={() => onOptionSelect("Simple")}
-              className="w-full justify-start text-left"
+              className="w-full justify-start text-left bg-blue-100 hover:bg-blue-200"
               variant="outline"
               disabled={!isValidSimple}
             >
-              Simple: Play as regular 7 of Spades
+              Simple
             </Button>
           </div>
         </div>
