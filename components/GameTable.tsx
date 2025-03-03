@@ -98,23 +98,24 @@ export default function GameTable({
     if (cardsOnTable.length === 0) return true // First player can play any card
 
     const firstCard = cardsOnTable[0]
+    const leadingSuit = firstCard.suit
+    const hasSuit = currentPlayer?.hand.some((c) => c.suit === leadingSuit)
 
     // Special case for 7 of spades with 'Poker' option as the first card
     if (firstCard.suit === "spades" && firstCard.value === 7 && firstCard.pokerOption === "Poker") {
       return true // Any card can be played
     }
 
-    const leadingSuit = firstCard.suit
-    const hasSuit = currentPlayer?.hand.some((c) => c.suit === leadingSuit)
-
     if (card.suit === "spades" && card.value === 7) {
       return !hasSuit // Can play 7 of spades only if player doesn't have the leading suit
     }
 
-    if (card.suit === leadingSuit) return true // Following the leading suit
-    if (!hasSuit) return true // Can play any card if no leading suit
+    if (hasSuit) {
+      return card.suit === leadingSuit // Must follow suit if possible
+    }
 
-    return false // Invalid play
+    // If player doesn't have the leading suit, they can play any card
+    return true
   }
 
   const handlePlayCard = async (card: Card) => {
