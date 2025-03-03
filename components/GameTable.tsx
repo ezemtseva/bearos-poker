@@ -93,13 +93,15 @@ export default function GameTable({
   const cardsThisRound = currentRound <= 6 ? currentRound : currentRound <= 12 ? 13 - currentRound : 19 - currentRound
 
   const isValidPlay = (card: Card): boolean => {
-    if (currentPlayer?.hand.length === 1) return true // Player can play their last card regardless of suit
+    if (!currentPlayer) return false
+
+    if (currentPlayer.hand.length === 1) return true // Player can play their last card regardless of suit
 
     if (cardsOnTable.length === 0) return true // First player can play any card
 
     const firstCard = cardsOnTable[0]
     const leadingSuit = firstCard.suit
-    const hasSuit = currentPlayer?.hand.some((c) => c.suit === leadingSuit)
+    const hasSuit = currentPlayer.hand.some((c) => c.suit === leadingSuit)
 
     // Special case for 7 of spades with 'Poker' option as the first card
     if (firstCard.suit === "spades" && firstCard.value === 7 && firstCard.pokerOption === "Poker") {
@@ -114,7 +116,13 @@ export default function GameTable({
       return card.suit === leadingSuit // Must follow suit if possible
     }
 
-    // If player doesn't have the leading suit, they can play any card
+    // If player doesn't have the leading suit, check if they have trumps
+    const hasTrumps = currentPlayer.hand.some((c) => c.suit === "diamonds")
+    if (hasTrumps) {
+      return card.suit === "diamonds" // Must play a trump if they have one and can't follow suit
+    }
+
+    // If player has neither the leading suit nor trumps, they can play any card
     return true
   }
 

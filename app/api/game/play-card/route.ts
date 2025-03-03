@@ -86,10 +86,18 @@ function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[]): bool
     return !hasSuit // Can play 7 of spades only if player doesn't have the leading suit
   }
 
-  if (card.suit === leadingSuit) return true // Following the leading suit
-  if (!hasSuit) return true // Can play any card if no leading suit
+  if (hasSuit) {
+    return card.suit === leadingSuit // Must follow suit if possible
+  }
 
-  return false // Invalid play
+  // If player doesn't have the leading suit, check if they have trumps
+  const hasTrumps = playerHand.some((c) => c.suit === "diamonds")
+  if (hasTrumps) {
+    return card.suit === "diamonds" // Must play a trump if they have one and can't follow suit
+  }
+
+  // If player has neither the leading suit nor trumps, they can play any card
+  return true
 }
 
 function cardsPerRound(round: number): number {
