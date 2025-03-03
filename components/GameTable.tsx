@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import PlayingCard from "./PlayingCard"
 import { useToast } from "@/hooks/use-toast"
 import GameResultsDialog from "./GameResultsDialog"
+import PokerCardDialog from "./PokerCardDialog"
 
 interface GameTableProps {
   tableId: string
@@ -47,6 +48,8 @@ export default function GameTable({
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [betAmount, setBetAmount] = useState<number | null>(0)
   const [showResultsDialog, setShowResultsDialog] = useState(false)
+  const [showPokerCardDialog, setShowPokerCardDialog] = useState(false)
+  const [pokerCardOption, setPokerCardOption] = useState<"Trumps" | "Poker" | "Simple" | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -104,6 +107,11 @@ export default function GameTable({
       return
     }
 
+    if (card.suit === "spades" && card.value === 7) {
+      setShowPokerCardDialog(true)
+      return
+    }
+
     if (!isValidPlay(card)) {
       setErrorMessage(
         "Invalid card play. You must follow the leading suit if possible, or play a trump if you don't have the leading suit.",
@@ -117,6 +125,10 @@ export default function GameTable({
       return
     }
 
+    await playCard(card)
+  }
+
+  const playCard = async (card: Card, pokerOption?: "Trumps" | "Poker" | "Simple") => {
     setErrorMessage(null)
 
     try {
@@ -125,7 +137,7 @@ export default function GameTable({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ tableId, playerName: currentPlayerName, card }),
+        body: JSON.stringify({ tableId, playerName: currentPlayerName, card, pokerOption }),
       })
 
       if (!response.ok) {
@@ -198,6 +210,18 @@ export default function GameTable({
         variant: "destructive",
       })
     }
+  }
+
+  const handlePokerCardOptionSelect = (option: "Trumps" | "Poker" | "Simple") => {
+    setPokerCardOption(option)
+    setShowPokerCardDialog(false)
+    playCard({ suit: "spades", value: 7 }, option)
+  }
+
+  const isValidSimplePlay = () => {
+    if (cardsOnTable.length === 0) return true
+    if (currentPlayer?.hand.length === 1) return true
+    return cardsOnTable[0].suit === "spades"
   }
 
   const highestScore = Math.max(...players.map((p) => p.score))
@@ -304,21 +328,27 @@ export default function GameTable({
         {/* Cards on table */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex space-x-2">
           {cardsOnTable.map((card, index) => (
-            <PlayingCard
-              key={index}
-              suit={card.suit}
-              value={card.value}
-              disabled
-              className={
-                gameData.highestCard &&
-                card.suit === gameData.highestCard.suit &&
-                card.value === gameData.highestCard.value
-                  ? "bg-yellow-100"
-                  : card.suit === "diamonds"
-                    ? "bg-red-100"
-                    : "bg-white"
-              }
-            />
+            <div key={index} className="relative">
+              <PlayingCard
+                suit={card.suit}
+                value={card.value}
+                disabled
+                className={
+                  gameData.highestCard &&
+                  card.suit === gameData.highestCard.suit &&
+                  card.value === gameData.highestCard.value
+                    ? "bg-yellow-100"
+                    : card.suit === "diamonds"
+                      ? "bg-red-100"
+                      : "bg-white"
+                }
+              />
+              {card.suit === "spades" && card.value === 7 && card.pokerOption && (
+                <div className="absolute bottom-0 left-0 right-0 bg-blue-500 text-white text-xs py-1 px-2 text-center">
+                  {card.pokerOption}
+                </div>
+              )}
+            </div>
           ))}
         </div>
       </div>
@@ -351,7 +381,7 @@ export default function GameTable({
               <Button onClick={handlePlaceBet}>Confirm Bet</Button>
             </div>
           ) : (
-            <p className="text-center"> {currentPlayer?.bet}</p>
+            <p className="text-center">Your bet: {currentPlayer?.bet}</p>
           )}
         </div>
 
@@ -469,6 +499,13 @@ export default function GameTable({
       </div>
 
       <GameResultsDialog isOpen={showResultsDialog} onClose={() => setShowResultsDialog(false)} players={players} />
+      <PokerCardDialog
+        isOpen={showPokerCardDialog}
+        onClose={() => setShowPokerCardDialog(false)}
+        onOptionSelect={handlePokerCardOptionSelect}
+        isFirstCard={cardsOnTable.length === 0}
+        isValidSimple={isValidSimplePlay()}
+      />
     </div>
   )
 }

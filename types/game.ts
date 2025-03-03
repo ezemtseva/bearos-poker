@@ -24,6 +24,7 @@ export interface Card {
   suit: "spades" | "hearts" | "diamonds" | "clubs"
   value: number // 6-14, where 11=J, 12=Q, 13=K, 14=A
   playerName?: string
+  pokerOption?: "Trumps" | "Poker" | "Simple"
 }
 
 export interface GameData {

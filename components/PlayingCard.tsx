@@ -67,6 +67,7 @@ export default function PlayingCard({
   }
 
   const isRed = suit === "hearts" || suit === "diamonds"
+  const isPokerCard = suit === "spades" && value === 7
   const displayValue = valueToDisplay(value)
 
   return (
@@ -75,7 +76,7 @@ export default function PlayingCard({
       disabled={disabled}
       className={`relative w-24 h-36 rounded-2xl shadow-md transition-transform 
         ${disabled ? "opacity-100" : "hover:scale-105 hover:shadow-lg"} 
-        ${suit === "diamonds" ? "bg-red-100" : "bg-white"}
+        ${isPokerCard ? "bg-blue-100" : suit === "diamonds" ? "bg-red-100" : "bg-white"}
         border border-gray-300 overflow-hidden ${className}`}
       aria-label={`${displayValue} of ${suit}`}
     >

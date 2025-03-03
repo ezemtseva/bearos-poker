@@ -18,8 +18,12 @@ function dealCards(players: Player[], deck: Card[], cardsPerPlayer: number): [Pl
   return [updatedPlayers, deck]
 }
 
-function determineHighestCard(cards: Card[]): Card | null {
+function determineHighestCard(cards: Card[], pokerOption?: string): Card | null {
   if (cards.length === 0) return null
+
+  const pokerCard = cards.find((c) => c.suit === "spades" && c.value === 7 && c.pokerOption !== "Simple")
+  if (pokerCard) return pokerCard
+
   return cards.reduce((max, current) => {
     if (current.suit === "diamonds" && max.suit !== "diamonds") {
       return current
@@ -45,10 +49,16 @@ function getNextRoundStartPlayer(currentRound: number, players: Player[]): numbe
   return nextStartPlayer !== -1 ? nextStartPlayer : 0 // Fallback to owner if seat not found
 }
 
-function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[]): boolean {
+function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[], pokerOption?: string): boolean {
   if (playerHand.length === 1) return true // Player can play their last card regardless of suit
 
   if (cardsOnTable.length === 0) return true // First player can play any card
+
+  if (card.suit === "spades" && card.value === 7) {
+    if (pokerOption === "Trumps" || pokerOption === "Poker") return true
+    if (pokerOption === "Simple" && cardsOnTable[0].suit === "spades") return true
+    return false
+  }
 
   const leadingSuit = cardsOnTable[0].suit
   const hasSuit = playerHand.some((c) => c.suit === leadingSuit)
@@ -68,7 +78,7 @@ function cardsPerRound(round: number): number {
 }
 
 export async function POST(req: NextRequest) {
-  const { tableId, playerName, card } = await req.json()
+  const { tableId, playerName, card, pokerOption } = await req.json()
 
   if (!tableId || !playerName || !card) {
     return NextResponse.json({ error: "Table ID, player name, and card are required" }, { status: 400 })
@@ -112,8 +122,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "It's not your turn" }, { status: 400 })
     }
 
-    // Check if the play is valid according to the new rule
-    if (!isValidPlay(card, players[playerIndex].hand, cardsOnTable)) {
+    // Check if the play is valid
+    if (!isValidPlay(card, players[playerIndex].hand, cardsOnTable, pokerOption)) {
       return NextResponse.json(
         {
           error:
@@ -129,10 +139,13 @@ export async function POST(req: NextRequest) {
     )
 
     // Add the card to the table
+    if (card.suit === "spades" && card.value === 7 && pokerOption) {
+      card.pokerOption = pokerOption
+    }
     cardsOnTable.push({ ...card, playerName })
 
     // Determine the highest card
-    const highestCard = determineHighestCard(cardsOnTable)
+    const highestCard = determineHighestCard(cardsOnTable, pokerOption)
 
     // Update the database with the new game state
     await sql`
@@ -159,12 +172,12 @@ export async function POST(req: NextRequest) {
       scoreTable,
       allCardsPlayedTimestamp,
       playEndTimestamp: null,
-      lastPlayedCard: { ...card, playerName },
+      lastPlayedCard: { ...card, playerName, pokerOption },
       allCardsPlayed,
       highestCard,
       roundStartPlayerIndex,
       allBetsPlaced,
-      gameOver: false, // Add this line
+      gameOver: false,
     })
 
     console.log("All cards played:", allCardsPlayed)
@@ -317,7 +330,7 @@ export async function POST(req: NextRequest) {
         highestCard: null,
         roundStartPlayerIndex,
         allBetsPlaced,
-        gameOver: false, // Add this line
+        gameOver: false,
       })
     } else {
       // Move to the next turn
@@ -337,12 +350,12 @@ export async function POST(req: NextRequest) {
       scoreTable,
       allCardsPlayedTimestamp,
       playEndTimestamp: null,
-      lastPlayedCard: allCardsPlayed ? null : { ...card, playerName },
+      lastPlayedCard: allCardsPlayed ? null : { ...card, playerName, pokerOption },
       allCardsPlayed,
       highestCard,
       roundStartPlayerIndex,
       allBetsPlaced,
-      gameOver: currentRound > 18, // Add this line
+      gameOver: currentRound > 18,
     }
 
     console.log("Final game state:", finalGameData)
@@ -360,7 +373,7 @@ export async function POST(req: NextRequest) {
           all_cards_played_timestamp = ${allCardsPlayedTimestamp},
           play_end_timestamp = null,
           score_table = ${JSON.stringify(scoreTable)}::jsonb,
-          last_played_card = ${JSON.stringify({ ...card, playerName })}::jsonb,
+          last_played_card = ${JSON.stringify({ ...card, playerName, pokerOption })}::jsonb,
           all_cards_played = ${allCardsPlayed},
           highest_card = ${JSON.stringify(highestCard)}::jsonb,
           round_start_player_index = ${roundStartPlayerIndex},
