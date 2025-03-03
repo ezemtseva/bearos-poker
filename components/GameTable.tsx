@@ -52,6 +52,17 @@ export default function GameTable({
   const [pokerCardOption, setPokerCardOption] = useState<"Trumps" | "Poker" | "Simple" | null>(null)
   const { toast } = useToast()
 
+  const getValidCardsAfterTrumps = (hand: Card[]): Card[] => {
+    const diamonds = hand.filter((c) => c.suit === "diamonds")
+    if (diamonds.length > 0) {
+      const highestDiamond = diamonds.reduce((max, card) => (card.value > max.value ? card : max))
+      return [highestDiamond]
+    }
+    // If no diamonds, return the highest card(s) of any suit
+    const highestValue = Math.max(...hand.map((c) => c.value))
+    return hand.filter((c) => c.value === highestValue)
+  }
+
   useEffect(() => {
     if (gameData.allCardsPlayed) {
       setDisplayedCards(cardsOnTable)
@@ -241,15 +252,16 @@ export default function GameTable({
     return !hasLeadingSuit
   }
 
-  const getValidCardsAfterTrumps = (hand: Card[]): Card[] => {
-    const trumps = hand.filter((c) => c.suit === "diamonds")
-    if (trumps.length > 0) {
-      const highestTrump = trumps.reduce((max, card) => (card.value > max.value ? card : max))
-      return [highestTrump]
+  const isValidCardToPlay = (card: Card) => {
+    if (
+      gameData.lastPlayedCard?.suit === "spades" &&
+      gameData.lastPlayedCard.value === 7 &&
+      gameData.lastPlayedCard.pokerOption === "Trumps"
+    ) {
+      const validCards = getValidCardsAfterTrumps(currentPlayer?.hand || [])
+      return validCards.some((c) => c.suit === card.suit && c.value === card.value)
     }
-    // If no trumps, return the highest card(s) of any suit
-    const highestValue = Math.max(...hand.map((c) => c.value))
-    return hand.filter((c) => c.value === highestValue)
+    return isValidPlay(card)
   }
 
   const highestScore = Math.max(...players.map((p) => p.score))
@@ -421,28 +433,17 @@ export default function GameTable({
           <h2 className="text-xl font-bold mb-2 text-center">Your Hand</h2>
           <div className="flex justify-center space-x-2">
             {currentPlayer && currentPlayer.hand && currentPlayer.hand.length > 0 ? (
-              currentPlayer.hand.map((card, index) => {
-                const isValidCardToPlay =
-                  gameData.lastPlayedCard?.suit === "spades" &&
-                  gameData.lastPlayedCard.value === 7 &&
-                  gameData.lastPlayedCard.pokerOption === "Trumps"
-                    ? getValidCardsAfterTrumps(currentPlayer.hand).some(
-                        (c) => c.suit === card.suit && c.value === card.value,
-                      )
-                    : isValidPlay(card)
-
-                return (
-                  <PlayingCard
-                    key={index}
-                    suit={card.suit}
-                    value={card.value}
-                    onClick={() => handlePlayCard(card)}
-                    disabled={!isCurrentPlayerTurn || isClearing || !isValidCardToPlay || !gameData.allBetsPlaced}
-                    showBack={shouldShowCardBacks}
-                    className={`${!isValidCardToPlay || !gameData.allBetsPlaced ? "opacity-50" : ""}`}
-                  />
-                )
-              })
+              currentPlayer.hand.map((card, index) => (
+                <PlayingCard
+                  key={index}
+                  suit={card.suit}
+                  value={card.value}
+                  onClick={() => handlePlayCard(card)}
+                  disabled={!isCurrentPlayerTurn || isClearing || !isValidCardToPlay(card) || !gameData.allBetsPlaced}
+                  showBack={shouldShowCardBacks}
+                  className={`${!isValidCardToPlay(card) || !gameData.allBetsPlaced ? "opacity-50" : ""}`}
+                />
+              ))
             ) : (
               <p>No cards in hand</p>
             )}

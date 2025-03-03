@@ -65,9 +65,9 @@ function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[]): bool
       const highestDiamond = diamonds.reduce((max, current) => (current.value > max.value ? current : max))
       return card.suit === "diamonds" && card.value === highestDiamond.value
     } else {
-      // Player must play their highest card of any suit
-      const highestCard = playerHand.reduce((max, current) => (current.value > max.value ? current : max))
-      return card.suit === highestCard.suit && card.value === highestCard.value
+      // Player must play one of their highest cards of any suit
+      const highestValue = Math.max(...playerHand.map((c) => c.value))
+      return card.value === highestValue
     }
   }
 
