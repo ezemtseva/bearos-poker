@@ -90,6 +90,12 @@ export default function GameTable({
     const hasSuit = currentPlayer?.hand.some((c) => c.suit === leadingSuit)
     const hasTrumps = currentPlayer?.hand.some((c) => c.suit === "diamonds")
 
+    if (card.suit === "spades" && card.value === 7) {
+      if (leadingSuit === "diamonds") return true // New rule: 7 of spades can be played when diamonds are leading
+      if (!hasSuit && !hasTrumps) return true // Can play 7 of spades if no leading suit and no trumps
+      return false
+    }
+
     if (card.suit === leadingSuit) return true // Following the leading suit
     if (!hasSuit && card.suit === "diamonds") return true // Playing a trump when no leading suit
     if (!hasSuit && !hasTrumps) return true // Can play any card if no leading suit or trumps
@@ -118,7 +124,7 @@ export default function GameTable({
         if (!validCards.some((c) => c.suit === card.suit && c.value === card.value)) {
           toast({
             title: "Invalid Play",
-            description: "You must play your highest trump card.",
+            description: "You must play your highest trump card or highest card if you have no trumps.",
             variant: "destructive",
           })
           return
@@ -234,9 +240,8 @@ export default function GameTable({
     if (cardsOnTable.length === 0) return true
     if (currentPlayer?.hand.length === 1) return true
     const leadingSuit = cardsOnTable[0].suit
-    const hasLeadingSuit = currentPlayer?.hand.some((c) => c.suit === leadingSuit)
-    const hasTrumps = currentPlayer?.hand.some((c) => c.suit === "diamonds")
-    return !hasLeadingSuit && !hasTrumps
+    // Allow 'Simple' option when diamonds are leading
+    return true
   }
 
   const getValidCardsAfterTrumps = (hand: Card[]): Card[] => {
@@ -245,7 +250,9 @@ export default function GameTable({
       const highestTrump = trumps.reduce((max, card) => (card.value > max.value ? card : max))
       return [highestTrump]
     }
-    return hand
+    // If no trumps, return the highest card(s) of any suit
+    const highestValue = Math.max(...hand.map((c) => c.value))
+    return hand.filter((c) => c.value === highestValue)
   }
 
   const highestScore = Math.max(...players.map((p) => p.score))

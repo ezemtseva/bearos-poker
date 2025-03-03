@@ -48,7 +48,7 @@ export default function PokerCardDialog({
             </Button>
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="flex justify-center">
           <Button onClick={onClose} variant="secondary">
             Cancel
           </Button>

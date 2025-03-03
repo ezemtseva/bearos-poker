@@ -21,15 +21,16 @@ function dealCards(players: Player[], deck: Card[], cardsPerPlayer: number): [Pl
 function determineHighestCard(cards: Card[], pokerOption?: string): Card | null {
   if (cards.length === 0) return null
 
-  const pokerCard = cards.find((c) => c.suit === "spades" && c.value === 7 && c.pokerOption !== "Simple")
+  const pokerCard = cards.find((c) => c.suit === "spades" && c.value === 7 && c.pokerOption === "Trumps")
   if (pokerCard) return pokerCard
 
+  const trumpCards = cards.filter((c) => c.suit === "diamonds")
+  if (trumpCards.length > 0) {
+    return trumpCards.reduce((max, current) => (current.value > max.value ? current : max))
+  }
+
   return cards.reduce((max, current) => {
-    if (current.suit === "diamonds" && max.suit !== "diamonds") {
-      return current
-    } else if (max.suit === "diamonds" && current.suit !== "diamonds") {
-      return max
-    } else if (current.suit === max.suit && current.value > max.value) {
+    if (current.suit === max.suit && current.value > max.value) {
       return current
     } else {
       return max
@@ -54,20 +55,13 @@ function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[], poker
 
   if (cardsOnTable.length === 0) return true // First player can play any card
 
-  if (card.suit === "spades" && card.value === 7) {
-    if (pokerOption === "Trumps" || pokerOption === "Poker") return true
-    if (pokerOption === "Simple") {
-      const leadingSuit = cardsOnTable[0].suit
-      const hasLeadingSuit = playerHand.some((c) => c.suit === leadingSuit)
-      const hasTrumps = playerHand.some((c) => c.suit === "diamonds")
-      return !hasLeadingSuit && !hasTrumps
-    }
-    return false
-  }
-
   const leadingSuit = cardsOnTable[0].suit
   const hasSuit = playerHand.some((c) => c.suit === leadingSuit)
   const hasTrumps = playerHand.some((c) => c.suit === "diamonds")
+
+  if (card.suit === "spades" && card.value === 7) {
+    return true // Allow 7 of spades to be played anytime
+  }
 
   if (card.suit === leadingSuit) return true // Following the leading suit
   if (!hasSuit && card.suit === "diamonds") return true // Playing a trump when no leading suit
@@ -88,7 +82,9 @@ function getValidCardsAfterTrumps(hand: Card[]): Card[] {
     const highestTrump = trumps.reduce((max, card) => (card.value > max.value ? card : max))
     return [highestTrump]
   }
-  return hand
+  // If no trumps, return the highest card(s) of any suit
+  const highestValue = Math.max(...hand.map((c) => c.value))
+  return hand.filter((c) => c.value === highestValue)
 }
 
 export async function POST(req: NextRequest) {
@@ -144,7 +140,10 @@ export async function POST(req: NextRequest) {
     ) {
       const validCards = getValidCardsAfterTrumps(players[playerIndex].hand)
       if (!validCards.some((c) => c.suit === card.suit && c.value === card.value)) {
-        return NextResponse.json({ error: "You must play your highest trump card." }, { status: 400 })
+        return NextResponse.json(
+          { error: "You must play your highest trump card or highest card if you have no trumps." },
+          { status: 400 },
+        )
       }
     } else if (!isValidPlay(card, players[playerIndex].hand, cardsOnTable, pokerOption)) {
       return NextResponse.json(
@@ -154,6 +153,16 @@ export async function POST(req: NextRequest) {
         },
         { status: 400 },
       )
+    }
+
+    // Handle 7 of spades special case
+    if (card.suit === "spades" && card.value === 7) {
+      if (!pokerOption) {
+        return NextResponse.json(
+          { error: "You must select an option (Trumps, Poker, or Simple) when playing the 7 of spades." },
+          { status: 400 },
+        )
+      }
     }
 
     // Remove the played card from the player's hand
