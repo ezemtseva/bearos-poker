@@ -402,11 +402,14 @@ export default function GameTable({
           const top = 200 + yRadius * Math.sin(angle)
 
           // Determine chip color based on score
-          let chipColor = player.score === highestScore ? "bg-yellow-500" : "bg-green-700"
+          let chipColor = "bg-green-700" // Default for positive scores that aren't the highest
+
           if (player.score === 0) {
-            chipColor = "bg-gray-500"
-          } else if (player.score < 0) {
-            chipColor = "bg-red-600"
+            chipColor = "bg-gray-500" // Zero score
+          } else if (player.score < 0 && player.score !== highestScore) {
+            chipColor = "bg-red-600" // Negative score but not the highest
+          } else if (player.score === highestScore) {
+            chipColor = "bg-yellow-500" // Highest score (even if negative)
           }
 
           return (
