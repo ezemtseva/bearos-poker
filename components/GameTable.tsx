@@ -483,8 +483,11 @@ export default function GameTable({
         </div>
       </div>
 
+      {/* Spacer container to manage vertical spacing */}
+      <div className="h-2"></div>
+
       {/* Betting and Player's hand */}
-      <div className="flex mt-8">
+      <div className="flex mt-4">
         {/* Spacer div */}
         <div className="w-1/6"></div>
         {/* Your Bet/Win section */}
