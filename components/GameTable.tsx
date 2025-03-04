@@ -408,7 +408,7 @@ export default function GameTable({
         {players.map((player, index) => {
           const angle = index * (360 / players.length) * (Math.PI / 180)
           const xRadius = 380 // Increased radius for wider oval
-          const yRadius = 180
+          const yRadius = 200
           const left = 400 + xRadius * Math.cos(angle)
           const top = 200 + yRadius * Math.sin(angle)
 
