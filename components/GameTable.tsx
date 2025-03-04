@@ -484,9 +484,11 @@ export default function GameTable({
       </div>
 
       {/* Betting and Player's hand */}
-      <div className="flex justify-between mt-8">
+      <div className="flex mt-8">
+        {/* Spacer div */}
+        <div className="w-1/6"></div>
         {/* Your Bet/Win section */}
-        <div className="w-1/3">
+        <div className="w-1/3 mr-8">
           <h2 className="text-xl font-bold mb-2 text-center">Your Bets & Wins</h2>
           {!gameStarted ? (
             <div className="flex flex-col items-center">
