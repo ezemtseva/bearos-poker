@@ -64,8 +64,11 @@ function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[]): bool
     return true // Can play 7 of spades when diamonds are the leading suit
   }
 
-  // Special case for 7 of spades with 'Trumps' option
-  if (firstCard.suit === "spades" && firstCard.value === 7 && firstCard.pokerOption === "Trumps") {
+  // Check if 7 of spades with 'Trumps' option is on the table
+  const sevenOfSpadesWithTrumps = cardsOnTable.find(
+    (c) => c.suit === "spades" && c.value === 7 && c.pokerOption === "Trumps",
+  )
+  if (sevenOfSpadesWithTrumps) {
     const diamonds = playerHand.filter((c) => c.suit === "diamonds")
     if (diamonds.length > 0) {
       // Player must play their highest diamond

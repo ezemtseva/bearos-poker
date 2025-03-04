@@ -156,19 +156,20 @@ export default function GameTable({
       return
     }
 
-    if (gameData.lastPlayedCard?.suit === "spades" && gameData.lastPlayedCard.value === 7) {
-      if (gameData.lastPlayedCard.pokerOption === "Trumps") {
-        const validCards = getValidCardsAfterTrumps(currentPlayer?.hand || [])
-        if (!validCards.some((c) => c.suit === card.suit && c.value === card.value)) {
-          toast({
-            title: "Invalid Play",
-            description: "You must play your highest trump card or highest card if you have no trumps.",
-            variant: "destructive",
-          })
-          return
-        }
+    // Check if 7 of spades with 'Trumps' option is on the table
+    const sevenOfSpadesWithTrumps = cardsOnTable.find(
+      (c) => c.suit === "spades" && c.value === 7 && c.pokerOption === "Trumps",
+    )
+    if (sevenOfSpadesWithTrumps) {
+      const validCards = getValidCardsAfterTrumps(currentPlayer?.hand || [])
+      if (!validCards.some((c) => c.suit === card.suit && c.value === card.value)) {
+        toast({
+          title: "Invalid Play",
+          description: "You must play your highest trump card or highest card if you have no trumps.",
+          variant: "destructive",
+        })
+        return
       }
-      // Remove special handling for 'Poker' option here
     } else if (!isValidPlay(card)) {
       setErrorMessage(
         "Invalid card play. You must follow the leading suit if possible, or play a trump if you don't have the leading suit.",
@@ -298,11 +299,11 @@ export default function GameTable({
   }
 
   const isValidCardToPlay = (card: Card) => {
-    if (
-      gameData.lastPlayedCard?.suit === "spades" &&
-      gameData.lastPlayedCard.value === 7 &&
-      gameData.lastPlayedCard.pokerOption === "Trumps"
-    ) {
+    // Check if 7 of spades with 'Trumps' option is on the table
+    const sevenOfSpadesWithTrumps = cardsOnTable.find(
+      (c) => c.suit === "spades" && c.value === 7 && c.pokerOption === "Trumps",
+    )
+    if (sevenOfSpadesWithTrumps) {
       const validCards = getValidCardsAfterTrumps(currentPlayer?.hand || [])
       return validCards.some((c) => c.suit === card.suit && c.value === card.value)
     }
