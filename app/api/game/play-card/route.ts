@@ -85,7 +85,9 @@ function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[]): bool
 
   // Normal play
   const leadingSuit = firstCard.suit
-  const hasSuit = playerHand.some((c) => c.suit === leadingSuit)
+
+  // Check if player has any cards of the leading suit, excluding 7 of spades
+  const hasSuit = playerHand.some((c) => c.suit === leadingSuit && !(c.suit === "spades" && c.value === 7))
 
   if (card.suit === "spades" && card.value === 7) {
     return !hasSuit // Can play 7 of spades only if player doesn't have the leading suit
