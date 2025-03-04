@@ -283,6 +283,16 @@ export default function GameTable({
     // Always allow Simple option when diamonds are the leading suit
     if (leadingSuit === "diamonds") return true
 
+    // For spades as leading suit, check if player has regular spades cards
+    if (leadingSuit === "spades") {
+      // Check if player has any spades other than 7 of spades
+      const hasRegularSpades = currentPlayer?.hand.some(
+        (c) => c.suit === "spades" && !(c.suit === "spades" && c.value === 7),
+      )
+      return !hasRegularSpades // Can play 7 of spades as Simple if player doesn't have regular spades
+    }
+
+    // For other suits, check if player has the leading suit
     const hasLeadingSuit = currentPlayer?.hand.some((c) => c.suit === leadingSuit)
     return !hasLeadingSuit
   }
