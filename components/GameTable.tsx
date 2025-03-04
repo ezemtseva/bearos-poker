@@ -355,16 +355,27 @@ export default function GameTable({
     <div className="space-y-8">
       {/* Game Info */}
       <div className="text-center">
-        <p>Table ID: {tableId}</p>
         {gameStarted ? (
-          <>
-            <p>Round: {currentRound}</p>
-            <p>Play: {currentPlay}</p>
-            <p>Current Turn: {players[currentTurn]?.name}</p>
-            <p>Cards this round: {cardsThisRound}</p>
-          </>
+          <div className="flex justify-center items-center space-x-6">
+            <p>
+              <span className="font-semibold">Table ID:</span> {tableId}
+            </p>
+            <p>
+              <span className="font-semibold">Round:</span> {currentRound}
+            </p>
+            <p>
+              <span className="font-semibold">Play:</span> {currentPlay}
+            </p>
+            <p>
+              <span className="font-semibold">Current Turn:</span> {players[currentTurn]?.name}
+            </p>
+            <p>
+              <span className="font-semibold">Cards this Round:</span> {cardsThisRound}
+            </p>
+          </div>
         ) : (
           <>
+            <p>Table ID: {tableId}</p>
             <p>Waiting for game to start...</p>
             {!gameStarted && players.length < 2 && (
               <p className="text-yellow-600 font-semibold">Waiting for more players to join...</p>
