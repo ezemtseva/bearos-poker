@@ -474,9 +474,9 @@ export default function GameTable({
 
       {/* Betting and Player's hand */}
       <div className="flex justify-between mt-8">
-        {/* Your Bet section */}
+        {/* Your Bet/Win section */}
         <div className="w-1/3">
-          <h2 className="text-xl font-bold mb-2 text-center">Your Bet</h2>
+          <h2 className="text-xl font-bold mb-2 text-center">Your Bet/Win</h2>
           {gameStarted && currentPlayer && currentPlayer.bet === null ? (
             <div className="flex flex-col items-center space-y-2">
               <Input
@@ -500,7 +500,10 @@ export default function GameTable({
               <Button onClick={handlePlaceBet}>Confirm Bet</Button>
             </div>
           ) : (
-            <p className="text-center">Your bet: {currentPlayer?.bet}</p>
+            <div className="flex flex-col items-center space-y-2">
+              <p className="text-center">Current round bet: {currentPlayer?.bet}</p>
+              <p className="text-center">Current round wins: {currentPlayer?.roundWins || 0}</p>
+            </div>
           )}
         </div>
 
