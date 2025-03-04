@@ -476,8 +476,12 @@ export default function GameTable({
       <div className="flex justify-between mt-8">
         {/* Your Bet/Win section */}
         <div className="w-1/3">
-          <h2 className="text-xl font-bold mb-2 text-center">Your Bet/Win</h2>
-          {gameStarted && currentPlayer && currentPlayer.bet === null ? (
+          <h2 className="text-xl font-bold mb-2 text-center">Your Bets & Wins</h2>
+          {!gameStarted ? (
+            <div className="flex flex-col items-center">
+              <p className="text-center">No bets and wins</p>
+            </div>
+          ) : currentPlayer && currentPlayer.bet === null ? (
             <div className="flex flex-col items-center space-y-2">
               <Input
                 type="number"
