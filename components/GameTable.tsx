@@ -278,6 +278,14 @@ export default function GameTable({
       const validCards = getValidCardsAfterTrumps(currentPlayer?.hand || [])
       return validCards.some((c) => c.suit === card.suit && c.value === card.value)
     }
+
+    // Special case for 7 of spades - can be played when player doesn't have the leading suit
+    if (card.suit === "spades" && card.value === 7 && cardsOnTable.length > 0) {
+      const leadingSuit = cardsOnTable[0].suit
+      const hasLeadingSuit = currentPlayer?.hand.some((c) => c.suit === leadingSuit)
+      return !hasLeadingSuit // Can play 7 of spades only if player doesn't have the leading suit
+    }
+
     return isValidPlay(card)
   }
 
