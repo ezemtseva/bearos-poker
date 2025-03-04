@@ -90,7 +90,7 @@ export default function GameTable({
   const isCurrentPlayerTurn =
     currentPlayer && gameData.players[gameData.currentTurn]?.name === currentPlayer.name && gameStarted
 
-  const cardsThisRound = currentRound <= 6 ? currentRound : currentRound <= 12 ? 13 - currentRound : 19 - currentRound
+  const cardsThisRound = currentRound <= 6 ? currentRound : currentRound <= 12 ? 6 : 19 - currentRound
 
   const isValidPlay = (card: Card): boolean => {
     if (!currentPlayer) return false
