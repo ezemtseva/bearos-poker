@@ -143,7 +143,13 @@ export default function GameTable({
     }
 
     if (card.suit === "spades" && card.value === 7) {
-      const availableOptions = cardsOnTable.length === 0 ? ["Trumps", "Poker", "Simple"] : ["Poker", "Simple"]
+      let availableOptions = ["Poker", "Simple"]
+
+      // If it's the first card, Trumps is also available
+      if (cardsOnTable.length === 0) {
+        availableOptions = ["Trumps", "Poker", "Simple"]
+      }
+
       setPokerCardOption(null)
       setShowPokerCardDialog(true)
       return
@@ -270,7 +276,12 @@ export default function GameTable({
 
   const isValidSimplePlay = () => {
     if (cardsOnTable.length === 0) return true
+
     const leadingSuit = cardsOnTable[0].suit
+
+    // Always allow Simple option when diamonds are the leading suit
+    if (leadingSuit === "diamonds") return true
+
     const hasLeadingSuit = currentPlayer?.hand.some((c) => c.suit === leadingSuit)
     return !hasLeadingSuit
   }
