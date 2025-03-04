@@ -101,12 +101,18 @@ export default function GameTable({
 
     const firstCard = cardsOnTable[0]
     const leadingSuit = firstCard.suit
-    const hasSuit = currentPlayer.hand.some((c) => c.suit === leadingSuit)
+
+    // Special case: 7 of spades can be played when diamonds are the leading suit
+    if (card.suit === "spades" && card.value === 7 && leadingSuit === "diamonds") {
+      return true // Can play 7 of spades when diamonds are the leading suit
+    }
 
     // Special case for 7 of spades with 'Poker' option as the first card
     if (firstCard.suit === "spades" && firstCard.value === 7 && firstCard.pokerOption === "Poker") {
       return true // Any card can be played
     }
+
+    const hasSuit = currentPlayer.hand.some((c) => c.suit === leadingSuit)
 
     if (card.suit === "spades" && card.value === 7) {
       return !hasSuit // Can play 7 of spades only if player doesn't have the leading suit
@@ -279,11 +285,15 @@ export default function GameTable({
       return validCards.some((c) => c.suit === card.suit && c.value === card.value)
     }
 
-    // Special case for 7 of spades - can be played when player doesn't have the leading suit
+    // Special case: 7 of spades can be played when diamonds are the leading suit
     if (card.suit === "spades" && card.value === 7 && cardsOnTable.length > 0) {
       const leadingSuit = cardsOnTable[0].suit
+      if (leadingSuit === "diamonds") {
+        return true // Can always play 7 of spades when diamonds are the leading suit
+      }
+
       const hasLeadingSuit = currentPlayer?.hand.some((c) => c.suit === leadingSuit)
-      return !hasLeadingSuit // Can play 7 of spades only if player doesn't have the leading suit
+      return !hasLeadingSuit // Otherwise, can play 7 of spades only if player doesn't have the leading suit
     }
 
     return isValidPlay(card)

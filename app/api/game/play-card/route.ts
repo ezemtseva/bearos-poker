@@ -59,6 +59,11 @@ function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[]): bool
 
   const firstCard = cardsOnTable[0]
 
+  // Special case: 7 of spades can be played when diamonds are the leading suit
+  if (card.suit === "spades" && card.value === 7 && firstCard.suit === "diamonds") {
+    return true // Can play 7 of spades when diamonds are the leading suit
+  }
+
   // Special case for 7 of spades with 'Trumps' option
   if (firstCard.suit === "spades" && firstCard.value === 7 && firstCard.pokerOption === "Trumps") {
     const diamonds = playerHand.filter((c) => c.suit === "diamonds")
