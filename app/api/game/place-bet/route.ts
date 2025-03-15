@@ -38,11 +38,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "It's not your turn to place a bet" }, { status: 400 })
     }
 
+    // Get the current round
+    const currentRound = game.current_round
+
+    // Calculate cards per round
+    const cardsThisRound = currentRound <= 6 ? currentRound : currentRound <= 12 ? 6 : 19 - currentRound
+
+    // Validate bet is within range
+    if (bet < 0 || bet > cardsThisRound) {
+      return NextResponse.json({ error: `Bet must be between 0 and ${cardsThisRound}` }, { status: 400 })
+    }
+
+    // NEW CODE: Check if this is the last player to bet and if the bet would make the total equal to cardsThisRound
+    if (players.filter((p) => p.bet !== null).length === players.length - 1) {
+      // Calculate sum of existing bets
+      const totalExistingBets = players.reduce((sum, player) => {
+        return sum + (player.bet !== null ? player.bet : 0)
+      }, 0)
+
+      // Check if this bet would make the total equal to cardsThisRound
+      if (totalExistingBets + bet === cardsThisRound) {
+        return NextResponse.json(
+          {
+            error: `Your bet cannot be ${bet} as it would make the total bets equal to the number of cards (${cardsThisRound}).`,
+          },
+          { status: 400 },
+        )
+      }
+    }
+
     // Update player's bet
     players[playerIndex].bet = bet
 
     // Update score table with the bet
-    const currentRound = game.current_round
     if (scoreTable[currentRound - 1]) {
       scoreTable[currentRound - 1].scores[playerName].bet = bet
     }

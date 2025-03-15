@@ -307,11 +307,60 @@ export default function GameTable({
     }
   }
 
+  const calculateForbiddenBet = (): number | null => {
+    if (
+      !gameStarted ||
+      !safeGameData.scoreTable ||
+      currentRound <= 0 ||
+      currentRound > safeGameData.scoreTable.length
+    ) {
+      return null
+    }
+
+    // Get the current round's score table
+    const currentRoundScores = safeGameData.scoreTable[currentRound - 1]
+    if (!currentRoundScores) return null
+
+    // Calculate the sum of all existing bets
+    let totalBets = 0
+    let playerCount = 0
+
+    for (const playerName in currentRoundScores.scores) {
+      const playerScore = currentRoundScores.scores[playerName]
+      if (playerScore && playerScore.bet !== null) {
+        totalBets += playerScore.bet
+        playerCount++
+      }
+    }
+
+    // If all players except the current one have placed bets
+    if (playerCount === players.length - 1) {
+      // The forbidden bet is the value that would make the total equal to cardsThisRound
+      const forbiddenBet = cardsThisRound - totalBets
+      // Only return a forbidden bet if it's within the valid range
+      if (forbiddenBet >= 0 && forbiddenBet <= cardsThisRound) {
+        return forbiddenBet
+      }
+    }
+
+    return null
+  }
+
   const handlePlaceBet = async () => {
     if (betAmount === null || betAmount < 0 || betAmount > cardsThisRound) {
       toast({
         title: "Invalid Bet",
         description: `Please enter a bet between 0 and ${cardsThisRound}.`,
+        variant: "destructive",
+      })
+      return
+    }
+
+    const forbiddenBet = calculateForbiddenBet()
+    if (forbiddenBet !== null && betAmount === forbiddenBet) {
+      toast({
+        title: "Invalid Bet",
+        description: `You cannot bet ${forbiddenBet} as it would make the total bets equal to the number of cards (${cardsThisRound}).`,
         variant: "destructive",
       })
       return
@@ -635,25 +684,38 @@ export default function GameTable({
             <div className="flex flex-col items-center space-y-2 mt-2">
               {isCurrentPlayerBettingTurn ? (
                 <>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={cardsThisRound}
-                    value={betAmount !== null ? betAmount.toString() : ""}
-                    onChange={(e) => {
-                      const value = e.target.value
-                      if (value === "" || value === "-") {
-                        setBetAmount(null)
-                      } else {
-                        const numValue = Number.parseInt(value, 10)
-                        if (!isNaN(numValue) && numValue >= 0 && numValue <= cardsThisRound) {
-                          setBetAmount(numValue)
+                  <div className="flex flex-col items-center space-y-2">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={cardsThisRound}
+                      value={betAmount !== null ? betAmount.toString() : ""}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        if (value === "" || value === "-") {
+                          setBetAmount(null)
+                        } else {
+                          const numValue = Number.parseInt(value, 10)
+                          if (!isNaN(numValue) && numValue >= 0 && numValue <= cardsThisRound) {
+                            setBetAmount(numValue)
+                          }
                         }
-                      }
-                    }}
-                    className="w-20 text-center"
-                  />
-                  <Button onClick={handlePlaceBet}>Confirm Bet</Button>
+                      }}
+                      className="w-20 text-center"
+                    />
+                    <Button onClick={handlePlaceBet}>Confirm Bet</Button>
+                  </div>
+                  {(() => {
+                    const forbiddenBet = calculateForbiddenBet()
+                    if (forbiddenBet !== null) {
+                      return (
+                        <p className="text-red-500 text-sm mt-2">
+                          You cannot bet {forbiddenBet} (total bets cannot equal {cardsThisRound})
+                        </p>
+                      )
+                    }
+                    return null
+                  })()}
                 </>
               ) : (
                 <p className="text-center text-yellow-600">
