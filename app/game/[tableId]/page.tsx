@@ -105,45 +105,34 @@ export default function Game() {
 
   const updateGameState = (data: GameData) => {
     console.log("Updating game state. Received data:", data)
+
     setGameData((prevData) => {
-      // If we have a lastPlayedCard, make sure it's included in the cardsOnTable
-      if (
-        data.lastPlayedCard &&
-        !data.cardsOnTable.some(
-          (c) =>
-            c.playerName === data.lastPlayedCard?.playerName &&
-            c.suit === data.lastPlayedCard?.suit &&
-            c.value === data.lastPlayedCard?.value,
-        ) &&
-        !data.allCardsPlayed // Only add the last played card if we're not in the clearing phase
-      ) {
-        // Add the lastPlayedCard to cardsOnTable if it's not already there
+      // If it's a new round, ALWAYS clear the table
+      if (prevData && data.currentRound > prevData.currentRound) {
+        console.log("NEW ROUND DETECTED - Clearing table")
         return {
           ...data,
-          cardsOnTable: [...data.cardsOnTable, data.lastPlayedCard],
+          cardsOnTable: [], // Force empty array for new rounds
+          lastPlayedCard: null, // Also clear the last played card
         }
       }
 
-      // If all cards are played, keep the current cards on the table
+      // If it's a new play within the same round, also clear the table
+      if (prevData && data.currentPlay > prevData.currentPlay) {
+        console.log("NEW PLAY DETECTED - Clearing table")
+        return {
+          ...data,
+          cardsOnTable: [], // Force empty array for new plays
+          lastPlayedCard: null, // Also clear the last played card
+        }
+      }
+
+      // If all cards are played, keep the server's state
       if (data.allCardsPlayed) {
-        return {
-          ...data,
-          cardsOnTable: data.cardsOnTable, // Use the received cardsOnTable
-        }
+        return data
       }
 
-      // If it's a new round or new play, clear the table
-      if (
-        (prevData && data.currentRound > prevData.currentRound) ||
-        (prevData && data.currentPlay > prevData.currentPlay && data.cardsOnTable.length === 0)
-      ) {
-        return {
-          ...data,
-          cardsOnTable: [],
-        }
-      }
-
-      // Otherwise, use the new game state
+      // For normal gameplay, use the server's state
       return data
     })
 
@@ -152,10 +141,6 @@ export default function Game() {
     console.log("Players:", data.players)
     const currentPlayer = data.players.find((player) => player.name === storedPlayerName)
     const isCurrentPlayerOwner = currentPlayer?.isOwner || false
-    console.log("Is current player owner:", isCurrentPlayerOwner)
-    console.log("Current turn:", data.currentTurn)
-    console.log("Is current player's turn:", data.players[data.currentTurn]?.name === storedPlayerName)
-    console.log("Cards on table:", data.cardsOnTable)
     setIsOwner(isCurrentPlayerOwner)
     setCurrentPlayerName(storedPlayerName)
   }

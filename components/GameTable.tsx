@@ -182,7 +182,15 @@ export default function GameTable({
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null
 
-    // Always immediately show the cards on the table
+    // Check for new round or new play - always clear cards in these cases
+    if ((safeGameData.currentRound > 0 && safeGameData.currentPlay === 1) || safeGameData.cardsOnTable.length === 0) {
+      console.log("GameTable: Clearing displayed cards for new round/play")
+      setDisplayedCards([])
+      setIsClearing(false)
+      return
+    }
+
+    // For normal gameplay, show the cards on the table
     setDisplayedCards(cardsOnTable)
     setIsClearing(false)
 
@@ -198,18 +206,13 @@ export default function GameTable({
       }, 2500)
     }
 
-    // When a new round or play starts, ensure the table is cleared
-    if (currentPlay === 1 && cardsOnTable.length === 0) {
-      setDisplayedCards([])
-    }
-
     // Clean up the timer when component unmounts or dependencies change
     return () => {
       if (timer) {
         clearTimeout(timer)
       }
     }
-  }, [cardsOnTable, safeGameData.allCardsPlayed, currentPlay])
+  }, [cardsOnTable, safeGameData.allCardsPlayed, safeGameData.currentRound, safeGameData.currentPlay])
 
   useEffect(() => {
     if (safeGameData.gameOver) {
