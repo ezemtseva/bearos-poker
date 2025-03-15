@@ -708,11 +708,7 @@ export default function GameTable({
                   {(() => {
                     const forbiddenBet = calculateForbiddenBet()
                     if (forbiddenBet !== null) {
-                      return (
-                        <p className="text-red-500 text-sm mt-2">
-                          You cannot bet {forbiddenBet} (total bets cannot equal {cardsThisRound})
-                        </p>
-                      )
+                      return <p className="text-red-500 text-sm mt-2">You cannot bet {forbiddenBet}</p>
                     }
                     return null
                   })()}
