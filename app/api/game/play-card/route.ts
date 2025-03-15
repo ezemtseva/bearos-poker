@@ -267,10 +267,10 @@ export async function POST(req: NextRequest) {
     console.log("All cards played:", allCardsPlayed)
 
     if (allCardsPlayed) {
-      console.log("All cards played, waiting 1 second before processing")
+      console.log("All cards played, waiting 2 seconds before processing")
 
-      // Wait for 1 second to display all cards (reduced from 2)
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      // Wait for 2 seconds to display all cards (restored to original value)
+      await new Promise((resolve) => setTimeout(resolve, 2000))
 
       console.log("Processing end of play")
 

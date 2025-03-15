@@ -180,17 +180,29 @@ export default function GameTable({
   }
 
   useEffect(() => {
+    let timer: NodeJS.Timeout | null = null
+
     if (safeGameData.allCardsPlayed) {
+      // Make sure we're showing all cards when allCardsPlayed is true
       setDisplayedCards(cardsOnTable)
       setIsClearing(true)
-      const timer = setTimeout(() => {
+
+      // Use a slightly longer timeout than the server (2.5s vs 2s)
+      // to ensure we don't clear cards before the server processes them
+      timer = setTimeout(() => {
         setIsClearing(false)
         setDisplayedCards([])
-      }, 2000)
-      return () => clearTimeout(timer)
+      }, 2500)
     } else {
       setDisplayedCards(cardsOnTable)
       setIsClearing(false)
+    }
+
+    // Clean up the timer when component unmounts or dependencies change
+    return () => {
+      if (timer) {
+        clearTimeout(timer)
+      }
     }
   }, [cardsOnTable, safeGameData.allCardsPlayed])
 
