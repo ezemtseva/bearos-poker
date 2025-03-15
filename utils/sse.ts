@@ -1,4 +1,4 @@
-import type { GameData, Card } from "../../types/game"
+import type { GameData, Card } from "../types/game"
 
 // Extend the GameData type
 type ExtendedGameData = GameData & {

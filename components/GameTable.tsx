@@ -576,10 +576,13 @@ export default function GameTable({
   const allPlayersHaveBet = players.every((p) => p.bet !== null)
   const waitingForBetDelay = allPlayersHaveBet && !safeGameData.allBetsPlaced
 
-  // Function to render the game status message
+  // Add this function inside the GameTable component
   const renderGameStatusMessage = () => {
+    // Check if we're in the waiting period after all bets are placed
+    const waitingForBetDelay = allPlayersHaveBet && !safeGameData.allBetsPlaced
+
     if (!safeGameData.allBetsPlaced) {
-      if (allPlayersHaveBet || safeGameData.betsPlacedTimestamp) {
+      if (waitingForBetDelay || safeGameData.betsPlacedTimestamp) {
         return <span className="text-blue-600">Preparing to start the round...</span>
       } else if (isCurrentPlayerBettingTurn) {
         return <span className="text-green-600">It's your turn to place a bet!</span>

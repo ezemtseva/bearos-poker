@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
 import type { GameData, Player, ScoreTableRow, PlayerScore } from "../../../types/game"
+import { addClient, removeClient } from "../../../utils/sse"
 
 export const runtime = "edge"
 
@@ -25,17 +26,26 @@ export async function GET(req: NextRequest) {
         controller.enqueue(encoder.encode(`event: ${event}\ndata: ${data}\n\n`))
       }
 
+      // Register this client
+      addClient(tableId, (message) => {
+        controller.enqueue(encoder.encode(message))
+      })
+
       // Send initial game state
       const initialState = await getGameState(tableId)
-      console.log("[SSE] Sending initial game state for table:", tableId, initialState)
+      console.log("[SSE] Sending initial game state for table:", tableId)
       sendEvent("init", JSON.stringify(initialState))
 
       // Set up polling for game updates
       const pollInterval = setInterval(async () => {
-        console.log("[SSE] Polling for updates for table:", tableId)
-        const latestState = await getGameState(tableId)
-        sendEvent("update", JSON.stringify(latestState))
-      }, 1000) // Poll every second
+        try {
+          console.log("[SSE] Polling for updates for table:", tableId)
+          const latestState = await getGameState(tableId)
+          sendEvent("update", JSON.stringify(latestState))
+        } catch (error) {
+          console.error("[SSE] Error polling for updates:", error)
+        }
+      }, 2000) // Poll every 2 seconds
 
       // Heartbeat to keep connection alive
       const heartbeat = setInterval(() => {
@@ -48,6 +58,9 @@ export async function GET(req: NextRequest) {
         console.log("[SSE] Connection aborted for table:", tableId)
         clearInterval(pollInterval)
         clearInterval(heartbeat)
+        removeClient(tableId, (message) => {
+          controller.enqueue(encoder.encode(message))
+        })
       })
     },
   })
@@ -86,11 +99,13 @@ async function getGameState(tableId: string): Promise<GameData> {
       highestCard: null,
       roundStartPlayerIndex: 0,
       allBetsPlaced: false,
-      gameOver: false, // Add this line to include the gameOver property
+      gameOver: false,
+      currentBettingTurn: undefined,
+      betsPlacedTimestamp: null,
     }
   }
   const row = result.rows[0]
-  console.log("[SSE] Game state fetched for table:", tableId, row)
+  console.log("[SSE] Game state fetched for table:", tableId)
   return {
     tableId: row.table_id,
     players: row.players as Player[],
@@ -110,6 +125,7 @@ async function getGameState(tableId: string): Promise<GameData> {
     allBetsPlaced: row.all_bets_placed || false,
     gameOver: row.game_over || false,
     currentBettingTurn: row.current_betting_turn,
+    betsPlacedTimestamp: row.bets_placed_timestamp,
   }
 }
 
