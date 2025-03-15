@@ -198,13 +198,18 @@ export default function GameTable({
       }, 2500)
     }
 
+    // When a new round or play starts, ensure the table is cleared
+    if (currentPlay === 1 && cardsOnTable.length === 0) {
+      setDisplayedCards([])
+    }
+
     // Clean up the timer when component unmounts or dependencies change
     return () => {
       if (timer) {
         clearTimeout(timer)
       }
     }
-  }, [cardsOnTable, safeGameData.allCardsPlayed])
+  }, [cardsOnTable, safeGameData.allCardsPlayed, currentPlay])
 
   useEffect(() => {
     if (safeGameData.gameOver) {

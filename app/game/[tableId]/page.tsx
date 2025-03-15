@@ -114,7 +114,8 @@ export default function Game() {
             c.playerName === data.lastPlayedCard?.playerName &&
             c.suit === data.lastPlayedCard?.suit &&
             c.value === data.lastPlayedCard?.value,
-        )
+        ) &&
+        !data.allCardsPlayed // Only add the last played card if we're not in the clearing phase
       ) {
         // Add the lastPlayedCard to cardsOnTable if it's not already there
         return {
@@ -131,8 +132,11 @@ export default function Game() {
         }
       }
 
-      // If it's a new round, clear the table
-      if (prevData && data.currentRound > prevData.currentRound) {
+      // If it's a new round or new play, clear the table
+      if (
+        (prevData && data.currentRound > prevData.currentRound) ||
+        (prevData && data.currentPlay > prevData.currentPlay && data.cardsOnTable.length === 0)
+      ) {
         return {
           ...data,
           cardsOnTable: [],
