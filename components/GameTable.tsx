@@ -218,7 +218,7 @@ export default function GameTable({
   }
 
   const handlePlayCard = async (card: Card) => {
-    if (!safeGameData.allBetsPlaced) {
+    if (!safeGameData.allBetsPlaced && !allPlayersHaveBet) {
       toast({
         title: "Cannot play card",
         description: "Please wait for all players to place their bets.",
@@ -576,6 +576,31 @@ export default function GameTable({
   const allPlayersHaveBet = players.every((p) => p.bet !== null)
   const waitingForBetDelay = allPlayersHaveBet && !safeGameData.allBetsPlaced
 
+  // Function to render the game status message
+  const renderGameStatusMessage = () => {
+    if (!safeGameData.allBetsPlaced) {
+      if (allPlayersHaveBet || safeGameData.betsPlacedTimestamp) {
+        return <span className="text-blue-600">Preparing to start the round...</span>
+      } else if (isCurrentPlayerBettingTurn) {
+        return <span className="text-green-600">It's your turn to place a bet!</span>
+      } else {
+        return (
+          <span className="text-yellow-600">
+            Waiting for{" "}
+            {currentBettingPlayerName.startsWith("Waiting")
+              ? players.find((p) => p.name !== currentPlayerName)?.name || "other players"
+              : currentBettingPlayerName}{" "}
+            to place their bet...
+          </span>
+        )
+      }
+    } else if (isCurrentPlayerTurn) {
+      return <span className="text-green-600">It's your turn! Select a card to play.</span>
+    } else {
+      return <span className="text-blue-600">Waiting for {players[currentTurn]?.name || "next player"}'s turn...</span>
+    }
+  }
+
   return (
     <div className="space-y-8">
       {/* Game Info */}
@@ -816,29 +841,7 @@ export default function GameTable({
             )}
           </div>
           {gameStarted && currentRound <= 18 && (
-            <p className="text-center mt-2 font-bold">
-              {!safeGameData.allBetsPlaced ? (
-                waitingForBetDelay ? (
-                  <span className="text-blue-600">Preparing to start the round...</span>
-                ) : isCurrentPlayerBettingTurn ? (
-                  <span className="text-green-600">It's your turn to place a bet!</span>
-                ) : (
-                  <span className="text-yellow-600">
-                    Waiting for{" "}
-                    {currentBettingPlayerName.startsWith("Waiting")
-                      ? players.find((p) => p.name !== currentPlayerName)?.name || "other players"
-                      : currentBettingPlayerName}{" "}
-                    to place their bet...
-                  </span>
-                )
-              ) : isCurrentPlayerTurn ? (
-                <span className="text-green-600">It's your turn! Select a card to play.</span>
-              ) : (
-                <span className="text-blue-600">
-                  Waiting for {players[currentTurn]?.name || "next player"}'s turn...
-                </span>
-              )}
-            </p>
+            <p className="text-center mt-2 font-bold">{renderGameStatusMessage()}</p>
           )}
           {errorMessage && <p className="text-red-600 text-center mt-2">{errorMessage}</p>}
         </div>

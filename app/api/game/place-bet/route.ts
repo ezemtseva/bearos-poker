@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
       SET players = ${JSON.stringify(players)}::jsonb,
           score_table = ${JSON.stringify(scoreTable)}::jsonb,
           all_bets_placed = ${allBetsPlaced ? false : false}, -- Keep this false until the delay is over
-          current_betting_turn = ${allBetsPlaced ? undefined : currentBettingTurn},
+          current_betting_turn = ${allBetsPlaced ? null : currentBettingTurn},
           bets_placed_timestamp = ${betsPlacedTimestamp}
       WHERE table_id = ${tableId}
     `
@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
             UPDATE poker_games
             SET all_bets_placed = true,
                 current_betting_turn = NULL
-            WHERE table_id = ${tableId}
+            WHERE table_id = ${tableId} AND bets_placed_timestamp IS NOT NULL
           `
 
           // Send another SSE update with allBetsPlaced set to true
