@@ -29,8 +29,7 @@ export async function GET(req: NextRequest) {
       const initialState = await getGameState(tableId)
       sendEvent("init", JSON.stringify(initialState))
 
-      // Set up polling for game updates - reduced frequency to 5 seconds
-      // This is a fallback in case direct updates via sendSSEUpdate aren't received
+      // Set up polling for game updates - back to original frequency
       const pollInterval = setInterval(async () => {
         try {
           const latestState = await getGameState(tableId)
@@ -38,7 +37,7 @@ export async function GET(req: NextRequest) {
         } catch (error) {
           console.error("[SSE] Error polling for updates:", error)
         }
-      }, 5000) // Increased to 5 seconds to reduce database load
+      }, 3000) // Back to original 3 seconds
 
       // Heartbeat to keep connection alive
       const heartbeat = setInterval(() => {

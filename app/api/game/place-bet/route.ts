@@ -127,15 +127,12 @@ export async function POST(req: NextRequest) {
     // Send SSE update
     await sendSSEUpdate(tableId, updatedGameData)
 
-    // If all bets are placed, set a timeout to update allBetsPlaced after 2 seconds
+    // If all bets are placed, set a timeout to update allBetsPlaced after 1 second (reduced from 2)
     if (shouldSetAllBetsPlaced) {
-      // Instead of using setTimeout, which might not work reliably in serverless functions,
-      // we'll use a direct approach to update the database after a delay
-
       console.log(`All bets placed for table ${tableId}, preparing to start the round`)
 
-      // Wait for 2 seconds
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      // Wait for 1 second (reduced from 2)
+      await new Promise((resolve) => setTimeout(resolve, 1000))
 
       console.log(`Setting allBetsPlaced to true for table ${tableId} after delay`)
 
