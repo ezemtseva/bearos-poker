@@ -100,28 +100,32 @@ export default function GameTable({
 
   // Track the current betting player in a useEffect to avoid infinite loops
   useEffect(() => {
-    if (gameStarted && safeGameData.currentBettingTurn !== undefined) {
-      if (safeGameData.currentBettingTurn >= 0 && safeGameData.currentBettingTurn < players.length) {
-        const playerName = players[safeGameData.currentBettingTurn].name
-        if (playerName && playerName !== "Waiting for players...") {
-          setLastKnownBettingPlayer(playerName)
+    if (
+      gameStarted &&
+      safeGameData.currentBettingTurn !== undefined &&
+      typeof safeGameData.currentBettingTurn === "number" &&
+      safeGameData.currentBettingTurn >= 0 &&
+      safeGameData.currentBettingTurn < players.length
+    ) {
+      const playerName = players[safeGameData.currentBettingTurn].name
+      if (playerName && playerName !== "Waiting for players...") {
+        setLastKnownBettingPlayer(playerName)
 
-          // Store the current betting turn
-          lastBettingTurnRef.current = safeGameData.currentBettingTurn
+        // Store the current betting turn
+        lastBettingTurnRef.current = safeGameData.currentBettingTurn
 
-          // Determine if it's the current player's turn to bet
-          const currentPlayerName = localStorage.getItem("playerName")
-          const isCurrentPlayerTurn = playerName === currentPlayerName
+        // Determine if it's the current player's turn to bet
+        const currentPlayerName = localStorage.getItem("playerName")
+        const isCurrentPlayerTurn = playerName === currentPlayerName
 
-          // If it's the current player's turn, stabilize the UI immediately
-          if (isCurrentPlayerTurn) {
-            setStableBettingUI(true)
+        // If it's the current player's turn, stabilize the UI immediately
+        if (isCurrentPlayerTurn) {
+          setStableBettingUI(true)
 
-            // Clear any pending timeout
-            if (bettingUITimeoutRef.current) {
-              clearTimeout(bettingUITimeoutRef.current)
-              bettingUITimeoutRef.current = null
-            }
+          // Clear any pending timeout
+          if (bettingUITimeoutRef.current) {
+            clearTimeout(bettingUITimeoutRef.current)
+            bettingUITimeoutRef.current = null
           }
         }
       }
@@ -481,11 +485,14 @@ export default function GameTable({
   let currentBettingPlayerName = "Waiting for players..."
 
   // Only try to access the current betting player if the game has started
-  if (gameStarted && safeGameData.currentBettingTurn !== undefined) {
-    // Make sure the index is valid
-    if (safeGameData.currentBettingTurn >= 0 && safeGameData.currentBettingTurn < players.length) {
-      currentBettingPlayerName = players[safeGameData.currentBettingTurn].name
-    }
+  if (
+    gameStarted &&
+    safeGameData.currentBettingTurn !== undefined &&
+    typeof safeGameData.currentBettingTurn === "number" &&
+    safeGameData.currentBettingTurn >= 0 &&
+    safeGameData.currentBettingTurn < players.length
+  ) {
+    currentBettingPlayerName = players[safeGameData.currentBettingTurn].name
   }
 
   // Use the last known betting player if we have one and the current one is the default
@@ -505,7 +512,7 @@ export default function GameTable({
       currentPlayer &&
       gameStarted &&
       safeGameData.currentBettingTurn !== undefined &&
-      safeGameData.currentBettingTurn !== null &&
+      typeof safeGameData.currentBettingTurn === "number" &&
       safeGameData.currentBettingTurn >= 0 &&
       safeGameData.currentBettingTurn < players.length
     ) {
