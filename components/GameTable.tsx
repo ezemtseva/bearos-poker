@@ -52,6 +52,28 @@ export default function GameTable({
   const [pokerCardOption, setPokerCardOption] = useState<"Trumps" | "Poker" | "Simple" | null>(null)
   const { toast } = useToast()
 
+  // Safely handle potentially undefined gameData
+  const safeGameData = gameData || {
+    tableId: "",
+    players: [],
+    gameStarted: false,
+    currentRound: 0,
+    currentPlay: 0,
+    currentTurn: 0,
+    cardsOnTable: [],
+    deck: [],
+    scoreTable: [],
+    allCardsPlayedTimestamp: null,
+    playEndTimestamp: null,
+    lastPlayedCard: null,
+    allCardsPlayed: false,
+    highestCard: null,
+    roundStartPlayerIndex: 0,
+    allBetsPlaced: false,
+    gameOver: false,
+    currentBettingTurn: undefined,
+  }
+
   const getValidCardsAfterTrumps = (hand: Card[]): Card[] => {
     const diamonds = hand.filter((c) => c.suit === "diamonds")
     if (diamonds.length > 0) {
@@ -64,7 +86,7 @@ export default function GameTable({
   }
 
   useEffect(() => {
-    if (gameData.allCardsPlayed) {
+    if (safeGameData.allCardsPlayed) {
       setDisplayedCards(cardsOnTable)
       setIsClearing(true)
       const timer = setTimeout(() => {
@@ -76,19 +98,23 @@ export default function GameTable({
       setDisplayedCards(cardsOnTable)
       setIsClearing(false)
     }
-  }, [cardsOnTable, gameData.allCardsPlayed])
+  }, [cardsOnTable, safeGameData.allCardsPlayed])
 
   useEffect(() => {
-    if (gameData.gameOver) {
+    if (safeGameData.gameOver) {
       setShowResultsDialog(true)
     }
-  }, [gameData.gameOver])
+  }, [safeGameData.gameOver])
 
   const currentPlayerName = localStorage.getItem("playerName")
   const currentPlayer = players.find((p) => p.name === currentPlayerName)
   const canStartGame = isOwner && players.length >= 2 && !gameStarted
   const isCurrentPlayerTurn =
-    currentPlayer && gameData.players[gameData.currentTurn]?.name === currentPlayer.name && gameStarted
+    currentPlayer &&
+    safeGameData.players &&
+    safeGameData.players[safeGameData.currentTurn] &&
+    safeGameData.players[safeGameData.currentTurn].name === currentPlayer.name &&
+    gameStarted
 
   const cardsThisRound = currentRound <= 6 ? currentRound : currentRound <= 12 ? 6 : 19 - currentRound
 
@@ -134,7 +160,7 @@ export default function GameTable({
   }
 
   const handlePlayCard = async (card: Card) => {
-    if (!gameData.allBetsPlaced) {
+    if (!safeGameData.allBetsPlaced) {
       toast({
         title: "Cannot play card",
         description: "Please wait for all players to place their bets.",
@@ -337,35 +363,36 @@ export default function GameTable({
     return isValidPlay(card)
   }
 
-  const highestScore = Math.max(...players.map((p) => p.score))
+  const highestScore = Math.max(...(players.length > 0 ? players.map((p) => p.score) : [0]))
 
-  const isBlindRound = gameData.scoreTable[currentRound - 1]?.roundName === "B"
-  const shouldShowCardBacks = isBlindRound && !gameData.allBetsPlaced
+  const isBlindRound =
+    safeGameData.scoreTable &&
+    safeGameData.scoreTable.length > 0 &&
+    currentRound > 0 &&
+    currentRound <= safeGameData.scoreTable.length &&
+    safeGameData.scoreTable[currentRound - 1]?.roundName === "B"
+
+  const shouldShowCardBacks = isBlindRound && !safeGameData.allBetsPlaced
 
   // Get the current betting player's name safely
-  const currentBettingPlayerName =
-    gameData.currentBettingTurn !== undefined &&
-    gameData.currentBettingTurn >= 0 &&
-    gameData.currentBettingTurn < players.length
-      ? players[gameData.currentBettingTurn].name
-      : "Unknown"
+  let currentBettingPlayerName = "Waiting for players..."
+
+  // Only try to access the current betting player if the game has started
+  if (gameStarted && safeGameData.currentBettingTurn !== undefined) {
+    // Make sure the index is valid
+    if (safeGameData.currentBettingTurn >= 0 && safeGameData.currentBettingTurn < players.length) {
+      currentBettingPlayerName = players[safeGameData.currentBettingTurn].name
+    }
+  }
 
   // Check if it's the current player's turn to bet
   const isCurrentPlayerBettingTurn =
     currentPlayer &&
-    gameData.currentBettingTurn !== undefined &&
-    gameData.currentBettingTurn >= 0 &&
-    gameData.currentBettingTurn < players.length &&
-    players[gameData.currentBettingTurn].name === currentPlayer.name
-
-  console.log(
-    "Current round:",
-    gameData.currentRound,
-    "Game over:",
-    gameData.gameOver,
-    "Show dialog:",
-    showResultsDialog,
-  )
+    gameStarted &&
+    safeGameData.currentBettingTurn !== undefined &&
+    safeGameData.currentBettingTurn >= 0 &&
+    safeGameData.currentBettingTurn < players.length &&
+    players[safeGameData.currentBettingTurn].name === currentPlayer.name
 
   return (
     <div className="space-y-8">
@@ -383,7 +410,7 @@ export default function GameTable({
               <span className="font-semibold">Play:</span> {currentPlay}
             </p>
             <p>
-              <span className="font-semibold">Current Turn:</span> {players[currentTurn]?.name}
+              <span className="font-semibold">Current Turn:</span> {players[currentTurn]?.name || "Waiting..."}
             </p>
             <p>
               <span className="font-semibold">Cards this Round:</span> {cardsThisRound}
@@ -477,9 +504,9 @@ export default function GameTable({
                 value={card.value}
                 disabled
                 className={
-                  gameData.highestCard &&
-                  card.suit === gameData.highestCard.suit &&
-                  card.value === gameData.highestCard.value
+                  safeGameData.highestCard &&
+                  card.suit === safeGameData.highestCard.suit &&
+                  card.value === safeGameData.highestCard.value
                     ? "bg-yellow-100"
                     : card.suit === "diamonds"
                       ? "bg-red-100"
@@ -562,9 +589,11 @@ export default function GameTable({
                   suit={card.suit}
                   value={card.value}
                   onClick={() => handlePlayCard(card)}
-                  disabled={!isCurrentPlayerTurn || isClearing || !isValidCardToPlay(card) || !gameData.allBetsPlaced}
+                  disabled={
+                    !isCurrentPlayerTurn || isClearing || !isValidCardToPlay(card) || !safeGameData.allBetsPlaced
+                  }
                   showBack={shouldShowCardBacks}
-                  className={`${!isValidCardToPlay(card) || !gameData.allBetsPlaced ? "opacity-50" : ""}`}
+                  className={`${!isValidCardToPlay(card) || !safeGameData.allBetsPlaced ? "opacity-50" : ""}`}
                 />
               ))
             ) : (
@@ -573,7 +602,7 @@ export default function GameTable({
           </div>
           {gameStarted && currentRound <= 18 && (
             <p className="text-center mt-2 font-bold">
-              {!gameData.allBetsPlaced ? (
+              {!safeGameData.allBetsPlaced ? (
                 isCurrentPlayerBettingTurn ? (
                   <span className="text-green-600">It's your turn to place a bet!</span>
                 ) : (
@@ -582,7 +611,9 @@ export default function GameTable({
               ) : isCurrentPlayerTurn ? (
                 <span className="text-green-600">It's your turn! Select a card to play.</span>
               ) : (
-                <span className="text-blue-600">Waiting for {players[currentTurn]?.name}'s turn...</span>
+                <span className="text-blue-600">
+                  Waiting for {players[currentTurn]?.name || "next player"}'s turn...
+                </span>
               )}
             </p>
           )}
@@ -615,8 +646,8 @@ export default function GameTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {gameData.scoreTable && gameData.scoreTable.length > 0 ? (
-              gameData.scoreTable.map((round: ScoreTableRow) => (
+            {safeGameData.scoreTable && safeGameData.scoreTable.length > 0 ? (
+              safeGameData.scoreTable.map((round: ScoreTableRow) => (
                 <TableRow
                   key={round.roundId}
                   className={`
