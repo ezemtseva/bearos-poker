@@ -51,7 +51,13 @@ export default function GameTable({
   const [showPokerCardDialog, setShowPokerCardDialog] = useState(false)
   const [pokerCardOption, setPokerCardOption] = useState<"Trumps" | "Poker" | "Simple" | null>(null)
   const [lastKnownBettingPlayer, setLastKnownBettingPlayer] = useState<string>("Waiting for players...")
+  const [stableBettingUI, setStableBettingUI] = useState<boolean>(false)
   const { toast } = useToast()
+
+  // Refs to track stable state across renders
+  const currentRoundRef = useRef<number>(currentRound)
+  const bettingUITimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const lastBettingTurnRef = useRef<number | null>(null)
 
   // Safely handle potentially undefined gameData
   const safeGameData = gameData || {
@@ -75,6 +81,22 @@ export default function GameTable({
     currentBettingTurn: undefined,
   }
 
+  // Track round changes to reset betting UI state
+  useEffect(() => {
+    if (currentRound !== currentRoundRef.current) {
+      console.log(`Round changed from ${currentRoundRef.current} to ${currentRound}`)
+      currentRoundRef.current = currentRound
+      setStableBettingUI(false)
+      lastBettingTurnRef.current = null
+
+      // Clear any pending timeout
+      if (bettingUITimeoutRef.current) {
+        clearTimeout(bettingUITimeoutRef.current)
+        bettingUITimeoutRef.current = null
+      }
+    }
+  }, [currentRound])
+
   // Track the current betting player in a useEffect to avoid infinite loops
   useEffect(() => {
     if (gameStarted && safeGameData.currentBettingTurn !== undefined) {
@@ -82,6 +104,24 @@ export default function GameTable({
         const playerName = players[safeGameData.currentBettingTurn].name
         if (playerName && playerName !== "Waiting for players...") {
           setLastKnownBettingPlayer(playerName)
+
+          // Store the current betting turn
+          lastBettingTurnRef.current = safeGameData.currentBettingTurn
+
+          // Determine if it's the current player's turn to bet
+          const currentPlayerName = localStorage.getItem("playerName")
+          const isCurrentPlayerTurn = playerName === currentPlayerName
+
+          // If it's the current player's turn, stabilize the UI immediately
+          if (isCurrentPlayerTurn) {
+            setStableBettingUI(true)
+
+            // Clear any pending timeout
+            if (bettingUITimeoutRef.current) {
+              clearTimeout(bettingUITimeoutRef.current)
+              bettingUITimeoutRef.current = null
+            }
+          }
         }
       }
     }
@@ -403,10 +443,14 @@ export default function GameTable({
     currentBettingPlayerName = lastKnownBettingPlayer
   }
 
-  // Check if it's the current player's turn to bet
-  const stableBettingTurnRef = useRef<boolean | null>(null)
+  // Determine if it's the current player's turn to bet with improved stability
   const isCurrentPlayerBettingTurn = (() => {
-    // Only recalculate if we have the necessary data
+    // If we've already stabilized the UI, maintain that state
+    if (stableBettingUI && currentPlayer && currentPlayer.bet === null) {
+      return true
+    }
+
+    // Otherwise, calculate based on current data
     if (
       currentPlayer &&
       gameStarted &&
@@ -416,17 +460,30 @@ export default function GameTable({
     ) {
       const isTurn = players[safeGameData.currentBettingTurn].name === currentPlayer.name
 
-      // Store the stable value
-      if (stableBettingTurnRef.current === null || isTurn) {
-        stableBettingTurnRef.current = isTurn
+      // If it's the player's turn and they haven't placed a bet yet, stabilize the UI
+      if (isTurn && currentPlayer.bet === null) {
+        // Use a timeout to prevent rapid toggling
+        if (!stableBettingUI && !bettingUITimeoutRef.current) {
+          bettingUITimeoutRef.current = setTimeout(() => {
+            setStableBettingUI(true)
+            bettingUITimeoutRef.current = null
+          }, 100) // Small delay to ensure stability
+        }
+        return true
       }
-
-      return isTurn
     }
 
-    // Return the last stable value if we have one
-    return stableBettingTurnRef.current === true
+    return false
   })()
+
+  // Debug logging
+  useEffect(() => {
+    console.log("Current round:", currentRound)
+    console.log("Current betting turn:", safeGameData.currentBettingTurn)
+    console.log("Is current player betting turn:", isCurrentPlayerBettingTurn)
+    console.log("Stable betting UI:", stableBettingUI)
+    console.log("Current player bet:", currentPlayer?.bet)
+  }, [currentRound, safeGameData.currentBettingTurn, isCurrentPlayerBettingTurn, stableBettingUI, currentPlayer?.bet])
 
   return (
     <div className="space-y-8">
