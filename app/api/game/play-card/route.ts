@@ -231,12 +231,34 @@ export async function POST(req: NextRequest) {
     // Determine the highest card
     const highestCard = determineHighestCard(cardsOnTable)
 
+    // Send an immediate update with the new card on the table
+    await sendSSEUpdate(tableId, {
+      tableId: game.table_id,
+      players,
+      gameStarted: game.game_started,
+      currentRound,
+      currentPlay,
+      currentTurn,
+      cardsOnTable,
+      deck,
+      scoreTable,
+      allCardsPlayedTimestamp,
+      playEndTimestamp: null,
+      lastPlayedCard: { ...card, playerName, pokerOption },
+      allCardsPlayed,
+      highestCard,
+      roundStartPlayerIndex,
+      allBetsPlaced,
+      gameOver: false,
+    })
+
     // Update the database with the new game state
     await sql`
       UPDATE poker_games
       SET players = ${JSON.stringify(players)}::jsonb,
           cards_on_table = ${JSON.stringify(cardsOnTable)}::jsonb,
-          highest_card = ${JSON.stringify(highestCard)}::jsonb
+          highest_card = ${JSON.stringify(highestCard)}::jsonb,
+          last_played_card = ${JSON.stringify({ ...card, playerName, pokerOption })}::jsonb
       WHERE table_id = ${tableId}
     `
 

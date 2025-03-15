@@ -22,15 +22,28 @@ export function removeClient(tableId: string, send: (data: string) => void) {
   }
 }
 
-// Update the sendSSEUpdate function to avoid duplicate updates
+// Update the sendSSEUpdate function to ensure reliable delivery
 export async function sendSSEUpdate(tableId: string, gameData: ExtendedGameData) {
   const clients = connectedClients.get(tableId)
 
   // Only send updates if there are connected clients
   if (clients && clients.size > 0) {
-    const message = `data: ${JSON.stringify(gameData)}\n\n`
+    // Add a timestamp to help clients identify the latest update
+    const timestampedData = {
+      ...gameData,
+      _timestamp: Date.now(),
+    }
+
+    const message = `data: ${JSON.stringify(timestampedData)}\n\n`
+
+    // Send to all clients with error handling
     clients.forEach((send) => {
-      send(message)
+      try {
+        send(message)
+      } catch (error) {
+        console.error(`[SSE] Error sending update to client for table ${tableId}:`, error)
+        // We don't remove the client here as it might be a temporary issue
+      }
     })
   }
 }

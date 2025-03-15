@@ -30,28 +30,46 @@ export default function Game() {
     }
 
     const connectSSE = () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close()
+      }
+
       const eventSource = new EventSource(`/api/sse?tableId=${tableId}`)
 
       eventSource.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        console.log("Received SSE message:", data)
-        updateGameState(data)
+        try {
+          const data = JSON.parse(event.data)
+          console.log("Received SSE message:", data)
+          updateGameState(data)
+        } catch (error) {
+          console.error("Error parsing SSE message:", error)
+        }
       }
 
       eventSource.addEventListener("init", (event) => {
-        const data = JSON.parse((event as MessageEvent).data)
-        updateGameState(data)
+        try {
+          const data = JSON.parse((event as MessageEvent).data)
+          console.log("Received SSE init event:", data)
+          updateGameState(data)
+        } catch (error) {
+          console.error("Error parsing SSE init event:", error)
+        }
       })
 
       eventSource.addEventListener("update", (event) => {
-        const data = JSON.parse((event as MessageEvent).data)
-        updateGameState(data)
+        try {
+          const data = JSON.parse((event as MessageEvent).data)
+          console.log("Received SSE update event:", data)
+          updateGameState(data)
+        } catch (error) {
+          console.error("Error parsing SSE update event:", error)
+        }
       })
 
       eventSource.onerror = (error) => {
         console.error("SSE error:", error)
         eventSource.close()
-        setTimeout(connectSSE, 5000) // Attempt to reconnect after 5 seconds
+        setTimeout(connectSSE, 2000) // Attempt to reconnect after 2 seconds
       }
 
       eventSourceRef.current = eventSource
@@ -88,6 +106,23 @@ export default function Game() {
   const updateGameState = (data: GameData) => {
     console.log("Updating game state. Received data:", data)
     setGameData((prevData) => {
+      // If we have a lastPlayedCard, make sure it's included in the cardsOnTable
+      if (
+        data.lastPlayedCard &&
+        !data.cardsOnTable.some(
+          (c) =>
+            c.playerName === data.lastPlayedCard?.playerName &&
+            c.suit === data.lastPlayedCard?.suit &&
+            c.value === data.lastPlayedCard?.value,
+        )
+      ) {
+        // Add the lastPlayedCard to cardsOnTable if it's not already there
+        return {
+          ...data,
+          cardsOnTable: [...data.cardsOnTable, data.lastPlayedCard],
+        }
+      }
+
       // If all cards are played, keep the current cards on the table
       if (data.allCardsPlayed) {
         return {
@@ -95,6 +130,7 @@ export default function Game() {
           cardsOnTable: data.cardsOnTable, // Use the received cardsOnTable
         }
       }
+
       // If it's a new round, clear the table
       if (prevData && data.currentRound > prevData.currentRound) {
         return {
@@ -102,9 +138,11 @@ export default function Game() {
           cardsOnTable: [],
         }
       }
+
       // Otherwise, use the new game state
       return data
     })
+
     const storedPlayerName = localStorage.getItem("playerName")
     console.log("Current player name:", storedPlayerName)
     console.log("Players:", data.players)

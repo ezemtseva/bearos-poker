@@ -171,7 +171,7 @@ export default function GameTable({
   const getValidCardsAfterTrumps = (hand: Card[]): Card[] => {
     const diamonds = hand.filter((c) => c.suit === "diamonds")
     if (diamonds.length > 0) {
-      const highestDiamond = diamonds.reduce((max, card) => (card.value > max.value ? card : max))
+      const highestDiamond = diamonds.reduce((max, card) => (card.value > max.value ? card : max), diamonds[0])
       return [highestDiamond]
     }
     // If no diamonds, return the highest card(s) of any suit
@@ -182,9 +182,12 @@ export default function GameTable({
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null
 
+    // Always immediately show the cards on the table
+    setDisplayedCards(cardsOnTable)
+    setIsClearing(false)
+
+    // Only set up clearing logic if all cards have been played
     if (safeGameData.allCardsPlayed) {
-      // Make sure we're showing all cards when allCardsPlayed is true
-      setDisplayedCards(cardsOnTable)
       setIsClearing(true)
 
       // Use a slightly longer timeout than the server (2.5s vs 2s)
@@ -193,9 +196,6 @@ export default function GameTable({
         setIsClearing(false)
         setDisplayedCards([])
       }, 2500)
-    } else {
-      setDisplayedCards(cardsOnTable)
-      setIsClearing(false)
     }
 
     // Clean up the timer when component unmounts or dependencies change
@@ -265,6 +265,7 @@ export default function GameTable({
       return
     }
 
+    // For 7 of spades, show the dialog
     if (card.suit === "spades" && card.value === 7) {
       let availableOptions = ["Poker", "Simple"]
 
@@ -305,11 +306,67 @@ export default function GameTable({
       return
     }
 
+    // Immediately show the card on the table for the current player
+    // Create a temporary local copy of the card with the player's name
+    if (currentPlayerName) {
+      const localCard: Card = {
+        ...card,
+        playerName: currentPlayerName,
+      }
+
+      // Update the displayed cards immediately for the current player
+      setDisplayedCards([...displayedCards, localCard])
+
+      // Remove the card from the player's hand locally
+      if (currentPlayer) {
+        const updatedPlayer = {
+          ...currentPlayer,
+          hand: currentPlayer.hand.filter((c) => !(c.suit === card.suit && c.value === card.value)),
+        }
+
+        // Create a local update of the game state
+        const localPlayers = [...players]
+        const playerIndex = localPlayers.findIndex((p) => p.name === currentPlayerName)
+        if (playerIndex !== -1) {
+          localPlayers[playerIndex] = updatedPlayer
+        }
+      }
+    }
+
+    // Then send the actual request to the server
     await playCard(card)
   }
 
   const playCard = async (card: Card, pokerOption?: "Trumps" | "Poker" | "Simple") => {
     setErrorMessage(null)
+
+    // For 7 of spades with poker option, show it immediately
+    if (card.suit === "spades" && card.value === 7 && pokerOption && currentPlayerName) {
+      // Create a temporary local copy of the card with the player's name and poker option
+      const localCard: Card = {
+        ...card,
+        playerName: currentPlayerName,
+        pokerOption,
+      }
+
+      // Update the displayed cards immediately for the current player
+      setDisplayedCards([...displayedCards, localCard])
+
+      // Remove the card from the player's hand locally
+      if (currentPlayer) {
+        const updatedPlayer = {
+          ...currentPlayer,
+          hand: currentPlayer.hand.filter((c) => !(c.suit === card.suit && c.value === card.value)),
+        }
+
+        // Create a local update of the game state
+        const localPlayers = [...players]
+        const playerIndex = localPlayers.findIndex((p) => p.name === currentPlayerName)
+        if (playerIndex !== -1) {
+          localPlayers[playerIndex] = updatedPlayer
+        }
+      }
+    }
 
     try {
       const response = await fetch("/api/game/play-card", {
@@ -347,6 +404,9 @@ export default function GameTable({
         description: error instanceof Error ? error.message : "Failed to play the card. Please try again.",
         variant: "destructive",
       })
+
+      // If there was an error, revert the local changes
+      setDisplayedCards(cardsOnTable)
     }
   }
 
@@ -584,30 +644,6 @@ export default function GameTable({
 
   // Check if we're in the waiting period after all bets are placed
   const isInBetDisplayPeriod = safeGameData.betsPlacedTimestamp && !safeGameData.allBetsPlaced
-
-  // Remove or comment out the debug logging useEffect
-  // useEffect(() => {
-  //   console.log("Current round:", currentRound)
-  //   console.log("Current betting turn:", safeGameData.currentBettingTurn)
-  //   console.log("Is current player betting turn:", isCurrentPlayerBettingTurn)
-  //   console.log("Stable betting UI:", stableBettingUI)
-  //   console.log("Current player bet:", currentPlayer?.bet)
-  //   console.log("Bets placed timestamp:", safeGameData.betsPlacedTimestamp)
-  //   console.log("All bets placed:", safeGameData.allBetsPlaced)
-  //   console.log(
-  //     "All players have bet:",
-  //     players.every((p) => p.bet !== null),
-  //   )
-  // }, [
-  //   currentRound,
-  //   safeGameData.currentBettingTurn,
-  //   isCurrentPlayerBettingTurn,
-  //   stableBettingUI,
-  //   currentPlayer?.bet,
-  //   safeGameData.betsPlacedTimestamp,
-  //   safeGameData.allBetsPlaced,
-  //   players,
-  // ])
 
   // Function to determine if we should show bet banners
   const shouldShowBetBanners = () => {
