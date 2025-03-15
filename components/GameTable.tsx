@@ -374,7 +374,10 @@ export default function GameTable({
 
   const shouldShowCardBacks = isBlindRound && !safeGameData.allBetsPlaced
 
-  // Get the current betting player's name safely
+  // Get the current betting player's name safely with persistence
+  const [lastKnownBettingPlayer, setLastKnownBettingPlayer] = useState<string>("Waiting for players...")
+
+  // Calculate the current betting player name
   let currentBettingPlayerName = "Waiting for players..."
 
   // Only try to access the current betting player if the game has started
@@ -382,7 +385,17 @@ export default function GameTable({
     // Make sure the index is valid
     if (safeGameData.currentBettingTurn >= 0 && safeGameData.currentBettingTurn < players.length) {
       currentBettingPlayerName = players[safeGameData.currentBettingTurn].name
+
+      // Update our last known valid betting player
+      if (currentBettingPlayerName !== "Waiting for players...") {
+        setLastKnownBettingPlayer(currentBettingPlayerName)
+      }
     }
+  }
+
+  // Use the last known betting player if we have one and the current one is the default
+  if (currentBettingPlayerName === "Waiting for players..." && lastKnownBettingPlayer !== "Waiting for players...") {
+    currentBettingPlayerName = lastKnownBettingPlayer
   }
 
   // Check if it's the current player's turn to bet
@@ -606,7 +619,13 @@ export default function GameTable({
                 isCurrentPlayerBettingTurn ? (
                   <span className="text-green-600">It's your turn to place a bet!</span>
                 ) : (
-                  <span className="text-yellow-600">Waiting for {currentBettingPlayerName} to place their bet...</span>
+                  <span className="text-yellow-600">
+                    Waiting for{" "}
+                    {currentBettingPlayerName.startsWith("Waiting")
+                      ? players.find((p) => p.name !== currentPlayerName)?.name || "other players"
+                      : currentBettingPlayerName}{" "}
+                    to place their bet...
+                  </span>
                 )
               ) : isCurrentPlayerTurn ? (
                 <span className="text-green-600">It's your turn! Select a card to play.</span>
