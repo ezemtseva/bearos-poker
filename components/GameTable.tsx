@@ -2,7 +2,7 @@
 
 import React from "react"
 import { TableHeader } from "@/components/ui/table"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import type { Player, Card, GameData, ScoreTableRow, PlayerScore } from "../types/game"
 import { Table, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
@@ -404,13 +404,29 @@ export default function GameTable({
   }
 
   // Check if it's the current player's turn to bet
-  const isCurrentPlayerBettingTurn =
-    currentPlayer &&
-    gameStarted &&
-    safeGameData.currentBettingTurn !== undefined &&
-    safeGameData.currentBettingTurn >= 0 &&
-    safeGameData.currentBettingTurn < players.length &&
-    players[safeGameData.currentBettingTurn].name === currentPlayer.name
+  const stableBettingTurnRef = useRef<boolean | null>(null)
+  const isCurrentPlayerBettingTurn = (() => {
+    // Only recalculate if we have the necessary data
+    if (
+      currentPlayer &&
+      gameStarted &&
+      safeGameData.currentBettingTurn !== undefined &&
+      safeGameData.currentBettingTurn >= 0 &&
+      safeGameData.currentBettingTurn < players.length
+    ) {
+      const isTurn = players[safeGameData.currentBettingTurn].name === currentPlayer.name
+
+      // Store the stable value
+      if (stableBettingTurnRef.current === null || isTurn) {
+        stableBettingTurnRef.current = isTurn
+      }
+
+      return isTurn
+    }
+
+    // Return the last stable value if we have one
+    return stableBettingTurnRef.current === true
+  })()
 
   return (
     <div className="space-y-8">
@@ -584,7 +600,11 @@ export default function GameTable({
                 </>
               ) : (
                 <p className="text-center text-yellow-600">
-                  Waiting for {currentBettingPlayerName} to place their bet...
+                  Waiting for{" "}
+                  {currentBettingPlayerName.startsWith("Waiting")
+                    ? players.find((p) => p.name !== currentPlayerName)?.name || "other players"
+                    : currentBettingPlayerName}{" "}
+                  to place their bet...
                 </p>
               )}
             </div>
