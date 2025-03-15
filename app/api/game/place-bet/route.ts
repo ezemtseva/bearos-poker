@@ -78,14 +78,17 @@ export async function POST(req: NextRequest) {
     // Move to the next player's turn to bet
     currentBettingTurn = (currentBettingTurn + 1) % players.length
 
+    // Update the section where we check if all bets are placed and set the timestamp
+
     // Check if all players have placed their bets
     const allBetsPlaced = players.every((player) => player.bet !== null)
 
     // Set timestamp when all bets are placed
     let betsPlacedTimestamp = game.bets_placed_timestamp
 
-    if (allBetsPlaced && !game.bets_placed_timestamp) {
+    if (allBetsPlaced) {
       betsPlacedTimestamp = Date.now()
+      console.log(`All bets placed, setting betsPlacedTimestamp to ${betsPlacedTimestamp}`)
     }
 
     // Update the database
@@ -142,23 +145,30 @@ export async function POST(req: NextRequest) {
             return
           }
 
-          // Update the database to set allBetsPlaced to true
-          await sql`
-            UPDATE poker_games
-            SET all_bets_placed = true,
-                current_betting_turn = NULL
-            WHERE table_id = ${tableId} AND bets_placed_timestamp IS NOT NULL
-          `
+          const currentGame = currentResult.rows[0]
 
-          // Send another SSE update with allBetsPlaced set to true
-          const finalGameData: GameData = {
-            ...updatedGameData,
-            allBetsPlaced: true,
-            currentBettingTurn: undefined,
+          // Only update if betsPlacedTimestamp is set (to avoid race conditions)
+          if (currentGame.bets_placed_timestamp) {
+            // Update the database to set allBetsPlaced to true
+            await sql`
+              UPDATE poker_games
+              SET all_bets_placed = true,
+                  current_betting_turn = NULL
+              WHERE table_id = ${tableId} AND bets_placed_timestamp IS NOT NULL
+            `
+
+            // Send another SSE update with allBetsPlaced set to true
+            const finalGameData: GameData = {
+              ...updatedGameData,
+              allBetsPlaced: true,
+              currentBettingTurn: undefined,
+            }
+
+            console.log(`Sending final SSE update for table ${tableId} with allBetsPlaced=true`)
+            await sendSSEUpdate(tableId, finalGameData)
+          } else {
+            console.log(`Skipping update for table ${tableId} because betsPlacedTimestamp is not set`)
           }
-
-          console.log(`Sending final SSE update for table ${tableId} with allBetsPlaced=true`)
-          await sendSSEUpdate(tableId, finalGameData)
         } catch (error) {
           console.error("Error updating allBetsPlaced after delay:", error)
         }
