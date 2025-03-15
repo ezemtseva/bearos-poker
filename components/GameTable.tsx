@@ -82,6 +82,21 @@ export default function GameTable({
     betsPlacedTimestamp: null,
   }
 
+  // Get current player information early
+  const currentPlayerName = localStorage.getItem("playerName")
+  const currentPlayer = players.find((p) => p.name === currentPlayerName)
+  const canStartGame = isOwner && players.length >= 2 && !gameStarted
+  const isCurrentPlayerTurn =
+    currentPlayer &&
+    safeGameData.players &&
+    safeGameData.players[safeGameData.currentTurn] &&
+    safeGameData.players[safeGameData.currentTurn].name === currentPlayer.name &&
+    gameStarted
+
+  // Check if all players have placed bets
+  const allPlayersHaveBet = players.every((p) => p.bet !== null)
+  const waitingForBetDelay = allPlayersHaveBet && !safeGameData.allBetsPlaced
+
   // Track round changes to reset betting UI state
   useEffect(() => {
     if (currentRound !== currentRoundRef.current) {
@@ -100,8 +115,11 @@ export default function GameTable({
 
   // Track the current betting player in a useEffect to avoid infinite loops
   useEffect(() => {
+    // Only update the betting player if we're in the betting phase
     if (
       gameStarted &&
+      !safeGameData.allBetsPlaced &&
+      !allPlayersHaveBet &&
       safeGameData.currentBettingTurn !== undefined &&
       typeof safeGameData.currentBettingTurn === "number" &&
       safeGameData.currentBettingTurn >= 0 &&
@@ -115,11 +133,10 @@ export default function GameTable({
         lastBettingTurnRef.current = safeGameData.currentBettingTurn
 
         // Determine if it's the current player's turn to bet
-        const currentPlayerName = localStorage.getItem("playerName")
         const isCurrentPlayerTurn = playerName === currentPlayerName
 
         // If it's the current player's turn, stabilize the UI immediately
-        if (isCurrentPlayerTurn) {
+        if (isCurrentPlayerTurn && currentPlayer?.bet === null) {
           setStableBettingUI(true)
 
           // Clear any pending timeout
@@ -130,7 +147,24 @@ export default function GameTable({
         }
       }
     }
-  }, [gameStarted, safeGameData.currentBettingTurn, players])
+
+    // If all players have bet, make sure we show the transition message
+    if (allPlayersHaveBet && !safeGameData.allBetsPlaced) {
+      setStableBettingUI(false)
+      if (bettingUITimeoutRef.current) {
+        clearTimeout(bettingUITimeoutRef.current)
+        bettingUITimeoutRef.current = null
+      }
+    }
+  }, [
+    gameStarted,
+    safeGameData.currentBettingTurn,
+    players,
+    safeGameData.allBetsPlaced,
+    allPlayersHaveBet,
+    currentPlayer,
+    currentPlayerName,
+  ])
 
   const getValidCardsAfterTrumps = (hand: Card[]): Card[] => {
     const diamonds = hand.filter((c) => c.suit === "diamonds")
@@ -163,16 +197,6 @@ export default function GameTable({
       setShowResultsDialog(true)
     }
   }, [safeGameData.gameOver])
-
-  const currentPlayerName = localStorage.getItem("playerName")
-  const currentPlayer = players.find((p) => p.name === currentPlayerName)
-  const canStartGame = isOwner && players.length >= 2 && !gameStarted
-  const isCurrentPlayerTurn =
-    currentPlayer &&
-    safeGameData.players &&
-    safeGameData.players[safeGameData.currentTurn] &&
-    safeGameData.players[safeGameData.currentTurn].name === currentPlayer.name &&
-    gameStarted
 
   const cardsThisRound = currentRound <= 6 ? currentRound : currentRound <= 12 ? 6 : 19 - currentRound
 
@@ -572,36 +596,35 @@ export default function GameTable({
     )
   }
 
-  // Check if all players have placed bets but we're waiting for the delay
-  const allPlayersHaveBet = players.every((p) => p.bet !== null)
-  const waitingForBetDelay = allPlayersHaveBet && !safeGameData.allBetsPlaced
-
   // Add this function inside the GameTable component
   const renderGameStatusMessage = () => {
-    // Check if we're in the waiting period after all bets are placed
-    const waitingForBetDelay = allPlayersHaveBet && !safeGameData.allBetsPlaced
+    // Use a more stable approach to determine the game state
 
-    if (!safeGameData.allBetsPlaced) {
-      if (waitingForBetDelay || safeGameData.betsPlacedTimestamp) {
-        return <span className="text-blue-600">Preparing to start the round...</span>
-      } else if (isCurrentPlayerBettingTurn) {
-        return <span className="text-green-600">It's your turn to place a bet!</span>
-      } else {
-        return (
-          <span className="text-yellow-600">
-            Waiting for{" "}
-            {currentBettingPlayerName.startsWith("Waiting")
-              ? players.find((p) => p.name !== currentPlayerName)?.name || "other players"
-              : currentBettingPlayerName}{" "}
-            to place their bet...
-          </span>
-        )
-      }
-    } else if (isCurrentPlayerTurn) {
-      return <span className="text-green-600">It's your turn! Select a card to play.</span>
-    } else {
-      return <span className="text-blue-600">Waiting for {players[currentTurn]?.name || "next player"}'s turn...</span>
+    // If the player has already placed a bet, show a stable message
+    if (currentPlayer && currentPlayer.bet !== null) {
+      return <span className="text-blue-600">Waiting for other players to place their bets...</span>
     }
+
+    // If all players have bet but allBetsPlaced is false, we're in the transition period
+    if (allPlayersHaveBet && !safeGameData.allBetsPlaced) {
+      return <span className="text-blue-600">Preparing to start the round...</span>
+    }
+
+    // If it's the current player's turn to bet, show that message
+    if (isCurrentPlayerBettingTurn) {
+      return <span className="text-green-600">It's your turn to place a bet!</span>
+    }
+
+    // Otherwise, we're waiting for another player to bet
+    return (
+      <span className="text-yellow-600">
+        Waiting for{" "}
+        {currentBettingPlayerName.startsWith("Waiting")
+          ? players.find((p) => p.name !== currentPlayerName)?.name || "other players"
+          : currentBettingPlayerName}{" "}
+        to place their bet...
+      </span>
+    )
   }
 
   return (

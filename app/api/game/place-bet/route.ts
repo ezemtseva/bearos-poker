@@ -83,12 +83,15 @@ export async function POST(req: NextRequest) {
 
     // Set timestamp when all bets are placed
     let betsPlacedTimestamp = null
+    let shouldSetAllBetsPlaced = false
+
     if (allBetsPlaced) {
       betsPlacedTimestamp = Date.now()
+      shouldSetAllBetsPlaced = true
       console.log(`All bets placed, setting betsPlacedTimestamp to ${betsPlacedTimestamp}`)
     }
 
-    // Update the database
+    // Update the database with the new bet information
     await sql`
       UPDATE poker_games
       SET players = ${JSON.stringify(players)}::jsonb,
@@ -115,7 +118,7 @@ export async function POST(req: NextRequest) {
       allCardsPlayed: game.all_cards_played,
       highestCard: game.highest_card,
       roundStartPlayerIndex: game.round_start_player_index,
-      allBetsPlaced: false, // Keep this false until the delay is over
+      allBetsPlaced: false, // Always false until the delay is over
       gameOver: game.game_over || false,
       currentBettingTurn: allBetsPlaced ? undefined : currentBettingTurn,
       betsPlacedTimestamp: betsPlacedTimestamp,
@@ -125,11 +128,10 @@ export async function POST(req: NextRequest) {
     await sendSSEUpdate(tableId, updatedGameData)
 
     // If all bets are placed, set a timeout to update allBetsPlaced after 2 seconds
-    if (allBetsPlaced) {
+    if (shouldSetAllBetsPlaced) {
       // Instead of using setTimeout, which might not work reliably in serverless functions,
       // we'll use a direct approach to update the database after a delay
 
-      // First, let's send an immediate update to clients that we're preparing to start the round
       console.log(`All bets placed for table ${tableId}, preparing to start the round`)
 
       // Wait for 2 seconds
@@ -141,7 +143,7 @@ export async function POST(req: NextRequest) {
       await sql`
         UPDATE poker_games
         SET all_bets_placed = true
-        WHERE table_id = ${tableId}
+        WHERE table_id = ${tableId} AND bets_placed_timestamp = ${betsPlacedTimestamp}
       `
 
       // Fetch the updated game state

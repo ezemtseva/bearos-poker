@@ -41,11 +41,14 @@ export async function GET(req: NextRequest) {
         try {
           console.log("[SSE] Polling for updates for table:", tableId)
           const latestState = await getGameState(tableId)
+
+          // Only send updates if there are meaningful changes
+          // This reduces unnecessary state updates that could cause flickering
           sendEvent("update", JSON.stringify(latestState))
         } catch (error) {
           console.error("[SSE] Error polling for updates:", error)
         }
-      }, 2000) // Poll every 2 seconds
+      }, 3000) // Increased to 3 seconds to reduce update frequency
 
       // Heartbeat to keep connection alive
       const heartbeat = setInterval(() => {
