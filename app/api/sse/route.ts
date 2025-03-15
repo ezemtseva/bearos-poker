@@ -9,20 +9,14 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const tableId = searchParams.get("tableId")
 
-  console.log("[SSE] Connection attempt for table:", tableId)
-
   if (!tableId) {
-    console.error("[SSE] No table ID provided")
     return new NextResponse("Table ID is required", { status: 400 })
   }
 
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
     async start(controller) {
-      console.log("[SSE] Stream started for table:", tableId)
-
       const sendEvent = (event: string, data: string) => {
-        console.log(`[SSE] Sending event: ${event} for table: ${tableId}`)
         controller.enqueue(encoder.encode(`event: ${event}\ndata: ${data}\n\n`))
       }
 
@@ -33,32 +27,26 @@ export async function GET(req: NextRequest) {
 
       // Send initial game state
       const initialState = await getGameState(tableId)
-      console.log("[SSE] Sending initial game state for table:", tableId)
       sendEvent("init", JSON.stringify(initialState))
 
-      // Set up polling for game updates
+      // Set up polling for game updates - reduced frequency to 5 seconds
+      // This is a fallback in case direct updates via sendSSEUpdate aren't received
       const pollInterval = setInterval(async () => {
         try {
-          console.log("[SSE] Polling for updates for table:", tableId)
           const latestState = await getGameState(tableId)
-
-          // Only send updates if there are meaningful changes
-          // This reduces unnecessary state updates that could cause flickering
           sendEvent("update", JSON.stringify(latestState))
         } catch (error) {
           console.error("[SSE] Error polling for updates:", error)
         }
-      }, 3000) // Increased to 3 seconds to reduce update frequency
+      }, 5000) // Increased to 5 seconds to reduce database load
 
       // Heartbeat to keep connection alive
       const heartbeat = setInterval(() => {
-        console.log("[SSE] Sending heartbeat for table:", tableId)
         sendEvent("heartbeat", "ping")
       }, 30000)
 
       // Clean up on close
       req.signal.addEventListener("abort", () => {
-        console.log("[SSE] Connection aborted for table:", tableId)
         clearInterval(pollInterval)
         clearInterval(heartbeat)
         removeClient(tableId, (message) => {
@@ -68,7 +56,6 @@ export async function GET(req: NextRequest) {
     },
   })
 
-  console.log("[SSE] Returning stream for table:", tableId)
   return new NextResponse(stream, {
     headers: {
       "Content-Type": "text/event-stream",
@@ -79,12 +66,10 @@ export async function GET(req: NextRequest) {
 }
 
 async function getGameState(tableId: string): Promise<GameData> {
-  console.log("[SSE] Fetching game state for table:", tableId)
   const result = await sql`
     SELECT * FROM poker_games WHERE table_id = ${tableId};
   `
   if (result.rows.length === 0) {
-    console.log("[SSE] No game found for table:", tableId)
     return {
       tableId,
       players: [],
@@ -108,7 +93,6 @@ async function getGameState(tableId: string): Promise<GameData> {
     }
   }
   const row = result.rows[0]
-  console.log("[SSE] Game state fetched for table:", tableId)
   return {
     tableId: row.table_id,
     players: row.players as Player[],

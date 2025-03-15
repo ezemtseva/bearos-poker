@@ -11,6 +11,8 @@ import PlayingCard from "./PlayingCard"
 import { useToast } from "@/hooks/use-toast"
 import GameResultsDialog from "./GameResultsDialog"
 import PokerCardDialog from "./PokerCardDialog"
+// Add this at the top of the file, after the imports
+import { useMemo } from "react"
 
 interface GameTableProps {
   tableId: string
@@ -494,16 +496,26 @@ export default function GameTable({
     return isValidPlay(card)
   }
 
-  const highestScore = Math.max(...(players.length > 0 ? players.map((p) => p.score) : [0]))
+  // Replace the existing highestScore calculation with:
+  const highestScore = useMemo(() => {
+    return Math.max(...(players.length > 0 ? players.map((p) => p.score) : [0]))
+  }, [players])
 
-  const isBlindRound =
-    safeGameData.scoreTable &&
-    safeGameData.scoreTable.length > 0 &&
-    currentRound > 0 &&
-    currentRound <= safeGameData.scoreTable.length &&
-    safeGameData.scoreTable[currentRound - 1]?.roundName === "B"
+  // Replace the existing isBlindRound calculation with:
+  const isBlindRound = useMemo(() => {
+    return (
+      safeGameData.scoreTable &&
+      safeGameData.scoreTable.length > 0 &&
+      currentRound > 0 &&
+      currentRound <= safeGameData.scoreTable.length &&
+      safeGameData.scoreTable[currentRound - 1]?.roundName === "B"
+    )
+  }, [safeGameData.scoreTable, currentRound])
 
-  const shouldShowCardBacks = isBlindRound && !safeGameData.allBetsPlaced
+  // Replace the existing shouldShowCardBacks calculation with:
+  const shouldShowCardBacks = useMemo(() => {
+    return isBlindRound && !safeGameData.allBetsPlaced
+  }, [isBlindRound, safeGameData.allBetsPlaced])
 
   // Calculate the current betting player name
   let currentBettingPlayerName = "Waiting for players..."
@@ -561,29 +573,29 @@ export default function GameTable({
   // Check if we're in the waiting period after all bets are placed
   const isInBetDisplayPeriod = safeGameData.betsPlacedTimestamp && !safeGameData.allBetsPlaced
 
-  // Debug logging
-  useEffect(() => {
-    console.log("Current round:", currentRound)
-    console.log("Current betting turn:", safeGameData.currentBettingTurn)
-    console.log("Is current player betting turn:", isCurrentPlayerBettingTurn)
-    console.log("Stable betting UI:", stableBettingUI)
-    console.log("Current player bet:", currentPlayer?.bet)
-    console.log("Bets placed timestamp:", safeGameData.betsPlacedTimestamp)
-    console.log("All bets placed:", safeGameData.allBetsPlaced)
-    console.log(
-      "All players have bet:",
-      players.every((p) => p.bet !== null),
-    )
-  }, [
-    currentRound,
-    safeGameData.currentBettingTurn,
-    isCurrentPlayerBettingTurn,
-    stableBettingUI,
-    currentPlayer?.bet,
-    safeGameData.betsPlacedTimestamp,
-    safeGameData.allBetsPlaced,
-    players,
-  ])
+  // Remove or comment out the debug logging useEffect
+  // useEffect(() => {
+  //   console.log("Current round:", currentRound)
+  //   console.log("Current betting turn:", safeGameData.currentBettingTurn)
+  //   console.log("Is current player betting turn:", isCurrentPlayerBettingTurn)
+  //   console.log("Stable betting UI:", stableBettingUI)
+  //   console.log("Current player bet:", currentPlayer?.bet)
+  //   console.log("Bets placed timestamp:", safeGameData.betsPlacedTimestamp)
+  //   console.log("All bets placed:", safeGameData.allBetsPlaced)
+  //   console.log(
+  //     "All players have bet:",
+  //     players.every((p) => p.bet !== null),
+  //   )
+  // }, [
+  //   currentRound,
+  //   safeGameData.currentBettingTurn,
+  //   isCurrentPlayerBettingTurn,
+  //   stableBettingUI,
+  //   currentPlayer?.bet,
+  //   safeGameData.betsPlacedTimestamp,
+  //   safeGameData.allBetsPlaced,
+  //   players,
+  // ])
 
   // Function to determine if we should show bet banners
   const shouldShowBetBanners = () => {

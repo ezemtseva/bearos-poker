@@ -67,6 +67,7 @@ export default function Game() {
   }, [tableId, toast])
 
   useEffect(() => {
+    // Increase the refresh interval to reduce unnecessary updates
     const refreshInterval = setInterval(async () => {
       try {
         const response = await fetch(`/api/game/state?tableId=${tableId}`)
@@ -77,7 +78,7 @@ export default function Game() {
       } catch (error) {
         console.error("Error refreshing game state:", error)
       }
-    }, 5000) // Refresh every 5 seconds
+    }, 10000) // Increased from 5000 to 10000 (10 seconds)
 
     return () => clearInterval(refreshInterval)
   }, [tableId])
