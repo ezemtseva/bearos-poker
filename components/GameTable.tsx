@@ -50,6 +50,7 @@ export default function GameTable({
   const [showResultsDialog, setShowResultsDialog] = useState(false)
   const [showPokerCardDialog, setShowPokerCardDialog] = useState(false)
   const [pokerCardOption, setPokerCardOption] = useState<"Trumps" | "Poker" | "Simple" | null>(null)
+  const [lastKnownBettingPlayer, setLastKnownBettingPlayer] = useState<string>("Waiting for players...")
   const { toast } = useToast()
 
   // Safely handle potentially undefined gameData
@@ -73,6 +74,18 @@ export default function GameTable({
     gameOver: false,
     currentBettingTurn: undefined,
   }
+
+  // Track the current betting player in a useEffect to avoid infinite loops
+  useEffect(() => {
+    if (gameStarted && safeGameData.currentBettingTurn !== undefined) {
+      if (safeGameData.currentBettingTurn >= 0 && safeGameData.currentBettingTurn < players.length) {
+        const playerName = players[safeGameData.currentBettingTurn].name
+        if (playerName && playerName !== "Waiting for players...") {
+          setLastKnownBettingPlayer(playerName)
+        }
+      }
+    }
+  }, [gameStarted, safeGameData.currentBettingTurn, players])
 
   const getValidCardsAfterTrumps = (hand: Card[]): Card[] => {
     const diamonds = hand.filter((c) => c.suit === "diamonds")
@@ -374,9 +387,6 @@ export default function GameTable({
 
   const shouldShowCardBacks = isBlindRound && !safeGameData.allBetsPlaced
 
-  // Get the current betting player's name safely with persistence
-  const [lastKnownBettingPlayer, setLastKnownBettingPlayer] = useState<string>("Waiting for players...")
-
   // Calculate the current betting player name
   let currentBettingPlayerName = "Waiting for players..."
 
@@ -385,11 +395,6 @@ export default function GameTable({
     // Make sure the index is valid
     if (safeGameData.currentBettingTurn >= 0 && safeGameData.currentBettingTurn < players.length) {
       currentBettingPlayerName = players[safeGameData.currentBettingTurn].name
-
-      // Update our last known valid betting player
-      if (currentBettingPlayerName !== "Waiting for players...") {
-        setLastKnownBettingPlayer(currentBettingPlayerName)
-      }
     }
   }
 
