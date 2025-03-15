@@ -25,12 +25,20 @@ export async function POST(req: NextRequest) {
     const game = result.rows[0]
     const players = game.players as Player[]
     const scoreTable = game.score_table as ScoreTableRow[]
+    let currentBettingTurn =
+      game.current_betting_turn !== undefined ? game.current_betting_turn : game.round_start_player_index
 
-    // Update player's bet
+    // Check if it's this player's turn to bet
     const playerIndex = players.findIndex((p) => p.name === playerName)
     if (playerIndex === -1) {
       return NextResponse.json({ error: "Player not found" }, { status: 404 })
     }
+
+    if (playerIndex !== currentBettingTurn) {
+      return NextResponse.json({ error: "It's not your turn to place a bet" }, { status: 400 })
+    }
+
+    // Update player's bet
     players[playerIndex].bet = bet
 
     // Update score table with the bet
@@ -38,6 +46,9 @@ export async function POST(req: NextRequest) {
     if (scoreTable[currentRound - 1]) {
       scoreTable[currentRound - 1].scores[playerName].bet = bet
     }
+
+    // Move to the next player's turn to bet
+    currentBettingTurn = (currentBettingTurn + 1) % players.length
 
     // Check if all players have placed their bets
     const allBetsPlaced = players.every((player) => player.bet !== null)
@@ -47,7 +58,8 @@ export async function POST(req: NextRequest) {
       UPDATE poker_games
       SET players = ${JSON.stringify(players)}::jsonb,
           score_table = ${JSON.stringify(scoreTable)}::jsonb,
-          all_bets_placed = ${allBetsPlaced}
+          all_bets_placed = ${allBetsPlaced},
+          current_betting_turn = ${currentBettingTurn}
       WHERE table_id = ${tableId}
     `
 
@@ -69,7 +81,8 @@ export async function POST(req: NextRequest) {
       highestCard: game.highest_card,
       roundStartPlayerIndex: game.round_start_player_index,
       allBetsPlaced: allBetsPlaced,
-      gameOver: game.game_over || false, // Add this line to include the gameOver property
+      gameOver: game.game_over || false,
+      currentBettingTurn: allBetsPlaced ? undefined : currentBettingTurn,
     }
 
     // Send SSE update

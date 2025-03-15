@@ -342,6 +342,22 @@ export default function GameTable({
   const isBlindRound = gameData.scoreTable[currentRound - 1]?.roundName === "B"
   const shouldShowCardBacks = isBlindRound && !gameData.allBetsPlaced
 
+  // Get the current betting player's name safely
+  const currentBettingPlayerName =
+    gameData.currentBettingTurn !== undefined &&
+    gameData.currentBettingTurn >= 0 &&
+    gameData.currentBettingTurn < players.length
+      ? players[gameData.currentBettingTurn].name
+      : "Unknown"
+
+  // Check if it's the current player's turn to bet
+  const isCurrentPlayerBettingTurn =
+    currentPlayer &&
+    gameData.currentBettingTurn !== undefined &&
+    gameData.currentBettingTurn >= 0 &&
+    gameData.currentBettingTurn < players.length &&
+    players[gameData.currentBettingTurn].name === currentPlayer.name
+
   console.log(
     "Current round:",
     gameData.currentRound,
@@ -499,25 +515,33 @@ export default function GameTable({
             </div>
           ) : currentPlayer && currentPlayer.bet === null ? (
             <div className="flex flex-col items-center space-y-2 mt-2">
-              <Input
-                type="number"
-                min={0}
-                max={cardsThisRound}
-                value={betAmount !== null ? betAmount.toString() : ""}
-                onChange={(e) => {
-                  const value = e.target.value
-                  if (value === "" || value === "-") {
-                    setBetAmount(null)
-                  } else {
-                    const numValue = Number.parseInt(value, 10)
-                    if (!isNaN(numValue) && numValue >= 0 && numValue <= cardsThisRound) {
-                      setBetAmount(numValue)
-                    }
-                  }
-                }}
-                className="w-20 text-center"
-              />
-              <Button onClick={handlePlaceBet}>Confirm Bet</Button>
+              {isCurrentPlayerBettingTurn ? (
+                <>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={cardsThisRound}
+                    value={betAmount !== null ? betAmount.toString() : ""}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      if (value === "" || value === "-") {
+                        setBetAmount(null)
+                      } else {
+                        const numValue = Number.parseInt(value, 10)
+                        if (!isNaN(numValue) && numValue >= 0 && numValue <= cardsThisRound) {
+                          setBetAmount(numValue)
+                        }
+                      }
+                    }}
+                    className="w-20 text-center"
+                  />
+                  <Button onClick={handlePlaceBet}>Confirm Bet</Button>
+                </>
+              ) : (
+                <p className="text-center text-yellow-600">
+                  Waiting for {currentBettingPlayerName} to place their bet...
+                </p>
+              )}
             </div>
           ) : (
             <div className="flex flex-col items-center space-y-2 mt-10">
@@ -550,7 +574,11 @@ export default function GameTable({
           {gameStarted && currentRound <= 18 && (
             <p className="text-center mt-2 font-bold">
               {!gameData.allBetsPlaced ? (
-                <span className="text-yellow-600">Make your bet and wait until all players bet the round.</span>
+                isCurrentPlayerBettingTurn ? (
+                  <span className="text-green-600">It's your turn to place a bet!</span>
+                ) : (
+                  <span className="text-yellow-600">Waiting for {currentBettingPlayerName} to place their bet...</span>
+                )
               ) : isCurrentPlayerTurn ? (
                 <span className="text-green-600">It's your turn! Select a card to play.</span>
               ) : (

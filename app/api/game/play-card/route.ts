@@ -337,12 +337,22 @@ export async function POST(req: NextRequest) {
           roundStartPlayerIndex = getNextRoundStartPlayer(currentRound, players)
           currentTurn = roundStartPlayerIndex
 
-          // Reset all bets placed flag
+          // Reset all bets placed flag and set the first player to bet
           allBetsPlaced = false
+
+          // Set the first player to bet to be the same as the round start player
+          const currentBettingTurn = roundStartPlayerIndex
 
           console.log(
             `Starting Round ${currentRound}. Cards dealt: ${newCardsPerRound} per player. First turn: ${players[currentTurn].name}`,
           )
+
+          // Update the database with the currentBettingTurn
+          await sql`
+            UPDATE poker_games
+            SET current_betting_turn = ${currentBettingTurn}
+            WHERE table_id = ${tableId}
+          `
         } else {
           // Game over
           const gameOverData: GameData = {
@@ -440,6 +450,7 @@ export async function POST(req: NextRequest) {
       roundStartPlayerIndex,
       allBetsPlaced,
       gameOver: currentRound > 18,
+      currentBettingTurn: allBetsPlaced ? undefined : roundStartPlayerIndex,
     }
 
     console.log("Final game state:", finalGameData)

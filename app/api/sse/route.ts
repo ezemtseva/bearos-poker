@@ -95,12 +95,12 @@ async function getGameState(tableId: string): Promise<GameData> {
     tableId: row.table_id,
     players: row.players as Player[],
     gameStarted: row.game_started || false,
-    scoreTable: row.score_table || initializeScoreTable(row.players),
     currentRound: row.current_round || 0,
     currentPlay: row.current_play || 0,
     currentTurn: row.current_turn || 0,
     cardsOnTable: row.cards_on_table || [],
     deck: row.deck || [],
+    scoreTable: row.score_table || initializeScoreTable(row.players),
     allCardsPlayedTimestamp: row.all_cards_played_timestamp || null,
     playEndTimestamp: row.play_end_timestamp || null,
     lastPlayedCard: row.last_played_card || null,
@@ -108,7 +108,8 @@ async function getGameState(tableId: string): Promise<GameData> {
     highestCard: row.highest_card || null,
     roundStartPlayerIndex: row.round_start_player_index || 0,
     allBetsPlaced: row.all_bets_placed || false,
-    gameOver: row.game_over || false, // Add this line to include the gameOver property
+    gameOver: row.game_over || false,
+    currentBettingTurn: row.current_betting_turn,
   }
 }
 

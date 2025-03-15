@@ -45,5 +45,6 @@ export interface GameData {
   roundStartPlayerIndex: number
   allBetsPlaced: boolean
   gameOver: boolean
+  currentBettingTurn?: number
 }
 
