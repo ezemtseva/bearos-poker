@@ -505,6 +505,7 @@ export default function GameTable({
       currentPlayer &&
       gameStarted &&
       safeGameData.currentBettingTurn !== undefined &&
+      safeGameData.currentBettingTurn !== null &&
       safeGameData.currentBettingTurn >= 0 &&
       safeGameData.currentBettingTurn < players.length
     ) {
@@ -538,6 +539,10 @@ export default function GameTable({
     console.log("Current player bet:", currentPlayer?.bet)
     console.log("Bets placed timestamp:", safeGameData.betsPlacedTimestamp)
     console.log("All bets placed:", safeGameData.allBetsPlaced)
+    console.log(
+      "All players have bet:",
+      players.every((p) => p.bet !== null),
+    )
   }, [
     currentRound,
     safeGameData.currentBettingTurn,
@@ -546,6 +551,7 @@ export default function GameTable({
     currentPlayer?.bet,
     safeGameData.betsPlacedTimestamp,
     safeGameData.allBetsPlaced,
+    players,
   ])
 
   // Function to determine if we should show bet banners
@@ -558,6 +564,10 @@ export default function GameTable({
       cardsOnTable.length === 0
     )
   }
+
+  // Check if all players have placed bets but we're waiting for the delay
+  const allPlayersHaveBet = players.every((p) => p.bet !== null)
+  const waitingForBetDelay = allPlayersHaveBet && !safeGameData.allBetsPlaced
 
   return (
     <div className="space-y-8">
@@ -754,11 +764,17 @@ export default function GameTable({
                 </>
               ) : (
                 <p className="text-center text-yellow-600">
-                  Waiting for{" "}
-                  {currentBettingPlayerName.startsWith("Waiting")
-                    ? players.find((p) => p.name !== currentPlayerName)?.name || "other players"
-                    : currentBettingPlayerName}{" "}
-                  to place their bet...
+                  {waitingForBetDelay ? (
+                    "Preparing to start the round..."
+                  ) : (
+                    <>
+                      Waiting for{" "}
+                      {currentBettingPlayerName.startsWith("Waiting")
+                        ? players.find((p) => p.name !== currentPlayerName)?.name || "other players"
+                        : currentBettingPlayerName}{" "}
+                      to place their bet...
+                    </>
+                  )}
                 </p>
               )}
             </div>
@@ -795,7 +811,9 @@ export default function GameTable({
           {gameStarted && currentRound <= 18 && (
             <p className="text-center mt-2 font-bold">
               {!safeGameData.allBetsPlaced ? (
-                isCurrentPlayerBettingTurn ? (
+                waitingForBetDelay ? (
+                  <span className="text-blue-600">Preparing to start the round...</span>
+                ) : isCurrentPlayerBettingTurn ? (
                   <span className="text-green-600">It's your turn to place a bet!</span>
                 ) : (
                   <span className="text-yellow-600">

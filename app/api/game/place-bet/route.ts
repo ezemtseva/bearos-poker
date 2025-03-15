@@ -93,8 +93,8 @@ export async function POST(req: NextRequest) {
       UPDATE poker_games
       SET players = ${JSON.stringify(players)}::jsonb,
           score_table = ${JSON.stringify(scoreTable)}::jsonb,
-          all_bets_placed = ${false}, -- Keep this false until the delay is over
-          current_betting_turn = ${currentBettingTurn},
+          all_bets_placed = ${allBetsPlaced ? false : false}, -- Keep this false until the delay is over
+          current_betting_turn = ${allBetsPlaced ? undefined : currentBettingTurn},
           bets_placed_timestamp = ${betsPlacedTimestamp}
       WHERE table_id = ${tableId}
     `
@@ -129,19 +129,35 @@ export async function POST(req: NextRequest) {
     if (allBetsPlaced) {
       setTimeout(async () => {
         try {
+          console.log(`Setting allBetsPlaced to true for table ${tableId} after delay`)
+
+          // Fetch the current state to make sure we're working with the latest data
+          const currentResult = await sql`
+            SELECT * FROM poker_games
+            WHERE table_id = ${tableId};
+          `
+
+          if (currentResult.rowCount === 0) {
+            console.error(`Game not found for table ${tableId} when updating allBetsPlaced`)
+            return
+          }
+
           // Update the database to set allBetsPlaced to true
           await sql`
             UPDATE poker_games
-            SET all_bets_placed = true
+            SET all_bets_placed = true,
+                current_betting_turn = NULL
             WHERE table_id = ${tableId}
           `
 
           // Send another SSE update with allBetsPlaced set to true
-          const finalGameData = {
+          const finalGameData: GameData = {
             ...updatedGameData,
             allBetsPlaced: true,
             currentBettingTurn: undefined,
           }
+
+          console.log(`Sending final SSE update for table ${tableId} with allBetsPlaced=true`)
           await sendSSEUpdate(tableId, finalGameData)
         } catch (error) {
           console.error("Error updating allBetsPlaced after delay:", error)
