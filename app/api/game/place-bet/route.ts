@@ -82,9 +82,9 @@ export async function POST(req: NextRequest) {
     const allBetsPlaced = players.every((player) => player.bet !== null)
 
     // Set timestamp when all bets are placed
-    const betsPlacedTimestamp = allBetsPlaced ? Date.now() : null
-
+    let betsPlacedTimestamp = null
     if (allBetsPlaced) {
+      betsPlacedTimestamp = Date.now()
       console.log(`All bets placed, setting betsPlacedTimestamp to ${betsPlacedTimestamp}`)
     }
 
@@ -126,59 +126,62 @@ export async function POST(req: NextRequest) {
 
     // If all bets are placed, set a timeout to update allBetsPlaced after 2 seconds
     if (allBetsPlaced) {
-      setTimeout(async () => {
-        try {
-          console.log(`Setting allBetsPlaced to true for table ${tableId} after delay`)
+      // Instead of using setTimeout, which might not work reliably in serverless functions,
+      // we'll use a direct approach to update the database after a delay
 
-          // Update the database to set allBetsPlaced to true
-          await sql`
-            UPDATE poker_games
-            SET all_bets_placed = true
-            WHERE table_id = ${tableId}
-          `
+      // First, let's send an immediate update to clients that we're preparing to start the round
+      console.log(`All bets placed for table ${tableId}, preparing to start the round`)
 
-          // Fetch the updated game state
-          const updatedResult = await sql`
-            SELECT * FROM poker_games
-            WHERE table_id = ${tableId};
-          `
+      // Wait for 2 seconds
+      await new Promise((resolve) => setTimeout(resolve, 2000))
 
-          if (updatedResult.rowCount === 0) {
-            console.error(`Game not found for table ${tableId} when updating allBetsPlaced`)
-            return
-          }
+      console.log(`Setting allBetsPlaced to true for table ${tableId} after delay`)
 
-          const updatedGame = updatedResult.rows[0]
+      // Update the database to set allBetsPlaced to true
+      await sql`
+        UPDATE poker_games
+        SET all_bets_placed = true
+        WHERE table_id = ${tableId}
+      `
 
-          // Send another SSE update with allBetsPlaced set to true
-          const finalGameData: GameData = {
-            tableId: updatedGame.table_id,
-            players: updatedGame.players,
-            gameStarted: updatedGame.game_started,
-            currentRound: updatedGame.current_round,
-            currentPlay: updatedGame.current_play,
-            currentTurn: updatedGame.current_turn,
-            cardsOnTable: updatedGame.cards_on_table,
-            deck: updatedGame.deck,
-            scoreTable: updatedGame.score_table,
-            allCardsPlayedTimestamp: updatedGame.all_cards_played_timestamp,
-            playEndTimestamp: updatedGame.play_end_timestamp,
-            lastPlayedCard: updatedGame.last_played_card,
-            allCardsPlayed: updatedGame.all_cards_played,
-            highestCard: updatedGame.highest_card,
-            roundStartPlayerIndex: updatedGame.round_start_player_index,
-            allBetsPlaced: true, // Now set to true
-            gameOver: updatedGame.game_over,
-            currentBettingTurn: undefined,
-            betsPlacedTimestamp: updatedGame.bets_placed_timestamp,
-          }
+      // Fetch the updated game state
+      const updatedResult = await sql`
+        SELECT * FROM poker_games
+        WHERE table_id = ${tableId};
+      `
 
-          console.log(`Sending final SSE update for table ${tableId} with allBetsPlaced=true`)
-          await sendSSEUpdate(tableId, finalGameData)
-        } catch (error) {
-          console.error("Error updating allBetsPlaced after delay:", error)
-        }
-      }, 2000) // 2 second delay
+      if (updatedResult.rowCount === 0) {
+        console.error(`Game not found for table ${tableId} when updating allBetsPlaced`)
+        return NextResponse.json({ message: "Bet placed successfully", gameData: updatedGameData })
+      }
+
+      const updatedGame = updatedResult.rows[0]
+
+      // Send another SSE update with allBetsPlaced set to true
+      const finalGameData: GameData = {
+        tableId: updatedGame.table_id,
+        players: updatedGame.players,
+        gameStarted: updatedGame.game_started,
+        currentRound: updatedGame.current_round,
+        currentPlay: updatedGame.current_play,
+        currentTurn: updatedGame.current_turn,
+        cardsOnTable: updatedGame.cards_on_table,
+        deck: updatedGame.deck,
+        scoreTable: updatedGame.score_table,
+        allCardsPlayedTimestamp: updatedGame.all_cards_played_timestamp,
+        playEndTimestamp: updatedGame.play_end_timestamp,
+        lastPlayedCard: updatedGame.last_played_card,
+        allCardsPlayed: updatedGame.all_cards_played,
+        highestCard: updatedGame.highest_card,
+        roundStartPlayerIndex: updatedGame.round_start_player_index,
+        allBetsPlaced: true, // Now set to true
+        gameOver: updatedGame.game_over,
+        currentBettingTurn: undefined,
+        betsPlacedTimestamp: updatedGame.bets_placed_timestamp,
+      }
+
+      console.log(`Sending final SSE update for table ${tableId} with allBetsPlaced=true`)
+      await sendSSEUpdate(tableId, finalGameData)
     }
 
     return NextResponse.json({ message: "Bet placed successfully", gameData: updatedGameData })
