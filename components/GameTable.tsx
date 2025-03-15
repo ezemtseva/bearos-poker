@@ -598,7 +598,18 @@ export default function GameTable({
 
   // Add this function inside the GameTable component
   const renderGameStatusMessage = () => {
-    // Use a more stable approach to determine the game state
+    // If all bets are placed, we're in the card playing phase
+    if (safeGameData.allBetsPlaced) {
+      if (isCurrentPlayerTurn) {
+        return <span className="text-green-600">It's your turn to play a card!</span>
+      } else {
+        return (
+          <span className="text-yellow-600">
+            Waiting for {players[currentTurn]?.name || "other player"} to play a card...
+          </span>
+        )
+      }
+    }
 
     // If the player has already placed a bet, show a stable message
     if (currentPlayer && currentPlayer.bet !== null) {
