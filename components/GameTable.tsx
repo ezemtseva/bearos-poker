@@ -198,12 +198,12 @@ export default function GameTable({
     if (safeGameData.allCardsPlayed) {
       setIsClearing(true)
 
-      // Use a slightly longer timeout than the server (2.5s vs 2s)
+      // Use a slightly longer timeout than the server (3.5s vs 3s)
       // to ensure we don't clear cards before the server processes them
       timer = setTimeout(() => {
         setIsClearing(false)
         setDisplayedCards([])
-      }, 2500)
+      }, 3500)
     }
 
     // Clean up the timer when component unmounts or dependencies change

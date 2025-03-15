@@ -129,6 +129,7 @@ export default function Game() {
 
       // If all cards are played, keep the server's state
       if (data.allCardsPlayed) {
+        console.log("ALL CARDS PLAYED - Keeping server state with cards:", data.cardsOnTable)
         return data
       }
 
