@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Bet must be between 0 and ${cardsThisRound}` }, { status: 400 })
     }
 
-    // NEW CODE: Check if this is the last player to bet and if the bet would make the total equal to cardsThisRound
+    // Check if this is the last player to bet and if the bet would make the total equal to cardsThisRound
     if (players.filter((p) => p.bet !== null).length === players.length - 1) {
       // Calculate sum of existing bets
       const totalExistingBets = players.reduce((sum, player) => {
@@ -81,13 +81,21 @@ export async function POST(req: NextRequest) {
     // Check if all players have placed their bets
     const allBetsPlaced = players.every((player) => player.bet !== null)
 
+    // Set timestamp when all bets are placed
+    let betsPlacedTimestamp = game.bets_placed_timestamp
+
+    if (allBetsPlaced && !game.bets_placed_timestamp) {
+      betsPlacedTimestamp = Date.now()
+    }
+
     // Update the database
     await sql`
       UPDATE poker_games
       SET players = ${JSON.stringify(players)}::jsonb,
           score_table = ${JSON.stringify(scoreTable)}::jsonb,
-          all_bets_placed = ${allBetsPlaced},
-          current_betting_turn = ${currentBettingTurn}
+          all_bets_placed = ${false}, -- Keep this false until the delay is over
+          current_betting_turn = ${currentBettingTurn},
+          bets_placed_timestamp = ${betsPlacedTimestamp}
       WHERE table_id = ${tableId}
     `
 
@@ -108,13 +116,38 @@ export async function POST(req: NextRequest) {
       allCardsPlayed: game.all_cards_played,
       highestCard: game.highest_card,
       roundStartPlayerIndex: game.round_start_player_index,
-      allBetsPlaced: allBetsPlaced,
+      allBetsPlaced: false, // Keep this false until the delay is over
       gameOver: game.game_over || false,
       currentBettingTurn: allBetsPlaced ? undefined : currentBettingTurn,
+      betsPlacedTimestamp: betsPlacedTimestamp,
     }
 
     // Send SSE update
     await sendSSEUpdate(tableId, updatedGameData)
+
+    // If all bets are placed, set a timeout to update allBetsPlaced after 2 seconds
+    if (allBetsPlaced) {
+      setTimeout(async () => {
+        try {
+          // Update the database to set allBetsPlaced to true
+          await sql`
+            UPDATE poker_games
+            SET all_bets_placed = true
+            WHERE table_id = ${tableId}
+          `
+
+          // Send another SSE update with allBetsPlaced set to true
+          const finalGameData = {
+            ...updatedGameData,
+            allBetsPlaced: true,
+            currentBettingTurn: undefined,
+          }
+          await sendSSEUpdate(tableId, finalGameData)
+        } catch (error) {
+          console.error("Error updating allBetsPlaced after delay:", error)
+        }
+      }, 2000) // 2 second delay
+    }
 
     return NextResponse.json({ message: "Bet placed successfully", gameData: updatedGameData })
   } catch (error) {

@@ -46,5 +46,6 @@ export interface GameData {
   allBetsPlaced: boolean
   gameOver: boolean
   currentBettingTurn?: number
+  betsPlacedTimestamp?: number | null
 }
 

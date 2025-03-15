@@ -79,6 +79,7 @@ export default function GameTable({
     allBetsPlaced: false,
     gameOver: false,
     currentBettingTurn: undefined,
+    betsPlacedTimestamp: null,
   }
 
   // Track round changes to reset betting UI state
@@ -525,6 +526,9 @@ export default function GameTable({
     return false
   })()
 
+  // Check if we're in the waiting period after all bets are placed
+  const isInBetDisplayPeriod = safeGameData.betsPlacedTimestamp && !safeGameData.allBetsPlaced
+
   // Debug logging
   useEffect(() => {
     console.log("Current round:", currentRound)
@@ -532,7 +536,28 @@ export default function GameTable({
     console.log("Is current player betting turn:", isCurrentPlayerBettingTurn)
     console.log("Stable betting UI:", stableBettingUI)
     console.log("Current player bet:", currentPlayer?.bet)
-  }, [currentRound, safeGameData.currentBettingTurn, isCurrentPlayerBettingTurn, stableBettingUI, currentPlayer?.bet])
+    console.log("Bets placed timestamp:", safeGameData.betsPlacedTimestamp)
+    console.log("All bets placed:", safeGameData.allBetsPlaced)
+  }, [
+    currentRound,
+    safeGameData.currentBettingTurn,
+    isCurrentPlayerBettingTurn,
+    stableBettingUI,
+    currentPlayer?.bet,
+    safeGameData.betsPlacedTimestamp,
+    safeGameData.allBetsPlaced,
+  ])
+
+  // Function to determine if we should show bet banners
+  const shouldShowBetBanners = () => {
+    // Show bet banners if any player has placed a bet and we haven't started playing cards yet
+    return (
+      gameStarted &&
+      players.some((player) => player.bet !== null) &&
+      safeGameData.currentPlay === 1 &&
+      cardsOnTable.length === 0
+    )
+  }
 
   return (
     <div className="space-y-8">
@@ -606,6 +631,8 @@ export default function GameTable({
             chipColor = "bg-yellow-500" // Highest score (even if negative)
           }
 
+          const showBetBanner = shouldShowBetBanners() && player.bet !== null
+
           return (
             <div
               key={index}
@@ -615,6 +642,18 @@ export default function GameTable({
                 top: `${top}px`,
               }}
             >
+              {/* Bet Banner */}
+              {showBetBanner && (
+                <div
+                  className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-yellow-500 text-black px-3 py-1 rounded-md shadow-md z-10 whitespace-nowrap font-bold"
+                  style={{
+                    animation: "fadeIn 0.3s ease-in-out",
+                  }}
+                >
+                  Bet: {player.bet}
+                </div>
+              )}
+
               <div
                 className={`relative w-20 h-20 -ml-10 -mt-10 rounded-full flex items-center justify-center text-center shadow-md ${
                   players[currentTurn]?.name === player.name ? "bg-yellow-200" : "bg-gray-200"
@@ -865,6 +904,14 @@ export default function GameTable({
         isValidSimple={isValidSimplePlay()}
         availableOptions={cardsOnTable.length === 0 ? ["Trumps", "Poker", "Simple"] : ["Poker", "Simple"]}
       />
+
+      {/* Add CSS for animations */}
+      <style jsx global>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translate(-50%, -10px); }
+          to { opacity: 1; transform: translate(-50%, 0); }
+        }
+      `}</style>
     </div>
   )
 }
