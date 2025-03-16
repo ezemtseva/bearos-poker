@@ -45,6 +45,8 @@ export default function GameTable({
   gameData,
   lastPlayedCard,
 }: GameTableProps) {
+  // Add a new state variable near the top of the component with the other state variables
+  const [isPlayingCard, setIsPlayingCard] = useState(false)
   const [displayedCards, setDisplayedCards] = useState<Card[]>(cardsOnTable)
   const [isClearing, setIsClearing] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -263,7 +265,13 @@ export default function GameTable({
     return true
   }
 
+  // Modify the handlePlayCard function to check and set the isPlayingCard state
   const handlePlayCard = async (card: Card) => {
+    // If a card play is already in progress, ignore additional clicks
+    if (isPlayingCard) {
+      return
+    }
+
     if (!safeGameData.allBetsPlaced && !allPlayersHaveBet) {
       toast({
         title: "Cannot play card",
@@ -314,6 +322,9 @@ export default function GameTable({
       return
     }
 
+    // Set the playing card state to true to prevent multiple clicks
+    setIsPlayingCard(true)
+
     // Immediately show the card on the table for the current player
     // Create a temporary local copy of the card with the player's name
     if (currentPlayerName) {
@@ -345,6 +356,7 @@ export default function GameTable({
     await playCard(card)
   }
 
+  // Modify the playCard function to reset the isPlayingCard state
   const playCard = async (card: Card, pokerOption?: "Trumps" | "Poker" | "Simple") => {
     setErrorMessage(null)
 
@@ -415,6 +427,9 @@ export default function GameTable({
 
       // If there was an error, revert the local changes
       setDisplayedCards(cardsOnTable)
+    } finally {
+      // Reset the playing card state regardless of success or failure
+      setIsPlayingCard(false)
     }
   }
 
@@ -509,9 +524,11 @@ export default function GameTable({
     }
   }
 
+  // Also update the handlePokerCardOptionSelect function to set isPlayingCard
   const handlePokerCardOptionSelect = (option: "Trumps" | "Poker" | "Simple") => {
     setPokerCardOption(option)
     setShowPokerCardDialog(false)
+    setIsPlayingCard(true) // Set the flag before playing the card
     playCard({ suit: "spades", value: 7 }, option)
   }
 
@@ -935,10 +952,14 @@ export default function GameTable({
                   value={card.value}
                   onClick={() => handlePlayCard(card)}
                   disabled={
-                    !isCurrentPlayerTurn || isClearing || !isValidCardToPlay(card) || !safeGameData.allBetsPlaced
+                    !isCurrentPlayerTurn ||
+                    isClearing ||
+                    !isValidCardToPlay(card) ||
+                    !safeGameData.allBetsPlaced ||
+                    isPlayingCard
                   }
                   showBack={shouldShowCardBacks}
-                  className={`${!isValidCardToPlay(card) || !safeGameData.allBetsPlaced ? "opacity-50" : ""}`}
+                  className={`${!isValidCardToPlay(card) || !safeGameData.allBetsPlaced || isPlayingCard ? "opacity-50" : ""}`}
                 />
               ))
             ) : (
