@@ -16,6 +16,7 @@ export default function Game() {
   const eventSourceRef = useRef<EventSource | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const clientIdRef = useRef<string>(`client-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`)
+  const lastUpdateTimestampRef = useRef<number>(0)
 
   useEffect(() => {
     const storedPlayerName = localStorage.getItem("playerName")
@@ -64,6 +65,7 @@ export default function Game() {
         try {
           const data = JSON.parse((event as MessageEvent).data)
           console.log("Received SSE update event:", data)
+          lastUpdateTimestampRef.current = Date.now()
           updateGameState(data)
         } catch (error) {
           console.error("Error parsing SSE update event:", error)
@@ -74,6 +76,8 @@ export default function Game() {
         try {
           const data = JSON.parse((event as MessageEvent).data)
           console.log("Received SSE heartbeat:", data.timestamp)
+          // Update the last activity timestamp
+          lastUpdateTimestampRef.current = Date.now()
         } catch (error) {
           console.error("Error parsing SSE heartbeat:", error)
         }
@@ -87,6 +91,9 @@ export default function Game() {
           clearTimeout(reconnectTimeoutRef.current)
           reconnectTimeoutRef.current = null
         }
+
+        // Set initial timestamp
+        lastUpdateTimestampRef.current = Date.now()
       })
 
       eventSource.onerror = (error) => {
@@ -110,15 +117,17 @@ export default function Game() {
 
     connectSSE()
 
-    // Ping the server periodically to keep the connection alive
-    const pingInterval = setInterval(() => {
-      if (eventSourceRef.current && eventSourceRef.current.readyState === 1) {
-        console.log("Sending ping to keep SSE connection alive")
-        fetch(`/api/ping?tableId=${tableId}&clientId=${clientIdRef.current}`).catch((err) =>
-          console.error("Error sending ping:", err),
-        )
+    // Check for stale connections
+    const connectionWatchdog = setInterval(() => {
+      const now = Date.now()
+      const timeSinceLastUpdate = now - lastUpdateTimestampRef.current
+
+      // If we haven't received an update in 30 seconds, reconnect
+      if (timeSinceLastUpdate > 30000) {
+        console.log(`No updates received for ${timeSinceLastUpdate}ms, reconnecting...`)
+        connectSSE()
       }
-    }, 25000)
+    }, 10000)
 
     return () => {
       console.log("Cleaning up SSE connection")
@@ -130,29 +139,22 @@ export default function Game() {
         clearTimeout(reconnectTimeoutRef.current)
       }
 
-      clearInterval(pingInterval)
+      clearInterval(connectionWatchdog)
     }
   }, [tableId, toast])
 
-  useEffect(() => {
-    // Fallback polling mechanism
-    const refreshInterval = setInterval(async () => {
-      if (!eventSourceRef.current || eventSourceRef.current.readyState !== 1) {
-        console.log("SSE connection not active, using fallback polling")
-        try {
-          const response = await fetch(`/api/game/state?tableId=${tableId}`)
-          if (response.ok) {
-            const data = await response.json()
-            updateGameState(data.gameData)
-          }
-        } catch (error) {
-          console.error("Error refreshing game state:", error)
-        }
+  // Optimistic update after action
+  const fetchLatestState = async () => {
+    try {
+      const response = await fetch(`/api/game/state?tableId=${tableId}`)
+      if (response.ok) {
+        const data = await response.json()
+        updateGameState(data.gameData)
       }
-    }, 5000)
-
-    return () => clearInterval(refreshInterval)
-  }, [tableId])
+    } catch (error) {
+      console.error("Error fetching latest game state:", error)
+    }
+  }
 
   const updateGameState = (data: GameData) => {
     console.log("Updating game state. Received data:", data)
@@ -224,6 +226,9 @@ export default function Game() {
       console.log("Game started. Received data:", data)
       updateGameState(data.gameData)
 
+      // Fetch latest state after a short delay
+      setTimeout(fetchLatestState, 500)
+
       toast({
         title: "Game Started",
         description: "The game has been started successfully!",
@@ -269,6 +274,9 @@ export default function Game() {
       const data = await response.json()
       console.log("Card played. Received data:", data)
       updateGameState(data.gameData)
+
+      // Fetch latest state after a short delay
+      setTimeout(fetchLatestState, 500)
 
       if (data.message === "Game over") {
         toast({
