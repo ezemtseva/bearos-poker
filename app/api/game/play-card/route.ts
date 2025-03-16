@@ -59,9 +59,9 @@ function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[]): bool
 
   const firstCard = cardsOnTable[0]
 
-  // Special case: 7 of spades can be played when diamonds are the leading suit
-  if (card.suit === "spades" && card.value === 7 && firstCard.suit === "diamonds") {
-    return true // Can play 7 of spades when diamonds are the leading suit
+  // Special case: 7 of spades can now be played anytime
+  if (card.suit === "spades" && card.value === 7) {
+    return true // 7 of spades can now be played anytime
   }
 
   // Check if 7 of spades with 'Trumps' option is on the table
@@ -92,18 +92,14 @@ function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[]): bool
   // Check if player has any cards of the leading suit, excluding 7 of spades
   const hasSuit = playerHand.some((c) => c.suit === leadingSuit && !(c.suit === "spades" && c.value === 7))
 
-  if (card.suit === "spades" && card.value === 7) {
-    return !hasSuit // Can play 7 of spades only if player doesn't have the leading suit
-  }
-
   if (hasSuit) {
-    return card.suit === leadingSuit // Must follow suit if possible
+    return card.suit === leadingSuit // Must follow suit if possible (except for 7 of spades which is handled above)
   }
 
   // If player doesn't have the leading suit, check if they have trumps
   const hasTrumps = playerHand.some((c) => c.suit === "diamonds")
   if (hasTrumps) {
-    return card.suit === "diamonds" // Must play a trump if they have one and can't follow suit
+    return card.suit === "diamonds" // Must play a trump if they have one and can't follow suit (except for 7 of spades)
   }
 
   // If player has neither the leading suit nor trumps, they can play any card
@@ -206,7 +202,8 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "You must play your highest card of any suit." }, { status: 400 })
           }
         }
-      } else {
+      } else if (!(card.suit === "spades" && card.value === 7)) {
+        // Only validate non-7 of spades cards
         return NextResponse.json(
           {
             error:

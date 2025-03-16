@@ -235,8 +235,8 @@ export default function GameTable({
     const leadingSuit = firstCard.suit
 
     // Special case: 7 of spades can be played when diamonds are the leading suit
-    if (card.suit === "spades" && card.value === 7 && leadingSuit === "diamonds") {
-      return true // Can play 7 of spades when diamonds are the leading suit
+    if (card.suit === "spades" && card.value === 7) {
+      return true // 7 of spades can now be played anytime (with Poker or Simple options)
     }
 
     // Special case for 7 of spades with 'Poker' option as the first card
@@ -244,21 +244,17 @@ export default function GameTable({
       return true // Any card can be played
     }
 
-    // Check if player has any cards of the leading suit, excluding 7 of spades
+    // Check if player has any cards of the leading suit
     const hasSuit = currentPlayer.hand.some((c) => c.suit === leadingSuit && !(c.suit === "spades" && c.value === 7))
 
-    if (card.suit === "spades" && card.value === 7) {
-      return !hasSuit // Can play 7 of spades only if player doesn't have the leading suit
-    }
-
     if (hasSuit) {
-      return card.suit === leadingSuit // Must follow suit if possible
+      return card.suit === leadingSuit // Must follow suit if possible (except for 7 of spades which is handled above)
     }
 
     // If player doesn't have the leading suit, check if they have trumps
     const hasTrumps = currentPlayer.hand.some((c) => c.suit === "diamonds")
     if (hasTrumps) {
-      return card.suit === "diamonds" // Must play a trump if they have one and can't follow suit
+      return card.suit === "diamonds" // Must play a trump if they have one and can't follow suit (except for 7 of spades)
     }
 
     // If player has neither the leading suit nor trumps, they can play any card
@@ -533,25 +529,8 @@ export default function GameTable({
   }
 
   const isValidSimplePlay = () => {
-    if (cardsOnTable.length === 0) return true
-
-    const leadingSuit = cardsOnTable[0].suit
-
-    // Always allow Simple option when diamonds are the leading suit
-    if (leadingSuit === "diamonds") return true
-
-    // For spades as leading suit, check if player has regular spades cards
-    if (leadingSuit === "spades") {
-      // Check if player has any spades other than 7 of spades
-      const hasRegularSpades = currentPlayer?.hand.some(
-        (c) => c.suit === "spades" && !(c.suit === "spades" && c.value === 7),
-      )
-      return !hasRegularSpades // Can play 7 of spades as Simple if player doesn't have regular spades
-    }
-
-    // For other suits, check if player has the leading suit
-    const hasLeadingSuit = currentPlayer?.hand.some((c) => c.suit === leadingSuit)
-    return !hasLeadingSuit
+    // Simple option is now always valid for 7 of spades
+    return true
   }
 
   const isValidCardToPlay = (card: Card) => {
@@ -564,18 +543,9 @@ export default function GameTable({
       return validCards.some((c) => c.suit === card.suit && c.value === card.value)
     }
 
-    // Special case: 7 of spades can be played when diamonds are the leading suit
-    if (card.suit === "spades" && card.value === 7 && cardsOnTable.length > 0) {
-      const leadingSuit = cardsOnTable[0].suit
-      if (leadingSuit === "diamonds") {
-        return true // Can always play 7 of spades when diamonds are the leading suit
-      }
-
-      // Check if player has the leading suit
-      const hasLeadingSuit = currentPlayer?.hand.some(
-        (c) => c.suit === leadingSuit && !(c.suit === "spades" && c.value === 7),
-      )
-      return !hasLeadingSuit // Can play 7 of spades only if player doesn't have the leading suit
+    // Special case: 7 of spades can always be played (except when Trumps is active)
+    if (card.suit === "spades" && card.value === 7) {
+      return true // 7 of spades can now be played anytime
     }
 
     // For diamond cards when spades is the leading suit
