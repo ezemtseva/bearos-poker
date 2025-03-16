@@ -929,7 +929,11 @@ export default function GameTable({
                     isPlayingCard
                   }
                   showBack={shouldShowCardBacks}
-                  className={`${!isValidCardToPlay(card) || !safeGameData.allBetsPlaced || isPlayingCard ? "opacity-50" : ""}`}
+                  className={`${
+                    !isCurrentPlayerTurn || !isValidCardToPlay(card) || !safeGameData.allBetsPlaced || isPlayingCard
+                      ? "opacity-50"
+                      : ""
+                  }`}
                 />
               ))
             ) : (
