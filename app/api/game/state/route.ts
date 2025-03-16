@@ -42,10 +42,15 @@ export async function GET(req: NextRequest) {
       highestCard: game.highest_card,
       roundStartPlayerIndex: game.round_start_player_index || 0,
       allBetsPlaced: game.all_bets_placed || false,
-      gameOver: game.game_over || false, // Add this line to include the gameOver property
+      gameOver: game.game_over || false,
+      currentBettingTurn: game.current_betting_turn,
+      betsPlacedTimestamp: game.bets_placed_timestamp,
     }
 
     console.log(`[GAME-STATE] State fetched successfully for table: ${tableId}`)
+    console.log(
+      `[GAME-STATE] currentBettingTurn: ${gameData.currentBettingTurn}, allBetsPlaced: ${gameData.allBetsPlaced}`,
+    )
     return NextResponse.json({ gameData })
   } catch (error) {
     console.error("Error fetching game state:", error)

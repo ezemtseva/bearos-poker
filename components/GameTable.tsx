@@ -172,6 +172,29 @@ export default function GameTable({
     currentPlayerName,
   ])
 
+  // Add this near the top of the component, where other useEffects are defined
+  useEffect(() => {
+    // Log the current betting state whenever it changes
+    if (gameStarted) {
+      console.log("Betting state:", {
+        currentBettingTurn: safeGameData.currentBettingTurn,
+        allBetsPlaced: safeGameData.allBetsPlaced,
+        allPlayersHaveBet,
+        currentPlayerName,
+        lastKnownBettingPlayer,
+        stableBettingUI,
+      })
+    }
+  }, [
+    gameStarted,
+    safeGameData.currentBettingTurn,
+    safeGameData.allBetsPlaced,
+    allPlayersHaveBet,
+    currentPlayerName,
+    lastKnownBettingPlayer,
+    stableBettingUI,
+  ])
+
   const getValidCardsAfterTrumps = (hand: Card[]): Card[] => {
     const diamonds = hand.filter((c) => c.suit === "diamonds")
     if (diamonds.length > 0) {
@@ -577,13 +600,19 @@ export default function GameTable({
   }
 
   // Determine if it's the current player's turn to bet with improved stability
-  const isCurrentPlayerBettingTurn = (() => {
+  const isCurrentPlayerBettingTurn = useMemo(() => {
     // If we've already stabilized the UI, maintain that state
     if (stableBettingUI && currentPlayer && currentPlayer.bet === null) {
+      console.log("Using stabilized UI state for betting turn")
       return true
     }
 
-    // Otherwise, calculate based on current data
+    // If the player has already bet, it's definitely not their turn
+    if (currentPlayer?.bet !== null) {
+      return false
+    }
+
+    // Check if it's explicitly this player's turn based on currentBettingTurn
     if (
       currentPlayer &&
       gameStarted &&
@@ -593,22 +622,21 @@ export default function GameTable({
       safeGameData.currentBettingTurn < players.length
     ) {
       const isTurn = players[safeGameData.currentBettingTurn].name === currentPlayer.name
+      console.log(
+        `Checking if it's ${currentPlayer.name}'s turn to bet: ${isTurn} (currentBettingTurn: ${safeGameData.currentBettingTurn})`,
+      )
 
-      // If it's the player's turn and they haven't placed a bet yet, stabilize the UI
-      if (isTurn && currentPlayer.bet === null) {
-        // Use a timeout to prevent rapid toggling
+      if (isTurn) {
+        // Stabilize the UI if it's the player's turn
         if (!stableBettingUI && !bettingUITimeoutRef.current) {
-          bettingUITimeoutRef.current = setTimeout(() => {
-            setStableBettingUI(true)
-            bettingUITimeoutRef.current = null
-          }, 100) // Small delay to ensure stability
+          setStableBettingUI(true)
         }
         return true
       }
     }
 
     return false
-  })()
+  }, [currentPlayer, gameStarted, safeGameData.currentBettingTurn, players, stableBettingUI])
 
   // Check if we're in the waiting period after all bets are placed
   const isInBetDisplayPeriod = safeGameData.betsPlacedTimestamp && !safeGameData.allBetsPlaced
@@ -626,6 +654,15 @@ export default function GameTable({
 
   // Add this function inside the GameTable component
   const renderGameStatusMessage = () => {
+    console.log("Rendering game status with:", {
+      allBetsPlaced: safeGameData.allBetsPlaced,
+      currentBettingTurn: safeGameData.currentBettingTurn,
+      currentPlayerBet: currentPlayer?.bet,
+      allPlayersHaveBet,
+      isCurrentPlayerBettingTurn,
+      currentBettingPlayerName,
+    })
+
     // If all bets are placed, we're in the card playing phase
     if (safeGameData.allBetsPlaced) {
       if (isCurrentPlayerTurn) {
