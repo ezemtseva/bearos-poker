@@ -1,12 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
 import type { Player, GameData } from "../../../../types/game"
-import { sendSSEUpdate } from "../../../utils/sse"
 
 export const runtime = "edge"
 
 export async function POST(req: NextRequest) {
   const { tableId, playerName } = await req.json()
+
+  console.log(`[JOIN-GAME] Received join request: tableId=${tableId}, playerName=${playerName}`)
 
   if (!tableId || !playerName) {
     return NextResponse.json({ error: "Table ID and player name are required" }, { status: 400 })
@@ -29,6 +30,8 @@ export async function POST(req: NextRequest) {
     if (players.some((p) => p.name === playerName)) {
       return NextResponse.json({ error: "Player with this name already exists in the game" }, { status: 400 })
     }
+
+    console.log(`[JOIN-GAME] Player not in game, proceeding`)
 
     // Check if the game is full
     if (players.length >= 6) {
@@ -54,6 +57,8 @@ export async function POST(req: NextRequest) {
       WHERE table_id = ${tableId}
     `
 
+    console.log(`[JOIN-GAME] Database updated successfully, player added: ${playerName}`)
+
     // Construct a complete GameData object
     const updatedGameData: GameData = {
       tableId: game.table_id,
@@ -72,11 +77,10 @@ export async function POST(req: NextRequest) {
       highestCard: game.highest_card || null,
       roundStartPlayerIndex: game.round_start_player_index || 0,
       allBetsPlaced: game.all_bets_placed || false,
-      gameOver: game.game_over || false, // Add this line to include the gameOver property
+      gameOver: game.game_over || false,
     }
 
-    // Send SSE update to all connected clients
-    await sendSSEUpdate(tableId, updatedGameData)
+    // No longer using SSE, so we don't need to send updates
 
     return NextResponse.json({ message: "Successfully joined the game", player: newPlayer })
   } catch (error) {

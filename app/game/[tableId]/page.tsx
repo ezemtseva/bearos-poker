@@ -12,10 +12,12 @@ export default function Game() {
   const [gameData, setGameData] = useState<GameData | null>(null)
   const [isOwner, setIsOwner] = useState(false)
   const [currentPlayerName, setCurrentPlayerName] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
   const clientIdRef = useRef<string>(`client-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`)
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const isPollingRef = useRef<boolean>(false)
+  const lastActionRef = useRef<number>(0)
 
   // Function to fetch game state
   const fetchGameState = async () => {
@@ -28,6 +30,9 @@ export default function Game() {
       if (response.ok) {
         const data = await response.json()
         updateGameState(data.gameData)
+        setIsLoading(false)
+      } else {
+        console.error("Error response from server:", await response.text())
       }
     } catch (error) {
       console.error("Error fetching game state:", error)
@@ -66,6 +71,12 @@ export default function Game() {
   // Optimistic update after action
   const fetchLatestState = async () => {
     try {
+      // Mark that we just performed an action
+      lastActionRef.current = Date.now()
+
+      // Wait a short time to allow the server to process the action
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
       const response = await fetch(`/api/game/state?tableId=${tableId}`)
       if (response.ok) {
         const data = await response.json()
@@ -147,7 +158,7 @@ export default function Game() {
       updateGameState(data.gameData)
 
       // Fetch latest state after a short delay
-      setTimeout(fetchLatestState, 500)
+      fetchLatestState()
 
       toast({
         title: "Game Started",
@@ -196,7 +207,7 @@ export default function Game() {
       updateGameState(data.gameData)
 
       // Fetch latest state after a short delay
-      setTimeout(fetchLatestState, 500)
+      fetchLatestState()
 
       if (data.message === "Game over") {
         toast({
@@ -219,10 +230,57 @@ export default function Game() {
     }
   }
 
-  if (!gameData) {
+  const handlePlaceBet = async (betAmount: number) => {
+    if (!gameData || !currentPlayerName) return
+
+    try {
+      console.log(`Placing bet: ${betAmount} for player ${currentPlayerName}`)
+      const response = await fetch("/api/game/place-bet", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tableId, playerName: currentPlayerName, bet: betAmount }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to place the bet")
+      }
+
+      const data = await response.json()
+      console.log("Bet placed. Received data:", data)
+      updateGameState(data.gameData)
+
+      // Fetch latest state after a short delay
+      fetchLatestState()
+
+      toast({
+        title: "Bet Placed",
+        description: `Your bet of ${betAmount} has been placed successfully.`,
+      })
+    } catch (error) {
+      console.error("Error placing bet:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to place the bet. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
         <div className="text-white text-xl">Loading game data...</div>
+      </div>
+    )
+  }
+
+  if (!gameData) {
+    return (
+      <div className="flex justify-center items-center min-h-[50vh]">
+        <div className="text-white text-xl">Error loading game data. Please refresh the page or try again later.</div>
       </div>
     )
   }
@@ -242,6 +300,7 @@ export default function Game() {
         onShare={handleShare}
         onStartGame={handleStartGame}
         onPlayCard={handlePlayCard}
+        onPlaceBet={handlePlaceBet}
         gameData={gameData}
       />
     </div>

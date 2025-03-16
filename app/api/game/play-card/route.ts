@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
 import type { GameData, Player, Card, ScoreTableRow, PlayerScore } from "../../../../types/game"
-import { sendSSEUpdate } from "../../../utils/sse"
 import { createDeck } from "../../../utils/deck"
 
 export const runtime = "edge"
@@ -126,11 +125,15 @@ function getValidCardsAfterTrumps(hand: Card[]): Card[] {
 export async function POST(req: NextRequest) {
   const { tableId, playerName, card, pokerOption } = await req.json()
 
-  if (!tableId || !playerName || !card) {
-    return NextResponse.json({ error: "Table ID, player name, and card are required" }, { status: 400 })
-  }
-
   try {
+    console.log(
+      `[PLAY-CARD] Received play card request: tableId=${tableId}, playerName=${playerName}, card=${JSON.stringify(card)}`,
+    )
+
+    if (!tableId || !playerName || !card) {
+      return NextResponse.json({ error: "Table ID, player name, and card are required" }, { status: 400 })
+    }
+
     const result = await sql`
       SELECT * FROM poker_games
       WHERE table_id = ${tableId} AND game_started = true;
@@ -165,6 +168,7 @@ export async function POST(req: NextRequest) {
     // Find the current player
     const playerIndex = players.findIndex((p) => p.name === playerName)
     if (playerIndex === -1 || playerIndex !== currentTurn) {
+      console.log(`[PLAY-CARD] Current turn: ${currentTurn}, Player index: ${playerIndex}`)
       return NextResponse.json({ error: "It's not your turn" }, { status: 400 })
     }
 
@@ -228,27 +232,6 @@ export async function POST(req: NextRequest) {
     // Determine the highest card
     const highestCard = determineHighestCard(cardsOnTable)
 
-    // Send an immediate update with the new card on the table
-    await sendSSEUpdate(tableId, {
-      tableId: game.table_id,
-      players,
-      gameStarted: game.game_started,
-      currentRound,
-      currentPlay,
-      currentTurn,
-      cardsOnTable,
-      deck,
-      scoreTable,
-      allCardsPlayedTimestamp,
-      playEndTimestamp: null,
-      lastPlayedCard: { ...card, playerName, pokerOption },
-      allCardsPlayed,
-      highestCard,
-      roundStartPlayerIndex,
-      allBetsPlaced,
-      gameOver: false,
-    })
-
     // Update the database with the new game state
     await sql`
       UPDATE poker_games
@@ -259,29 +242,12 @@ export async function POST(req: NextRequest) {
       WHERE table_id = ${tableId}
     `
 
+    console.log(`[PLAY-CARD] Database updated successfully`)
+
     allCardsPlayed = cardsOnTable.length === players.length
     allCardsPlayedTimestamp = allCardsPlayed ? Date.now() : null
 
-    // Send an immediate update with the new card on the table
-    await sendSSEUpdate(tableId, {
-      tableId: game.table_id,
-      players,
-      gameStarted: game.game_started,
-      currentRound,
-      currentPlay,
-      currentTurn,
-      cardsOnTable,
-      deck,
-      scoreTable,
-      allCardsPlayedTimestamp,
-      playEndTimestamp: null,
-      lastPlayedCard: { ...card, playerName, pokerOption },
-      allCardsPlayed,
-      highestCard,
-      roundStartPlayerIndex,
-      allBetsPlaced,
-      gameOver: false,
-    })
+    console.log(`[PLAY-CARD] All cards played: ${allCardsPlayed}`)
 
     console.log("All cards played:", allCardsPlayed)
 
@@ -412,7 +378,6 @@ export async function POST(req: NextRequest) {
                 game_over = true
             WHERE table_id = ${tableId}
           `
-          await sendSSEUpdate(tableId, gameOverData)
           return NextResponse.json({ message: "Game over", gameData: gameOverData })
         }
       } else {
@@ -424,27 +389,6 @@ export async function POST(req: NextRequest) {
       cardsOnTable = []
       allCardsPlayed = false
       allCardsPlayedTimestamp = null
-
-      // Send another update to clear the table
-      await sendSSEUpdate(tableId, {
-        tableId: game.table_id,
-        players,
-        gameStarted: game.game_started,
-        currentRound,
-        currentPlay,
-        currentTurn,
-        cardsOnTable,
-        deck,
-        scoreTable,
-        allCardsPlayedTimestamp,
-        playEndTimestamp: null,
-        lastPlayedCard: null,
-        allCardsPlayed: false,
-        highestCard: null,
-        roundStartPlayerIndex,
-        allBetsPlaced,
-        gameOver: false,
-      })
     } else {
       // Move to the next turn
       currentTurn = getNextTurn(currentTurn, players.length)
@@ -473,7 +417,6 @@ export async function POST(req: NextRequest) {
     }
 
     console.log("Final game state:", finalGameData)
-    await sendSSEUpdate(tableId, finalGameData)
 
     await sql`
       UPDATE poker_games

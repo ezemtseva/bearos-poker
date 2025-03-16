@@ -26,6 +26,7 @@ interface GameTableProps {
   onShare: () => void
   onStartGame: () => void
   onPlayCard: (card: Card) => void
+  onPlaceBet: (bet: number) => void // Add this line
   gameData: GameData
   lastPlayedCard: Card | null
 }
@@ -42,6 +43,7 @@ export default function GameTable({
   onShare,
   onStartGame,
   onPlayCard,
+  onPlaceBet,
   gameData,
   lastPlayedCard,
 }: GameTableProps) {
@@ -468,7 +470,7 @@ export default function GameTable({
     return null
   }
 
-  const handlePlaceBet = async () => {
+  const handlePlaceBet = () => {
     if (betAmount === null || betAmount < 0 || betAmount > cardsThisRound) {
       toast({
         title: "Invalid Bet",
@@ -488,36 +490,7 @@ export default function GameTable({
       return
     }
 
-    try {
-      const response = await fetch("/api/game/place-bet", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ tableId, playerName: currentPlayerName, bet: betAmount }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to place the bet")
-      }
-
-      const data = await response.json()
-      console.log("Bet placed. Received data:", data)
-      // The game state will be updated through the SSE connection
-
-      toast({
-        title: "Bet Placed",
-        description: `Your bet of ${betAmount} has been placed successfully.`,
-      })
-    } catch (error) {
-      console.error("Error placing bet:", error)
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to place the bet. Please try again.",
-        variant: "destructive",
-      })
-    }
+    onPlaceBet(betAmount)
   }
 
   // Also update the handlePokerCardOptionSelect function to set isPlayingCard

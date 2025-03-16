@@ -12,6 +12,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Table ID is required" }, { status: 400 })
   }
 
+  console.log(`[GAME-STATE] Fetching state for table: ${tableId}`)
+
   try {
     const result = await sql`
       SELECT * FROM poker_games
@@ -43,6 +45,7 @@ export async function GET(req: NextRequest) {
       gameOver: game.game_over || false, // Add this line to include the gameOver property
     }
 
+    console.log(`[GAME-STATE] State fetched successfully for table: ${tableId}`)
     return NextResponse.json({ gameData })
   } catch (error) {
     console.error("Error fetching game state:", error)

@@ -2,7 +2,6 @@ import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
 import type { GameData, Player, Card, ScoreTableRow, PlayerScore } from "../../../../types/game"
 import { createDeck } from "../../../utils/deck"
-import { sendSSEUpdate } from "../../../utils/sse"
 
 export const runtime = "edge"
 
@@ -46,12 +45,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    console.log(`[START-GAME] Starting game for table: ${tableId}`)
+
     const result = await sql`
       SELECT * FROM poker_games
       WHERE table_id = ${tableId} AND game_started = false;
     `
 
     if (result.rowCount === 0) {
+      console.log(`[START-GAME] Game not found or already started: ${tableId}`)
       return NextResponse.json({ error: "Game not found or already started" }, { status: 404 })
     }
 
@@ -60,9 +62,11 @@ export async function POST(req: NextRequest) {
 
     // Remove empty seats
     players = players.filter((player) => player.name !== "")
+    console.log(`[START-GAME] Filtered players: ${players.length}`)
 
     // Ensure we have at least 2 players
     if (players.length < 2) {
+      console.log(`[START-GAME] Not enough players: ${players.length}`)
       return NextResponse.json({ error: "At least 2 players are required to start the game" }, { status: 400 })
     }
 
@@ -78,6 +82,7 @@ export async function POST(req: NextRequest) {
 
     // Find the owner to set as the starting player
     const ownerIndex = playersWithCards.findIndex((p) => p.isOwner)
+    console.log(`[START-GAME] Owner index: ${ownerIndex}`)
 
     const gameData: GameData = {
       tableId: game.table_id,
@@ -120,14 +125,11 @@ export async function POST(req: NextRequest) {
       WHERE table_id = ${tableId}
     `
 
-    console.log("Game started successfully. Game data:", gameData)
-
-    // Send SSE update to all connected clients
-    await sendSSEUpdate(tableId, gameData)
+    console.log(`[START-GAME] Game started successfully for table: ${tableId}`)
 
     return NextResponse.json({ message: "Game started successfully", gameData })
   } catch (error) {
-    console.error("Error starting game:", error)
+    console.error("[START-GAME] Error starting game:", error)
     return NextResponse.json({ error: "Failed to start game" }, { status: 500 })
   }
 }
