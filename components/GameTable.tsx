@@ -47,7 +47,6 @@ export default function GameTable({
 }: GameTableProps) {
   // First, add a new state variable to track the card being played
   // Add this near the other state variables at the top of the component
-  const [animatingCard, setAnimatingCard] = useState<Card | null>(null)
   // Add a new state variable near the top of the component with the other state variables
   const [isPlayingCard, setIsPlayingCard] = useState(false)
   const [displayedCards, setDisplayedCards] = useState<Card[]>(cardsOnTable)
@@ -326,9 +325,6 @@ export default function GameTable({
     // Set the playing card state to true to prevent multiple clicks
     setIsPlayingCard(true)
 
-    // Set the animating card to trigger the animation
-    setAnimatingCard(card)
-
     // Immediately show the card on the table for the current player
     // Create a temporary local copy of the card with the player's name
     if (currentPlayerName) {
@@ -358,11 +354,6 @@ export default function GameTable({
 
     // Then send the actual request to the server
     await playCard(card)
-
-    // Clear the animating card state after animation completes
-    setTimeout(() => {
-      setAnimatingCard(null)
-    }, 1000)
   }
 
   // Modify the playCard function to reset the isPlayingCard state
@@ -535,18 +526,10 @@ export default function GameTable({
 
   // Also update the handlePokerCardOptionSelect function to include animation
   const handlePokerCardOptionSelect = (option: "Trumps" | "Poker" | "Simple") => {
-    const card = { suit: "spades" as const, value: 7 }
     setPokerCardOption(option)
     setShowPokerCardDialog(false)
-    setIsPlayingCard(true)
-    setAnimatingCard(card)
-
-    // Add animation timeout similar to handlePlayCard
-    setTimeout(() => {
-      setAnimatingCard(null)
-    }, 1000)
-
-    playCard(card, option)
+    setIsPlayingCard(true) // Set the flag before playing the card
+    playCard({ suit: "spades", value: 7 }, option)
   }
 
   const isValidSimplePlay = () => {
@@ -831,35 +814,32 @@ export default function GameTable({
 
         {/* Cards on table */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex space-x-2">
-          {displayedCards.map((card, index) => {
-            const isNewCard = index === displayedCards.length - 1 && isPlayingCard
-            return (
-              <div key={index} className={`relative ${isNewCard ? "animate-card-appear" : ""}`}>
-                <PlayingCard
-                  suit={card.suit}
-                  value={card.value}
-                  disabled
-                  className={
-                    safeGameData.highestCard &&
-                    card.suit === safeGameData.highestCard.suit &&
-                    card.value === safeGameData.highestCard.value
-                      ? "bg-yellow-100"
-                      : card.suit === "diamonds"
-                        ? "bg-red-100"
-                        : "bg-white"
-                  }
-                />
-                {card.suit === "spades" && card.value === 7 && card.pokerOption && (
-                  <div
-                    className={`absolute bottom-0 left-0 right-0 text-white text-xs py-1 px-2 text-center
+          {displayedCards.map((card, index) => (
+            <div key={index} className="relative">
+              <PlayingCard
+                suit={card.suit}
+                value={card.value}
+                disabled
+                className={
+                  safeGameData.highestCard &&
+                  card.suit === safeGameData.highestCard.suit &&
+                  card.value === safeGameData.highestCard.value
+                    ? "bg-yellow-100"
+                    : card.suit === "diamonds"
+                      ? "bg-red-100"
+                      : "bg-white"
+                }
+              />
+              {card.suit === "spades" && card.value === 7 && card.pokerOption && (
+                <div
+                  className={`absolute bottom-0 left-0 right-0 text-white text-xs py-1 px-2 text-center
     ${card.pokerOption === "Trumps" ? "bg-red-300" : card.pokerOption === "Poker" ? "bg-yellow-300" : "bg-blue-300"}`}
-                  >
-                    {card.pokerOption}
-                  </div>
-                )}
-              </div>
-            )
-          })}
+                >
+                  {card.pokerOption}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -937,39 +917,29 @@ export default function GameTable({
         {/* Player's hand */}
         <div className="w-2/3">
           <h2 className="text-xl font-bold mb-2 text-center">Your Hand</h2>
-          <div className="flex justify-center space-x-2 relative">
+          <div className="flex justify-center space-x-2">
             {currentPlayer && currentPlayer.hand && currentPlayer.hand.length > 0 ? (
-              currentPlayer.hand.map((card, index) => {
-                const isAnimating =
-                  animatingCard && animatingCard.suit === card.suit && animatingCard.value === card.value
-                return (
-                  <div
-                    key={index}
-                    className={`transition-all duration-500 ${
-                      isAnimating ? "opacity-0 transform translate-y-[-100px]" : ""
-                    }`}
-                  >
-                    <PlayingCard
-                      suit={card.suit}
-                      value={card.value}
-                      onClick={() => handlePlayCard(card)}
-                      disabled={
-                        !isCurrentPlayerTurn ||
-                        isClearing ||
-                        !isValidCardToPlay(card) ||
-                        !safeGameData.allBetsPlaced ||
-                        isPlayingCard
-                      }
-                      showBack={shouldShowCardBacks}
-                      className={`${
-                        !isCurrentPlayerTurn || !isValidCardToPlay(card) || !safeGameData.allBetsPlaced || isPlayingCard
-                          ? "opacity-50"
-                          : ""
-                      }`}
-                    />
-                  </div>
-                )
-              })
+              currentPlayer.hand.map((card, index) => (
+                <PlayingCard
+                  key={index}
+                  suit={card.suit}
+                  value={card.value}
+                  onClick={() => handlePlayCard(card)}
+                  disabled={
+                    !isCurrentPlayerTurn ||
+                    isClearing ||
+                    !isValidCardToPlay(card) ||
+                    !safeGameData.allBetsPlaced ||
+                    isPlayingCard
+                  }
+                  showBack={shouldShowCardBacks}
+                  className={`${
+                    !isCurrentPlayerTurn || !isValidCardToPlay(card) || !safeGameData.allBetsPlaced || isPlayingCard
+                      ? "opacity-50"
+                      : ""
+                  }`}
+                />
+              ))
             ) : (
               <p>No cards in hand</p>
             )}
@@ -1072,21 +1042,6 @@ export default function GameTable({
         @keyframes fadeIn {
           from { opacity: 0; transform: translate(-50%, -10px); }
           to { opacity: 1; transform: translate(-50%, 0); }
-        }
-        
-        @keyframes cardAppear {
-          from { 
-            opacity: 0; 
-            transform: scale(0.8) translateY(30px); 
-          }
-          to { 
-            opacity: 1; 
-            transform: scale(1) translateY(0); 
-          }
-        }
-        
-        .animate-card-appear {
-          animation: cardAppear 0.5s ease-out forwards;
         }
       `}</style>
     </div>
