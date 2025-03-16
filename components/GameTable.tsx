@@ -325,68 +325,13 @@ export default function GameTable({
     // Set the playing card state to true to prevent multiple clicks
     setIsPlayingCard(true)
 
-    // Immediately show the card on the table for the current player
-    // Create a temporary local copy of the card with the player's name
-    if (currentPlayerName) {
-      const localCard: Card = {
-        ...card,
-        playerName: currentPlayerName,
-      }
-
-      // Update the displayed cards immediately for the current player
-      setDisplayedCards((prevCards) => [...prevCards, localCard])
-
-      // Remove the card from the player's hand locally
-      if (currentPlayer) {
-        const updatedPlayer = {
-          ...currentPlayer,
-          hand: currentPlayer.hand.filter((c) => !(c.suit === card.suit && c.value === card.value)),
-        }
-
-        // Create a local update of the game state
-        const localPlayers = [...players]
-        const playerIndex = localPlayers.findIndex((p) => p.name === currentPlayerName)
-        if (playerIndex !== -1) {
-          localPlayers[playerIndex] = updatedPlayer
-        }
-      }
-    }
-
-    // Then send the actual request to the server
+    // Send the actual request to the server without optimistic updates
     await playCard(card)
   }
 
   // Modify the playCard function to reset the isPlayingCard state
   const playCard = async (card: Card, pokerOption?: "Trumps" | "Poker" | "Simple") => {
     setErrorMessage(null)
-
-    // For 7 of spades with poker option, show it immediately
-    if (card.suit === "spades" && card.value === 7 && pokerOption && currentPlayerName) {
-      // Create a temporary local copy of the card with the player's name and poker option
-      const localCard: Card = {
-        ...card,
-        playerName: currentPlayerName,
-        pokerOption,
-      }
-
-      // Update the displayed cards immediately for the current player
-      setDisplayedCards([...displayedCards, localCard])
-
-      // Remove the card from the player's hand locally
-      if (currentPlayer) {
-        const updatedPlayer = {
-          ...currentPlayer,
-          hand: currentPlayer.hand.filter((c) => !(c.suit === card.suit && c.value === card.value)),
-        }
-
-        // Create a local update of the game state
-        const localPlayers = [...players]
-        const playerIndex = localPlayers.findIndex((p) => p.name === currentPlayerName)
-        if (playerIndex !== -1) {
-          localPlayers[playerIndex] = updatedPlayer
-        }
-      }
-    }
 
     try {
       const response = await fetch("/api/game/play-card", {
@@ -424,9 +369,6 @@ export default function GameTable({
         description: error instanceof Error ? error.message : "Failed to play the card. Please try again.",
         variant: "destructive",
       })
-
-      // If there was an error, revert the local changes
-      setDisplayedCards(cardsOnTable)
     } finally {
       // Reset the playing card state regardless of success or failure
       setIsPlayingCard(false)
