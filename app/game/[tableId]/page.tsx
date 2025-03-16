@@ -14,6 +14,8 @@ export default function Game() {
   const [currentPlayerName, setCurrentPlayerName] = useState<string | null>(null)
   const { toast } = useToast()
   const eventSourceRef = useRef<EventSource | null>(null)
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const clientIdRef = useRef<string>(`client-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`)
 
   useEffect(() => {
     const storedPlayerName = localStorage.getItem("playerName")
@@ -31,11 +33,12 @@ export default function Game() {
 
     const connectSSE = () => {
       if (eventSourceRef.current) {
+        console.log("Closing existing SSE connection before reconnecting")
         eventSourceRef.current.close()
       }
 
-      console.log(`Connecting to SSE for table: ${tableId}`)
-      const eventSource = new EventSource(`/api/sse?tableId=${tableId}&clientId=${Date.now()}`)
+      console.log(`Connecting to SSE for table: ${tableId}, clientId: ${clientIdRef.current}`)
+      const eventSource = new EventSource(`/api/sse?tableId=${tableId}&clientId=${clientIdRef.current}`)
 
       eventSource.onmessage = (event) => {
         try {
@@ -67,8 +70,23 @@ export default function Game() {
         }
       })
 
+      eventSource.addEventListener("heartbeat", (event) => {
+        try {
+          const data = JSON.parse((event as MessageEvent).data)
+          console.log("Received SSE heartbeat:", data.timestamp)
+        } catch (error) {
+          console.error("Error parsing SSE heartbeat:", error)
+        }
+      })
+
       eventSource.addEventListener("open", () => {
         console.log("SSE connection opened for table:", tableId)
+
+        // Clear any pending reconnect timeout
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current)
+          reconnectTimeoutRef.current = null
+        }
       })
 
       eventSource.onerror = (error) => {
@@ -79,7 +97,12 @@ export default function Game() {
         // from trying to reconnect at the exact same time
         const reconnectDelay = 2000 + Math.random() * 1000
         console.log(`Will attempt to reconnect SSE in ${reconnectDelay}ms`)
-        setTimeout(connectSSE, reconnectDelay)
+
+        // Store the timeout so we can clear it if needed
+        reconnectTimeoutRef.current = setTimeout(() => {
+          reconnectTimeoutRef.current = null
+          connectSSE()
+        }, reconnectDelay)
       }
 
       eventSourceRef.current = eventSource
@@ -87,17 +110,35 @@ export default function Game() {
 
     connectSSE()
 
+    // Ping the server periodically to keep the connection alive
+    const pingInterval = setInterval(() => {
+      if (eventSourceRef.current && eventSourceRef.current.readyState === 1) {
+        console.log("Sending ping to keep SSE connection alive")
+        fetch(`/api/ping?tableId=${tableId}&clientId=${clientIdRef.current}`).catch((err) =>
+          console.error("Error sending ping:", err),
+        )
+      }
+    }, 25000)
+
     return () => {
+      console.log("Cleaning up SSE connection")
       if (eventSourceRef.current) {
         eventSourceRef.current.close()
       }
+
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+      }
+
+      clearInterval(pingInterval)
     }
   }, [tableId, toast])
 
   useEffect(() => {
-    // Back to original refresh interval
+    // Fallback polling mechanism
     const refreshInterval = setInterval(async () => {
       if (!eventSourceRef.current || eventSourceRef.current.readyState !== 1) {
+        console.log("SSE connection not active, using fallback polling")
         try {
           const response = await fetch(`/api/game/state?tableId=${tableId}`)
           if (response.ok) {
@@ -108,7 +149,7 @@ export default function Game() {
           console.error("Error refreshing game state:", error)
         }
       }
-    }, 5000) // Back to original 5 seconds
+    }, 5000)
 
     return () => clearInterval(refreshInterval)
   }, [tableId])

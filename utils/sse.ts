@@ -27,6 +27,11 @@ export function removeClient(tableId: string, send: (data: string) => void, clie
   console.log(`[SSE] Client removed. Total clients for table ${tableId}: ${connectedClients.get(tableId)?.size || 0}`)
 }
 
+// Helper function to get the number of connected clients for a table
+export function getConnectedClientsCount(tableId: string): number {
+  return connectedClients.get(tableId)?.size || 0
+}
+
 // Update the sendSSEUpdate function to ensure reliable delivery
 export async function sendSSEUpdate(tableId: string, gameData: ExtendedGameData) {
   console.log(`[SSE] Attempting to send update for table: ${tableId}`)
@@ -45,24 +50,22 @@ export async function sendSSEUpdate(tableId: string, gameData: ExtendedGameData)
     const message = `data: ${JSON.stringify(timestampedData)}\n\n`
 
     // Send to all clients with error handling - using forEach instead of for...of with entries()
-    const clientIds: string[] = []
+    const clientsToRemove: string[] = []
+
     clientsMap.forEach((send, clientId) => {
-      clientIds.push(clientId)
       try {
         console.log(`[SSE] Sending update to client ${clientId} for table: ${tableId}`)
         send(message)
       } catch (error) {
         console.error(`[SSE] Error sending update to client ${clientId} for table ${tableId}:`, error)
         // Mark this client for removal
-        clientIds.pop()
+        clientsToRemove.push(clientId)
       }
     })
 
     // Remove any clients that had errors
-    clientIds.forEach((id) => {
-      if (!clientsMap.has(id)) {
-        clientsMap.delete(id)
-      }
+    clientsToRemove.forEach((id) => {
+      clientsMap.delete(id)
     })
   } else {
     console.log(`[SSE] No connected clients found for table: ${tableId}`)

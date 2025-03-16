@@ -1,11 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
 import type { GameData, Player, ScoreTableRow, PlayerScore } from "../../../types/game"
-import { addClient, removeClient } from "../../../utils/sse"
+import { addClient, removeClient, getConnectedClientsCount } from "../../../utils/sse"
 
 export const runtime = "edge"
 
-// Update the GET function to include clientId tracking
+// Keep track of active connections
+const ACTIVE_CONNECTIONS = new Map<string, Set<string>>()
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const tableId = searchParams.get("tableId")
@@ -16,6 +18,13 @@ export async function GET(req: NextRequest) {
   }
 
   console.log(`[SSE] New connection request for table: ${tableId}, clientId: ${clientId}`)
+
+  // Register this connection
+  if (!ACTIVE_CONNECTIONS.has(tableId)) {
+    ACTIVE_CONNECTIONS.set(tableId, new Set())
+  }
+  ACTIVE_CONNECTIONS.get(tableId)?.add(clientId)
+  console.log(`[SSE] Active connections for table ${tableId}: ${ACTIVE_CONNECTIONS.get(tableId)?.size || 0}`)
 
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
@@ -30,26 +39,42 @@ export async function GET(req: NextRequest) {
       }
 
       addClient(tableId, clientCallback, clientId)
+
+      // Log the number of connected clients from both tracking mechanisms
       console.log(`[SSE] Client ${clientId} registered for table: ${tableId}`)
+      console.log(`[SSE] Connected clients (internal): ${getConnectedClientsCount(tableId)}`)
+      console.log(`[SSE] Active connections (route): ${ACTIVE_CONNECTIONS.get(tableId)?.size || 0}`)
 
       // Send initial game state
-      const initialState = await getGameState(tableId)
-      sendEvent("init", JSON.stringify(initialState))
+      try {
+        const initialState = await getGameState(tableId)
+        sendEvent("init", JSON.stringify(initialState))
+      } catch (error) {
+        console.error(`[SSE] Error sending initial state to client ${clientId}:`, error)
+      }
 
-      // Set up polling for game updates - back to original frequency
+      // Set up polling for game updates
       const pollInterval = setInterval(async () => {
-        try {
-          const latestState = await getGameState(tableId)
-          sendEvent("update", JSON.stringify(latestState))
-        } catch (error) {
-          console.error(`[SSE] Error polling for updates for client ${clientId}:`, error)
+        if (ACTIVE_CONNECTIONS.get(tableId)?.has(clientId)) {
+          try {
+            const latestState = await getGameState(tableId)
+            sendEvent("update", JSON.stringify(latestState))
+          } catch (error) {
+            console.error(`[SSE] Error polling for updates for client ${clientId}:`, error)
+          }
+        } else {
+          clearInterval(pollInterval)
         }
-      }, 3000) // Back to original 3 seconds
+      }, 3000)
 
       // Heartbeat to keep connection alive
       const heartbeat = setInterval(() => {
-        sendEvent("heartbeat", "ping")
-      }, 30000)
+        if (ACTIVE_CONNECTIONS.get(tableId)?.has(clientId)) {
+          sendEvent("heartbeat", JSON.stringify({ timestamp: Date.now() }))
+        } else {
+          clearInterval(heartbeat)
+        }
+      }, 15000)
 
       // Clean up on close
       req.signal.addEventListener("abort", () => {
@@ -57,6 +82,16 @@ export async function GET(req: NextRequest) {
         clearInterval(pollInterval)
         clearInterval(heartbeat)
         removeClient(tableId, clientCallback, clientId)
+
+        // Remove from active connections
+        ACTIVE_CONNECTIONS.get(tableId)?.delete(clientId)
+        if (ACTIVE_CONNECTIONS.get(tableId)?.size === 0) {
+          ACTIVE_CONNECTIONS.delete(tableId)
+        }
+
+        console.log(
+          `[SSE] Client removed. Remaining active connections for table ${tableId}: ${ACTIVE_CONNECTIONS.get(tableId)?.size || 0}`,
+        )
       })
     },
   })
