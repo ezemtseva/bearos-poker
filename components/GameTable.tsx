@@ -768,7 +768,7 @@ export default function GameTable({
           let chipColor = "bg-green-700" // Default for positive scores that aren't the highest
 
           if (player.score === 0) {
-            chipColor = "bg-gray-500" // Zero score
+            chipColor = "bg-gray-400" // Zero score
           } else if (player.score < 0 && player.score !== highestScore) {
             chipColor = "bg-red-600" // Negative score but not the highest
           } else if (player.score === highestScore) {
@@ -789,7 +789,7 @@ export default function GameTable({
               {/* Bet Banner */}
               {showBetBanner && (
                 <div
-                  className="absolute -top-16 left-1/2 transform -translate-x-1/2 bg-purple-900 text-white px-3 py-1 rounded-md shadow-md z-10 whitespace-nowrap"
+                  className="absolute -top-14 left-1/2 transform -translate-x-1/2 bg-purple-700 text-white px-3 py-1 rounded-md shadow-md z-10 whitespace-nowrap"
                   style={{
                     animation: "fadeIn 0.3s ease-in-out",
                   }}
