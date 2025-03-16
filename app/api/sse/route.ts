@@ -5,13 +5,17 @@ import { addClient, removeClient } from "../../../utils/sse"
 
 export const runtime = "edge"
 
+// Update the GET function to include clientId tracking
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const tableId = searchParams.get("tableId")
+  const clientId = searchParams.get("clientId") || `client-${Date.now()}`
 
   if (!tableId) {
     return new NextResponse("Table ID is required", { status: 400 })
   }
+
+  console.log(`[SSE] New connection request for table: ${tableId}, clientId: ${clientId}`)
 
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
@@ -20,10 +24,13 @@ export async function GET(req: NextRequest) {
         controller.enqueue(encoder.encode(`event: ${event}\ndata: ${data}\n\n`))
       }
 
-      // Register this client
-      addClient(tableId, (message) => {
+      // Register this client with a unique identifier
+      const clientCallback = (message: string) => {
         controller.enqueue(encoder.encode(message))
-      })
+      }
+
+      addClient(tableId, clientCallback, clientId)
+      console.log(`[SSE] Client ${clientId} registered for table: ${tableId}`)
 
       // Send initial game state
       const initialState = await getGameState(tableId)
@@ -35,7 +42,7 @@ export async function GET(req: NextRequest) {
           const latestState = await getGameState(tableId)
           sendEvent("update", JSON.stringify(latestState))
         } catch (error) {
-          console.error("[SSE] Error polling for updates:", error)
+          console.error(`[SSE] Error polling for updates for client ${clientId}:`, error)
         }
       }, 3000) // Back to original 3 seconds
 
@@ -46,11 +53,10 @@ export async function GET(req: NextRequest) {
 
       // Clean up on close
       req.signal.addEventListener("abort", () => {
+        console.log(`[SSE] Connection aborted for client ${clientId}, table: ${tableId}`)
         clearInterval(pollInterval)
         clearInterval(heartbeat)
-        removeClient(tableId, (message) => {
-          controller.enqueue(encoder.encode(message))
-        })
+        removeClient(tableId, clientCallback, clientId)
       })
     },
   })
@@ -58,7 +64,7 @@ export async function GET(req: NextRequest) {
   return new NextResponse(stream, {
     headers: {
       "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
+      "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
     },
   })

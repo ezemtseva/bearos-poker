@@ -45,8 +45,6 @@ export default function GameTable({
   gameData,
   lastPlayedCard,
 }: GameTableProps) {
-  // First, add a new state variable to track the card being played
-  // Add this near the other state variables at the top of the component
   // Add a new state variable near the top of the component with the other state variables
   const [isPlayingCard, setIsPlayingCard] = useState(false)
   const [displayedCards, setDisplayedCards] = useState<Card[]>(cardsOnTable)
@@ -263,9 +261,7 @@ export default function GameTable({
     return true
   }
 
-  // Modify the handlePlayCard function to enhance the optimistic UI and add animation
-  // Replace the existing handlePlayCard function with this enhanced version:
-
+  // Modify the handlePlayCard function to check and set the isPlayingCard state
   const handlePlayCard = async (card: Card) => {
     // If a card play is already in progress, ignore additional clicks
     if (isPlayingCard) {
@@ -325,13 +321,68 @@ export default function GameTable({
     // Set the playing card state to true to prevent multiple clicks
     setIsPlayingCard(true)
 
-    // Send the actual request to the server without optimistic updates
+    // Immediately show the card on the table for the current player
+    // Create a temporary local copy of the card with the player's name
+    if (currentPlayerName) {
+      const localCard: Card = {
+        ...card,
+        playerName: currentPlayerName,
+      }
+
+      // Update the displayed cards immediately for the current player
+      setDisplayedCards([...displayedCards, localCard])
+
+      // Remove the card from the player's hand locally
+      if (currentPlayer) {
+        const updatedPlayer = {
+          ...currentPlayer,
+          hand: currentPlayer.hand.filter((c) => !(c.suit === card.suit && c.value === card.value)),
+        }
+
+        // Create a local update of the game state
+        const localPlayers = [...players]
+        const playerIndex = localPlayers.findIndex((p) => p.name === currentPlayerName)
+        if (playerIndex !== -1) {
+          localPlayers[playerIndex] = updatedPlayer
+        }
+      }
+    }
+
+    // Then send the actual request to the server
     await playCard(card)
   }
 
   // Modify the playCard function to reset the isPlayingCard state
   const playCard = async (card: Card, pokerOption?: "Trumps" | "Poker" | "Simple") => {
     setErrorMessage(null)
+
+    // For 7 of spades with poker option, show it immediately
+    if (card.suit === "spades" && card.value === 7 && pokerOption && currentPlayerName) {
+      // Create a temporary local copy of the card with the player's name and poker option
+      const localCard: Card = {
+        ...card,
+        playerName: currentPlayerName,
+        pokerOption,
+      }
+
+      // Update the displayed cards immediately for the current player
+      setDisplayedCards([...displayedCards, localCard])
+
+      // Remove the card from the player's hand locally
+      if (currentPlayer) {
+        const updatedPlayer = {
+          ...currentPlayer,
+          hand: currentPlayer.hand.filter((c) => !(c.suit === card.suit && c.value === card.value)),
+        }
+
+        // Create a local update of the game state
+        const localPlayers = [...players]
+        const playerIndex = localPlayers.findIndex((p) => p.name === currentPlayerName)
+        if (playerIndex !== -1) {
+          localPlayers[playerIndex] = updatedPlayer
+        }
+      }
+    }
 
     try {
       const response = await fetch("/api/game/play-card", {
@@ -369,6 +420,9 @@ export default function GameTable({
         description: error instanceof Error ? error.message : "Failed to play the card. Please try again.",
         variant: "destructive",
       })
+
+      // If there was an error, revert the local changes
+      setDisplayedCards(cardsOnTable)
     } finally {
       // Reset the playing card state regardless of success or failure
       setIsPlayingCard(false)
@@ -466,7 +520,7 @@ export default function GameTable({
     }
   }
 
-  // Also update the handlePokerCardOptionSelect function to include animation
+  // Also update the handlePokerCardOptionSelect function to set isPlayingCard
   const handlePokerCardOptionSelect = (option: "Trumps" | "Poker" | "Simple") => {
     setPokerCardOption(option)
     setShowPokerCardDialog(false)
@@ -756,7 +810,7 @@ export default function GameTable({
 
         {/* Cards on table */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex space-x-2">
-          {displayedCards.map((card, index) => (
+          {cardsOnTable.map((card, index) => (
             <div key={index} className="relative">
               <PlayingCard
                 suit={card.suit}

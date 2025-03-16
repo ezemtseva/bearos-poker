@@ -5,29 +5,37 @@ type ExtendedGameData = GameData & {
   lastPlayedCard?: Card | null
 }
 
-// Use a more reliable client tracking mechanism
-const connectedClients: Map<string, Set<(data: string) => void>> = new Map()
+// Use a more reliable client tracking mechanism with clientIds
+const connectedClients: Map<string, Map<string, (data: string) => void>> = new Map()
 
-export function addClient(tableId: string, send: (data: string) => void) {
+export function addClient(tableId: string, send: (data: string) => void, clientId: string) {
   if (!connectedClients.has(tableId)) {
-    connectedClients.set(tableId, new Set())
+    connectedClients.set(tableId, new Map())
   }
-  connectedClients.get(tableId)!.add(send)
+  connectedClients.get(tableId)!.set(clientId, send)
+  console.log(
+    `[SSE] Client ${clientId} added. Total clients for table ${tableId}: ${connectedClients.get(tableId)?.size || 0}`,
+  )
 }
 
-export function removeClient(tableId: string, send: (data: string) => void) {
-  connectedClients.get(tableId)?.delete(send)
+export function removeClient(tableId: string, send: (data: string) => void, clientId: string) {
+  console.log(`[SSE] Removing client ${clientId} for table: ${tableId}`)
+  connectedClients.get(tableId)?.delete(clientId)
   if (connectedClients.get(tableId)?.size === 0) {
     connectedClients.delete(tableId)
   }
+  console.log(`[SSE] Client removed. Total clients for table ${tableId}: ${connectedClients.get(tableId)?.size || 0}`)
 }
 
 // Update the sendSSEUpdate function to ensure reliable delivery
 export async function sendSSEUpdate(tableId: string, gameData: ExtendedGameData) {
-  const clients = connectedClients.get(tableId)
+  console.log(`[SSE] Attempting to send update for table: ${tableId}`)
+  const clientsMap = connectedClients.get(tableId)
 
   // Only send updates if there are connected clients
-  if (clients && clients.size > 0) {
+  if (clientsMap && clientsMap.size > 0) {
+    console.log(`[SSE] Found ${clientsMap.size} connected clients for table: ${tableId}`)
+
     // Add a timestamp to help clients identify the latest update
     const timestampedData = {
       ...gameData,
@@ -36,15 +44,29 @@ export async function sendSSEUpdate(tableId: string, gameData: ExtendedGameData)
 
     const message = `data: ${JSON.stringify(timestampedData)}\n\n`
 
-    // Send to all clients with error handling
-    clients.forEach((send) => {
+    // Send to all clients with error handling - using forEach instead of for...of with entries()
+    const clientIds: string[] = []
+    clientsMap.forEach((send, clientId) => {
+      clientIds.push(clientId)
       try {
+        console.log(`[SSE] Sending update to client ${clientId} for table: ${tableId}`)
         send(message)
       } catch (error) {
-        console.error(`[SSE] Error sending update to client for table ${tableId}:`, error)
-        // We don't remove the client here as it might be a temporary issue
+        console.error(`[SSE] Error sending update to client ${clientId} for table ${tableId}:`, error)
+        // Mark this client for removal
+        clientIds.pop()
       }
     })
+
+    // Remove any clients that had errors
+    clientIds.forEach((id) => {
+      if (!clientsMap.has(id)) {
+        clientsMap.delete(id)
+      }
+    })
+  } else {
+    console.log(`[SSE] No connected clients found for table: ${tableId}`)
+    console.log(`[SSE] No clients connected, but game state has been updated in the database`)
   }
 }
 

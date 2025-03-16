@@ -34,7 +34,8 @@ export default function Game() {
         eventSourceRef.current.close()
       }
 
-      const eventSource = new EventSource(`/api/sse?tableId=${tableId}`)
+      console.log(`Connecting to SSE for table: ${tableId}`)
+      const eventSource = new EventSource(`/api/sse?tableId=${tableId}&clientId=${Date.now()}`)
 
       eventSource.onmessage = (event) => {
         try {
@@ -66,10 +67,19 @@ export default function Game() {
         }
       })
 
+      eventSource.addEventListener("open", () => {
+        console.log("SSE connection opened for table:", tableId)
+      })
+
       eventSource.onerror = (error) => {
         console.error("SSE error:", error)
         eventSource.close()
-        setTimeout(connectSSE, 2000) // Attempt to reconnect after 2 seconds
+
+        // Add a small random delay before reconnecting to prevent all clients
+        // from trying to reconnect at the exact same time
+        const reconnectDelay = 2000 + Math.random() * 1000
+        console.log(`Will attempt to reconnect SSE in ${reconnectDelay}ms`)
+        setTimeout(connectSSE, reconnectDelay)
       }
 
       eventSourceRef.current = eventSource
