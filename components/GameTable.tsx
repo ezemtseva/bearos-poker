@@ -789,7 +789,7 @@ export default function GameTable({
               {/* Bet Banner */}
               {showBetBanner && (
                 <div
-                  className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-yellow-500 text-black px-3 py-1 rounded-md shadow-md z-10 whitespace-nowrap font-bold"
+                  className="absolute -top-16 left-1/2 transform -translate-x-1/2 bg-purple-900 text-white px-3 py-1 rounded-md shadow-md z-10 whitespace-nowrap"
                   style={{
                     animation: "fadeIn 0.3s ease-in-out",
                   }}
