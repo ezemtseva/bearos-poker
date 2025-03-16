@@ -4,9 +4,6 @@ import type { GameData, Player, ScoreTableRow, PlayerScore } from "../../../type
 
 export const runtime = "edge"
 
-// Keep track of active connections per request
-const ACTIVE_CONNECTIONS = new Map<string, Set<Response>>()
-
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const tableId = searchParams.get("tableId")
@@ -18,62 +15,35 @@ export async function GET(req: NextRequest) {
 
   console.log(`[SSE] New connection request for table: ${tableId}, clientId: ${clientId}`)
 
-  // Create a new controller for this connection
-  const encoder = new TextEncoder()
-  const stream = new TransformStream()
-  const writer = stream.writable.getWriter()
-
-  // Function to send events to this specific client
-  const sendEvent = async (event: string, data: any) => {
-    try {
-      await writer.write(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`))
-    } catch (error) {
-      console.error(`[SSE] Error sending event to client ${clientId}:`, error)
-    }
-  }
-
-  // Send initial game state
   try {
-    const initialState = await getGameState(tableId)
-    await sendEvent("init", initialState)
+    // Get the current game state
+    const gameState = await getGameState(tableId)
+
+    // Create a simple response with the current state
+    // This will return quickly and not time out
+    return new NextResponse(
+      `event: update\ndata: ${JSON.stringify({
+        ...gameState,
+        _timestamp: Date.now(),
+      })}\n\n`,
+      {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache, no-transform",
+          Connection: "keep-alive",
+        },
+      },
+    )
   } catch (error) {
-    console.error(`[SSE] Error sending initial state to client ${clientId}:`, error)
+    console.error(`[SSE] Error fetching game state for table ${tableId}:`, error)
+    return new NextResponse(`event: error\ndata: ${JSON.stringify({ error: "Failed to fetch game state" })}\n\n`, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+      },
+    })
   }
-
-  // Set up a polling interval for this specific client
-  const intervalId = setInterval(async () => {
-    try {
-      const latestState = await getGameState(tableId)
-      await sendEvent("update", latestState)
-    } catch (error) {
-      console.error(`[SSE] Error polling for updates for client ${clientId}:`, error)
-    }
-  }, 2000) // Poll every 2 seconds
-
-  // Set up heartbeat
-  const heartbeatId = setInterval(async () => {
-    try {
-      await sendEvent("heartbeat", { timestamp: Date.now() })
-    } catch (error) {
-      console.error(`[SSE] Error sending heartbeat to client ${clientId}:`, error)
-    }
-  }, 15000)
-
-  // Handle connection close
-  req.signal.addEventListener("abort", () => {
-    console.log(`[SSE] Connection aborted for client ${clientId}, table: ${tableId}`)
-    clearInterval(intervalId)
-    clearInterval(heartbeatId)
-    writer.close().catch(console.error)
-  })
-
-  return new Response(stream.readable, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-    },
-  })
 }
 
 async function getGameState(tableId: string): Promise<GameData> {
