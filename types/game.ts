@@ -18,6 +18,7 @@ export interface PlayerScore {
   cumulativePoints: number
   roundPoints: number
   bet: number | null
+  wins?: number
 }
 
 export interface Card {

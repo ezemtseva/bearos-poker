@@ -1095,6 +1095,7 @@ export default function GameTable({
               {players.map((player) => (
                 <React.Fragment key={player.name}>
                   <TableHead className="text-center">Bet</TableHead>
+                  <TableHead className="text-center">Wins</TableHead>
                   <TableHead className="text-center">Total</TableHead>
                   <TableHead className="text-center">Round</TableHead>
                 </React.Fragment>
@@ -1118,10 +1119,20 @@ export default function GameTable({
                       roundPoints: 0,
                       bet: null,
                     }
+                    // Get the current wins for this player in this round
+                    const wins =
+                      round.roundId === currentRound ? player.roundWins || 0 : round.scores[player.name]?.wins || 0
                     return (
                       <React.Fragment key={player.name}>
                         <TableCell className="text-center">
                           {playerScore.bet !== null ? playerScore.bet : "-"}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {round.roundId === currentRound
+                            ? wins
+                            : playerScore.wins !== undefined
+                              ? playerScore.wins
+                              : "-"}
                         </TableCell>
                         <TableCell className="text-center">{playerScore.cumulativePoints}</TableCell>
                         <TableCell
@@ -1146,7 +1157,7 @@ export default function GameTable({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={players.length * 3 + 1}>No scores available</TableCell>
+                <TableCell colSpan={players.length * 4 + 1}>No scores available</TableCell>
               </TableRow>
             )}
           </TableBody>

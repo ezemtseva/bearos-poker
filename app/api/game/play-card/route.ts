@@ -363,6 +363,11 @@ export async function POST(req: NextRequest) {
       // Update round wins for the winner
       players[winnerIndex].roundWins = (players[winnerIndex].roundWins || 0) + 1
 
+      // Update the wins in the score table for the current round
+      if (scoreTable[currentRound - 1] && scoreTable[currentRound - 1].scores[players[winnerIndex].name]) {
+        scoreTable[currentRound - 1].scores[players[winnerIndex].name].wins = players[winnerIndex].roundWins
+      }
+
       // Prepare for the next play or round
       currentPlay++
       const gameLength = game.game_length || "short"
@@ -414,6 +419,7 @@ export async function POST(req: NextRequest) {
             cumulativePoints: player.score,
             roundPoints: roundPoints,
             bet: playerBet,
+            wins: playsWon, // Add this line to store the wins
           }
           scoreTable[roundIndex].scores[player.name] = playerScore
           player.roundWins = 0 // Reset for next round
