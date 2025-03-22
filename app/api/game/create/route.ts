@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
       bet: null,
     }
 
-    // Update the gameData object to include gameLength
+    // Update the gameData object to use "basic" as the default game length
     const gameData: GameData = {
       tableId,
       players: [owner],
@@ -44,56 +44,56 @@ export async function POST(req: NextRequest) {
       roundStartPlayerIndex: 0,
       allBetsPlaced: false,
       gameOver: false,
-      gameLength: "short", // Default to short game
+      gameLength: "basic", // Changed from "short" to "basic"
     }
 
     console.log("Attempting to insert new game into database")
     console.log("Table ID:", tableId)
     console.log("Player:", owner)
 
-    // Update the SQL INSERT statement to include game_length
+    // Update the SQL INSERT statement to use "basic" as the default game_length
     try {
       const result = await sql`
-        INSERT INTO poker_games (
-          table_id, 
-          players, 
-          game_started, 
-          current_round, 
-          current_play, 
-          current_turn, 
-          cards_on_table, 
-          deck, 
-          score_table, 
-          all_cards_played_timestamp,
-          play_end_timestamp,
-          last_played_card,
-          all_cards_played,
-          round_start_player_index,
-          all_bets_placed,
-          game_over,
-          game_length
-        )
-        VALUES (
-          ${tableId}, 
-          ${JSON.stringify([owner])}::jsonb, 
-          false, 
-          0, 
-          0, 
-          0, 
-          '[]'::jsonb, 
-          '[]'::jsonb, 
-          '[]'::jsonb, 
-          null,
-          null,
-          null,
-          false,
-          0,
-          false,
-          false,
-          'short'
-        )
-        RETURNING *
-      `
+      INSERT INTO poker_games (
+        table_id, 
+        players, 
+        game_started, 
+        current_round, 
+        current_play, 
+        current_turn, 
+        cards_on_table, 
+        deck, 
+        score_table, 
+        all_cards_played_timestamp,
+        play_end_timestamp,
+        last_played_card,
+        all_cards_played,
+        round_start_player_index,
+        all_bets_placed,
+        game_over,
+        game_length
+      )
+      VALUES (
+        ${tableId}, 
+        ${JSON.stringify([owner])}::jsonb, 
+        false, 
+        0, 
+        0, 
+        0, 
+        '[]'::jsonb, 
+        '[]'::jsonb, 
+        '[]'::jsonb, 
+        null,
+        null,
+        null,
+        false,
+        0,
+        false,
+        false,
+        'basic'
+      )
+      RETURNING *
+    `
       console.log("Database insert result:", result)
     } catch (dbError) {
       console.error("Database error:", dbError)

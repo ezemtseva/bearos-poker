@@ -312,6 +312,29 @@ export default function Game() {
     )
   }
 
+  const safeGameData = gameData || {
+    tableId: "",
+    players: [],
+    gameStarted: false,
+    currentRound: 0,
+    currentPlay: 0,
+    currentTurn: 0,
+    cardsOnTable: [],
+    deck: [],
+    scoreTable: [],
+    allCardsPlayedTimestamp: null,
+    playEndTimestamp: null,
+    lastPlayedCard: null,
+    allCardsPlayed: false,
+    highestCard: null,
+    roundStartPlayerIndex: 0,
+    allBetsPlaced: false,
+    gameOver: false,
+    currentBettingTurn: undefined,
+    betsPlacedTimestamp: null,
+    gameLength: "basic", // Changed from "short" to "basic"
+  }
+
   if (!gameData) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
@@ -323,21 +346,21 @@ export default function Game() {
   return (
     <div className="container mx-auto px-4 py-8">
       <GameTable
-        tableId={gameData.tableId}
-        players={gameData.players}
+        tableId={safeGameData.tableId}
+        players={safeGameData.players}
         isOwner={isOwner}
-        gameStarted={gameData.gameStarted}
-        currentRound={gameData.currentRound}
-        currentPlay={gameData.currentPlay}
-        currentTurn={gameData.currentTurn}
-        cardsOnTable={gameData.cardsOnTable}
-        lastPlayedCard={gameData.lastPlayedCard}
+        gameStarted={safeGameData.gameStarted}
+        currentRound={safeGameData.currentRound}
+        currentPlay={safeGameData.currentPlay}
+        currentTurn={safeGameData.currentTurn}
+        cardsOnTable={safeGameData.cardsOnTable}
+        lastPlayedCard={safeGameData.lastPlayedCard}
         onShare={handleShare}
         onStartGame={handleStartGame}
         onPlayCard={handlePlayCard}
         onPlaceBet={handlePlaceBet}
         onConfigureGame={handleConfigureGame}
-        gameData={gameData}
+        gameData={safeGameData}
       />
     </div>
   )
