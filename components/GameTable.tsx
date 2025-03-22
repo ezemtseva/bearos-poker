@@ -1083,9 +1083,9 @@ export default function GameTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="text-white font-bold">Round</TableHead>
+              <TableHead className="text-white font-bold text-left">Round</TableHead>
               {players.map((player) => (
-                <TableHead key={player.name} colSpan={3} className="text-center text-white font-bold">
+                <TableHead key={player.name} colSpan={4} className="text-left text-white font-bold">
                   {player.name}
                 </TableHead>
               ))}
