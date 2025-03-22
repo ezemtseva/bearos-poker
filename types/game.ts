@@ -50,5 +50,7 @@ export interface GameData {
   currentBettingTurn?: number
   betsPlacedTimestamp?: number | null
   gameLength?: GameLength
+  hasGoldenRound?: boolean
+  isGoldenRound?: boolean
 }
 

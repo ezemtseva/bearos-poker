@@ -45,7 +45,9 @@ export async function GET(req: NextRequest) {
       gameOver: game.game_over || false,
       currentBettingTurn: game.current_betting_turn,
       betsPlacedTimestamp: game.bets_placed_timestamp,
-      gameLength: game.game_length || "short",
+      gameLength: game.game_length || "basic",
+      hasGoldenRound: game.has_golden_round || false,
+      isGoldenRound: game.is_golden_round || false,
     }
 
     console.log(`[GAME-STATE] State fetched successfully for table: ${tableId}`)

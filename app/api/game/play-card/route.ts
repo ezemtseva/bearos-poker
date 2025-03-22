@@ -105,22 +105,34 @@ function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[]): bool
   return true
 }
 
+// Add this function to check if the current round is the golden round
+function isGoldenRound(roundName: string): boolean {
+  return roundName === "G"
+}
+
 // Add a function to get the total number of rounds based on game length
-function getTotalRounds(gameLength: GameLength): number {
+function getTotalRounds(gameLength: GameLength, hasGoldenRound: boolean): number {
+  let baseRounds = 0
+
   switch (gameLength) {
     case "short":
-      return 18
+      baseRounds = 18
+      break
     case "basic":
-      return 22
+      baseRounds = 22
+      break
     case "long":
-      return 28
+      baseRounds = 28
+      break
     default:
-      return 18
+      baseRounds = 18
   }
+
+  return hasGoldenRound ? baseRounds + 1 : baseRounds
 }
 
 // Add a function to get the round names based on game length
-function getRoundNames(gameLength: GameLength): string[] {
+function getRoundNames(gameLength: GameLength, hasGoldenRound: boolean): string[] {
   switch (gameLength) {
     case "short":
       return ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
@@ -186,12 +198,13 @@ function getRoundNames(gameLength: GameLength): string[] {
 }
 
 // Update the cardsPerRound function to handle different game lengths
-function cardsPerRound(round: number, gameLength: GameLength): number {
-  const roundNames = getRoundNames(gameLength)
+function cardsPerRound(round: number, gameLength: GameLength, hasGoldenRound: boolean): number {
+  const roundNames = getRoundNames(gameLength, hasGoldenRound)
   if (round <= 0 || round > roundNames.length) return 0
 
   const roundName = roundNames[round - 1]
   if (roundName === "B") return 6
+  if (roundName === "G") return 1 // Golden round has 1 card
   return Number.parseInt(roundName, 10)
 }
 
@@ -341,12 +354,14 @@ export async function POST(req: NextRequest) {
       // Prepare for the next play or round
       currentPlay++
       const gameLength = game.game_length || "short"
-      const cardsPerRoundValue = cardsPerRound(currentRound, gameLength)
+      const hasGoldenRound = game.has_golden_round || false
+      const cardsPerRoundValue = cardsPerRound(currentRound, gameLength, hasGoldenRound)
       if (currentPlay > cardsPerRoundValue) {
         // End of round
         // Update scores in the score table
         const roundIndex = currentRound - 1
         const isRoundB = scoreTable[roundIndex].roundName === "B"
+        const isRoundG = isGoldenRound(scoreTable[roundIndex].roundName)
         const multiplier = isRoundB ? 2 : 1
 
         players.forEach((player) => {
@@ -354,19 +369,29 @@ export async function POST(req: NextRequest) {
           const playerBet = player.bet
 
           let roundPoints = 0
-          if (playerBet !== null) {
-            if (playsWon === 0 && playerBet === 0) {
-              // New rule: Player bet 0 and didn't win any plays
-              roundPoints = 5 * multiplier
-            } else if (playsWon > playerBet) {
-              // Player won more plays than they bet
-              roundPoints = playsWon * multiplier
-            } else if (playsWon === playerBet) {
-              // Player won exactly as many plays as they bet
-              roundPoints = playsWon * 10 * multiplier
-            } else {
-              // Player won fewer plays than they bet
-              roundPoints = (playsWon - playerBet) * 10 * multiplier
+
+          // Special scoring for Golden Round
+          if (isRoundG) {
+            // Winner gets 100 points, others get 0
+            if (playsWon > 0) {
+              roundPoints = 100
+            }
+          } else {
+            // Normal scoring for regular rounds
+            if (playerBet !== null) {
+              if (playsWon === 0 && playerBet === 0) {
+                // Player bet 0 and didn't win any plays
+                roundPoints = 5 * multiplier
+              } else if (playsWon > playerBet) {
+                // Player won more plays than they bet
+                roundPoints = playsWon * multiplier
+              } else if (playsWon === playerBet) {
+                // Player won exactly as many plays as they bet
+                roundPoints = playsWon * 10 * multiplier
+              } else {
+                // Player won fewer plays than they bet
+                roundPoints = (playsWon - playerBet) * 10 * multiplier
+              }
             }
           }
 
@@ -382,16 +407,30 @@ export async function POST(req: NextRequest) {
           player.bet = null // Reset bet for next round
         })
 
-        // In the POST function, update the code to use the game length
-        const gameLength = game.game_length || "short"
-        const totalRounds = getTotalRounds(gameLength)
+        // In the POST function, update the code that checks if the round is over
+        const gameLength = game.game_length || "basic"
+        const hasGoldenRound = game.has_golden_round || false
+        const totalRounds = getTotalRounds(gameLength, hasGoldenRound)
 
         // Update the code that checks if the round is over
         if (currentRound < totalRounds) {
           // Start new round
           currentRound++
           currentPlay = 1
-          const newCardsPerRound = cardsPerRound(currentRound, gameLength)
+
+          // Check if we're entering the golden round
+          const isEnteringGoldenRound = hasGoldenRound && currentRound === totalRounds
+
+          // Update the database to mark if we're in the golden round
+          if (isEnteringGoldenRound) {
+            await sql`
+              UPDATE poker_games
+              SET is_golden_round = true
+              WHERE table_id = ${tableId}
+            `
+          }
+
+          const newCardsPerRound = cardsPerRound(currentRound, gameLength, hasGoldenRound)
           if (deck.length < newCardsPerRound * players.length) {
             deck = createDeck() // Create a new deck if needed
           }
@@ -401,22 +440,27 @@ export async function POST(req: NextRequest) {
           roundStartPlayerIndex = getNextRoundStartPlayer(currentRound, players)
           currentTurn = roundStartPlayerIndex
 
-          // Reset all bets placed flag and set the first player to bet
-          allBetsPlaced = false
+          // For golden round, we skip betting
+          if (isEnteringGoldenRound) {
+            allBetsPlaced = true
+          } else {
+            // Reset all bets placed flag and set the first player to bet
+            allBetsPlaced = false
 
-          // Set the first player to bet to be the same as the round start player
-          const currentBettingTurn = roundStartPlayerIndex
+            // Set the first player to bet to be the same as the round start player
+            const currentBettingTurn = roundStartPlayerIndex
+
+            // Update the database with the currentBettingTurn
+            await sql`
+              UPDATE poker_games
+              SET current_betting_turn = ${currentBettingTurn}
+              WHERE table_id = ${tableId}
+            `
+          }
 
           console.log(
             `Starting Round ${currentRound}. Cards dealt: ${newCardsPerRound} per player. First turn: ${players[currentTurn].name}`,
           )
-
-          // Update the database with the currentBettingTurn
-          await sql`
-            UPDATE poker_games
-            SET current_betting_turn = ${currentBettingTurn}
-            WHERE table_id = ${tableId}
-          `
         } else {
           // Update the game over check
           if (currentRound >= totalRounds) {
@@ -440,6 +484,8 @@ export async function POST(req: NextRequest) {
               allBetsPlaced: false,
               gameOver: true,
               gameLength,
+              hasGoldenRound,
+              isGoldenRound: false,
             }
             await sql`
               UPDATE poker_games
@@ -457,7 +503,8 @@ export async function POST(req: NextRequest) {
                   highest_card = null,
                   round_start_player_index = ${roundStartPlayerIndex},
                   all_bets_placed = false,
-                  game_over = true
+                  game_over = true,
+                  is_golden_round = false
               WHERE table_id = ${tableId}
             `
             return NextResponse.json({ message: "Game over", gameData: gameOverData })

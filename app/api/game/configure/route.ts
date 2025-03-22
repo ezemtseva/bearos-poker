@@ -4,8 +4,12 @@ import type { GameData, GameLength, Player, ScoreTableRow, PlayerScore } from ".
 
 export const runtime = "edge"
 
-function initializeScoreTable(players: Player[] = [], gameLength: GameLength): ScoreTableRow[] {
-  const roundNames = getRoundNames(gameLength)
+function initializeScoreTable(
+  players: Player[] = [],
+  gameLength: GameLength,
+  hasGoldenRound: boolean,
+): ScoreTableRow[] {
+  const roundNames = getRoundNames(gameLength, hasGoldenRound)
 
   return roundNames.map((roundName, index) => {
     const roundId = index + 1
@@ -20,12 +24,15 @@ function initializeScoreTable(players: Player[] = [], gameLength: GameLength): S
   })
 }
 
-function getRoundNames(gameLength: GameLength): string[] {
+function getRoundNames(gameLength: GameLength, hasGoldenRound: boolean): string[] {
+  let rounds: string[] = []
+
   switch (gameLength) {
     case "short":
-      return ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
+      rounds = ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
+      break
     case "basic":
-      return [
+      rounds = [
         "1",
         "2",
         "3",
@@ -49,8 +56,9 @@ function getRoundNames(gameLength: GameLength): string[] {
         "2",
         "1",
       ]
+      break
     case "long":
-      return [
+      rounds = [
         "1",
         "2",
         "3",
@@ -80,20 +88,30 @@ function getRoundNames(gameLength: GameLength): string[] {
         "2",
         "1",
       ]
+      break
     default:
-      return ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
+      rounds = ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
   }
+
+  // Add golden round if enabled
+  if (hasGoldenRound) {
+    rounds.push("G")
+  }
+
+  return rounds
 }
 
 export async function POST(req: NextRequest) {
-  const { tableId, gameLength } = await req.json()
+  const { tableId, gameLength, hasGoldenRound = false } = await req.json()
 
   if (!tableId || !gameLength) {
     return NextResponse.json({ error: "Table ID and game length are required" }, { status: 400 })
   }
 
   try {
-    console.log(`[CONFIGURE-GAME] Configuring game for table: ${tableId}, length: ${gameLength}`)
+    console.log(
+      `[CONFIGURE-GAME] Configuring game for table: ${tableId}, length: ${gameLength}, golden round: ${hasGoldenRound}`,
+    )
 
     const result = await sql`
       SELECT * FROM poker_games
@@ -108,14 +126,15 @@ export async function POST(req: NextRequest) {
     const game = result.rows[0]
     const players = game.players as Player[]
 
-    // Initialize score table based on game length
-    const scoreTable = initializeScoreTable(players, gameLength)
+    // Initialize score table based on game length and golden round
+    const scoreTable = initializeScoreTable(players, gameLength, hasGoldenRound)
 
     // Update the game in the database
     await sql`
       UPDATE poker_games
       SET score_table = ${JSON.stringify(scoreTable)}::jsonb,
-          game_length = ${gameLength}
+          game_length = ${gameLength},
+          has_golden_round = ${hasGoldenRound}
       WHERE table_id = ${tableId}
     `
 
@@ -141,6 +160,8 @@ export async function POST(req: NextRequest) {
       allBetsPlaced: game.all_bets_placed || false,
       gameOver: game.game_over || false,
       gameLength: gameLength,
+      hasGoldenRound: hasGoldenRound,
+      isGoldenRound: false,
     }
 
     return NextResponse.json({ message: "Game configured successfully", gameData: updatedGameData })

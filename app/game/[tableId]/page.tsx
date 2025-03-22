@@ -269,14 +269,14 @@ export default function Game() {
     }
   }
 
-  const handleConfigureGame = async (gameLength: GameLength) => {
+  const handleConfigureGame = async (gameLength: GameLength, hasGoldenRound: boolean) => {
     try {
       const response = await fetch("/api/game/configure", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ tableId, gameLength }),
+        body: JSON.stringify({ tableId, gameLength, hasGoldenRound }),
       })
 
       if (!response.ok) {
@@ -292,7 +292,7 @@ export default function Game() {
 
       toast({
         title: "Game Configured",
-        description: `Game length set to ${gameLength}.`,
+        description: `Game type set to ${gameLength}${hasGoldenRound ? " with Golden Round" : ""}.`,
       })
     } catch (error) {
       console.error("Error configuring game:", error)

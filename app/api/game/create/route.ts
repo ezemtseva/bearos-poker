@@ -44,7 +44,9 @@ export async function POST(req: NextRequest) {
       roundStartPlayerIndex: 0,
       allBetsPlaced: false,
       gameOver: false,
-      gameLength: "basic", // Changed from "short" to "basic"
+      gameLength: "basic",
+      hasGoldenRound: false,
+      isGoldenRound: false,
     }
 
     console.log("Attempting to insert new game into database")
@@ -71,7 +73,9 @@ export async function POST(req: NextRequest) {
         round_start_player_index,
         all_bets_placed,
         game_over,
-        game_length
+        game_length,
+        has_golden_round,
+        is_golden_round
       )
       VALUES (
         ${tableId}, 
@@ -90,7 +94,9 @@ export async function POST(req: NextRequest) {
         0,
         false,
         false,
-        'basic'
+        'basic',
+        false,
+        false
       )
       RETURNING *
     `

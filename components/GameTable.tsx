@@ -29,7 +29,7 @@ interface GameTableProps {
   onStartGame: () => void
   onPlayCard: (card: Card) => void
   onPlaceBet: (bet: number) => void
-  onConfigureGame: (gameLength: GameLength) => void
+  onConfigureGame: (gameLength: GameLength, hasGoldenRound: boolean) => void
   gameData: GameData
   lastPlayedCard: Card | null
 }
@@ -93,6 +93,7 @@ export default function GameTable({
     currentBettingTurn: undefined,
     betsPlacedTimestamp: null,
     gameLength: "short",
+    hasGoldenRound: false,
   }
 
   // Get current player information early
@@ -761,6 +762,19 @@ export default function GameTable({
       currentBettingPlayerName,
     })
 
+    // If we're in the golden round, show a special message
+    if (safeGameData.isGoldenRound) {
+      if (isCurrentPlayerTurn) {
+        return <span className="text-amber-500 font-bold">Golden Round! It's your turn to play a card!</span>
+      } else {
+        return (
+          <span className="text-amber-500 font-bold">
+            Golden Round! Waiting for {players[currentTurn]?.name || "other player"} to play a card...
+          </span>
+        )
+      }
+    }
+
     // If all bets are placed, we're in the card playing phase
     if (safeGameData.allBetsPlaced) {
       if (isCurrentPlayerTurn) {
@@ -802,8 +816,8 @@ export default function GameTable({
   }
 
   // Add this function to handle saving the game configuration
-  const handleSaveGameConfig = (gameLength: GameLength) => {
-    onConfigureGame(gameLength)
+  const handleSaveGameConfig = (gameLength: GameLength, hasGoldenRound: boolean) => {
+    onConfigureGame(gameLength, hasGoldenRound)
   }
 
   return (
@@ -1153,6 +1167,7 @@ export default function GameTable({
         onClose={() => setShowConfigureDialog(false)}
         onSave={handleSaveGameConfig}
         currentGameLength={safeGameData.gameLength || "short"}
+        currentHasGoldenRound={safeGameData.hasGoldenRound || false}
       />
 
       {/* Add CSS for animations */}
