@@ -1070,7 +1070,7 @@ export default function GameTable({
               <p>No cards in hand</p>
             )}
           </div>
-          {gameStarted && currentRound <= 18 && (
+          {gameStarted && currentRound <= getTotalRounds(safeGameData.gameLength || "basic") && (
             <p className="text-center mt-2 font-bold">{renderGameStatusMessage()}</p>
           )}
           {errorMessage && <p className="text-red-600 text-center mt-2">{errorMessage}</p>}
@@ -1096,7 +1096,7 @@ export default function GameTable({
                 <React.Fragment key={player.name}>
                   <TableHead className="text-center">Bet</TableHead>
                   <TableHead className="text-center">Wins</TableHead>
-                  <TableHead className="text-center">Total</TableHead>
+                  <TableHead className="text-center">Points</TableHead>
                   <TableHead className="text-center">Round</TableHead>
                 </React.Fragment>
               ))}
