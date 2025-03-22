@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react"
 import { useParams } from "next/navigation"
 import GameTable from "../../../components/GameTable"
 import { useToast } from "@/hooks/use-toast"
-import type { GameData, Card } from "../../../types/game"
+import type { GameData, Card, GameLength } from "../../../types/game"
 
 export default function Game() {
   const params = useParams()
@@ -269,6 +269,41 @@ export default function Game() {
     }
   }
 
+  const handleConfigureGame = async (gameLength: GameLength) => {
+    try {
+      const response = await fetch("/api/game/configure", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tableId, gameLength }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to configure the game")
+      }
+
+      const data = await response.json()
+      console.log("Game configured. Received data:", data)
+      updateGameState(data.gameData)
+
+      // Fetch latest state after a short delay
+      fetchLatestState()
+
+      toast({
+        title: "Game Configured",
+        description: `Game length set to ${gameLength}.`,
+      })
+    } catch (error) {
+      console.error("Error configuring game:", error)
+      toast({
+        title: "Error",
+        description: "Failed to configure the game. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
@@ -301,6 +336,7 @@ export default function Game() {
         onStartGame={handleStartGame}
         onPlayCard={handlePlayCard}
         onPlaceBet={handlePlaceBet}
+        onConfigureGame={handleConfigureGame}
         gameData={gameData}
       />
     </div>

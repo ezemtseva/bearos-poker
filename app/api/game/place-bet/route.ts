@@ -1,8 +1,84 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
-import type { GameData, Player, ScoreTableRow } from "../../../../types/game"
+import type { GameData, GameLength, Player, ScoreTableRow } from "../../../../types/game"
 
 export const runtime = "edge"
+
+// Add a function to get the round names based on game length
+function getRoundNames(gameLength: GameLength): string[] {
+  switch (gameLength) {
+    case "short":
+      return ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
+    case "basic":
+      return [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "6",
+        "6",
+        "B",
+        "B",
+        "B",
+        "B",
+        "B",
+        "B",
+        "6",
+        "6",
+        "6",
+        "5",
+        "4",
+        "3",
+        "2",
+        "1",
+      ]
+    case "long":
+      return [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "6",
+        "6",
+        "6",
+        "6",
+        "6",
+        "B",
+        "B",
+        "B",
+        "B",
+        "B",
+        "B",
+        "6",
+        "6",
+        "6",
+        "6",
+        "6",
+        "6",
+        "5",
+        "4",
+        "3",
+        "2",
+        "1",
+      ]
+    default:
+      return ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
+  }
+}
+
+// Update the cardsPerRound function to handle different game lengths
+function cardsPerRound(round: number, gameLength: GameLength): number {
+  const roundNames = getRoundNames(gameLength)
+  if (round <= 0 || round > roundNames.length) return 0
+
+  const roundName = roundNames[round - 1]
+  if (roundName === "B") return 6
+  return Number.parseInt(roundName, 10)
+}
 
 export async function POST(req: NextRequest) {
   const { tableId, playerName, bet } = await req.json()
@@ -49,8 +125,11 @@ export async function POST(req: NextRequest) {
     // Get the current round
     const currentRound = game.current_round
 
-    // Calculate cards per round
-    const cardsThisRound = currentRound <= 6 ? currentRound : currentRound <= 12 ? 6 : 19 - currentRound
+    // In the POST function, get the game length from the database
+    const gameLength = game.game_length || "short"
+
+    // Update the calculation of cardsThisRound
+    const cardsThisRound = cardsPerRound(currentRound, gameLength)
 
     // Validate bet is within range
     if (bet < 0 || bet > cardsThisRound) {
@@ -140,6 +219,8 @@ export async function POST(req: NextRequest) {
     }
 
     const updatedGame = updatedResult.rows[0]
+
+    // Update the gameData object in the response to include gameLength
     const updatedGameData: GameData = {
       tableId: updatedGame.table_id,
       players: updatedGame.players,
@@ -160,6 +241,7 @@ export async function POST(req: NextRequest) {
       gameOver: updatedGame.game_over,
       currentBettingTurn: updatedGame.current_betting_turn,
       betsPlacedTimestamp: updatedGame.bets_placed_timestamp,
+      gameLength: updatedGame.game_length || "short",
     }
 
     console.log(

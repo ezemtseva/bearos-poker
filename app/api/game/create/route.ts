@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
       bet: null,
     }
 
+    // Update the gameData object to include gameLength
     const gameData: GameData = {
       tableId,
       players: [owner],
@@ -42,13 +43,15 @@ export async function POST(req: NextRequest) {
       highestCard: null,
       roundStartPlayerIndex: 0,
       allBetsPlaced: false,
-      gameOver: false, // Add this line to include the gameOver property
+      gameOver: false,
+      gameLength: "short", // Default to short game
     }
 
     console.log("Attempting to insert new game into database")
     console.log("Table ID:", tableId)
     console.log("Player:", owner)
 
+    // Update the SQL INSERT statement to include game_length
     try {
       const result = await sql`
         INSERT INTO poker_games (
@@ -67,7 +70,8 @@ export async function POST(req: NextRequest) {
           all_cards_played,
           round_start_player_index,
           all_bets_placed,
-          game_over
+          game_over,
+          game_length
         )
         VALUES (
           ${tableId}, 
@@ -85,7 +89,8 @@ export async function POST(req: NextRequest) {
           false,
           0,
           false,
-          false
+          false,
+          'short'
         )
         RETURNING *
       `

@@ -27,6 +27,8 @@ export interface Card {
   pokerOption?: "Trumps" | "Poker" | "Simple"
 }
 
+export type GameLength = "short" | "basic" | "long"
+
 export interface GameData {
   tableId: string
   players: Player[]
@@ -47,5 +49,6 @@ export interface GameData {
   gameOver: boolean
   currentBettingTurn?: number
   betsPlacedTimestamp?: number | null
+  gameLength?: GameLength
 }
 

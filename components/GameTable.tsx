@@ -13,6 +13,8 @@ import GameResultsDialog from "./GameResultsDialog"
 import PokerCardDialog from "./PokerCardDialog"
 // Add this at the top of the file, after the imports
 import { useMemo } from "react"
+// Add the import for ConfigureGameDialog near the top with other imports
+import ConfigureGameDialog, { type GameLength } from "./ConfigureGameDialog"
 
 interface GameTableProps {
   tableId: string
@@ -26,7 +28,8 @@ interface GameTableProps {
   onShare: () => void
   onStartGame: () => void
   onPlayCard: (card: Card) => void
-  onPlaceBet: (bet: number) => void // Add this line
+  onPlaceBet: (bet: number) => void
+  onConfigureGame: (gameLength: GameLength) => void
   gameData: GameData
   lastPlayedCard: Card | null
 }
@@ -46,7 +49,10 @@ export default function GameTable({
   onPlaceBet,
   gameData,
   lastPlayedCard,
+  onConfigureGame,
 }: GameTableProps) {
+  // Add a new state variable for the dialog
+  const [showConfigureDialog, setShowConfigureDialog] = useState(false)
   // Add a new state variable near the top of the component with the other state variables
   const [isPlayingCard, setIsPlayingCard] = useState(false)
   const [displayedCards, setDisplayedCards] = useState<Card[]>(cardsOnTable)
@@ -86,6 +92,7 @@ export default function GameTable({
     gameOver: false,
     currentBettingTurn: undefined,
     betsPlacedTimestamp: null,
+    gameLength: "short",
   }
 
   // Get current player information early
@@ -247,7 +254,98 @@ export default function GameTable({
     }
   }, [safeGameData.gameOver])
 
-  const cardsThisRound = currentRound <= 6 ? currentRound : currentRound <= 12 ? 6 : 19 - currentRound
+  // Add a function to get the total number of rounds based on game length
+  const getTotalRounds = (gameLength: GameLength): number => {
+    switch (gameLength) {
+      case "short":
+        return 18
+      case "basic":
+        return 22
+      case "long":
+        return 28
+      default:
+        return 18
+    }
+  }
+
+  // Add a function to get the round names based on game length
+  const getRoundNames = (gameLength: GameLength): string[] => {
+    switch (gameLength) {
+      case "short":
+        return ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
+      case "basic":
+        return [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "6",
+          "6",
+          "B",
+          "B",
+          "B",
+          "B",
+          "B",
+          "B",
+          "6",
+          "6",
+          "6",
+          "5",
+          "4",
+          "3",
+          "2",
+          "1",
+        ]
+      case "long":
+        return [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "6",
+          "6",
+          "6",
+          "6",
+          "6",
+          "B",
+          "B",
+          "B",
+          "B",
+          "B",
+          "B",
+          "6",
+          "6",
+          "6",
+          "6",
+          "6",
+          "6",
+          "5",
+          "4",
+          "3",
+          "2",
+          "1",
+        ]
+      default:
+        return ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
+    }
+  }
+
+  // Update the cardsThisRound calculation to use the game length
+  const cardsThisRound = useMemo(() => {
+    if (!gameStarted || currentRound <= 0) return 0
+
+    const gameLength = safeGameData.gameLength || "short"
+    const roundNames = getRoundNames(gameLength)
+    if (currentRound > roundNames.length) return 0
+
+    const roundName = roundNames[currentRound - 1]
+    if (roundName === "B") return 6
+    return Number.parseInt(roundName, 10)
+  }, [gameStarted, currentRound, safeGameData.gameLength])
 
   const isValidPlay = (card: Card): boolean => {
     if (!currentPlayer) return false
@@ -703,6 +801,11 @@ export default function GameTable({
     )
   }
 
+  // Add this function to handle saving the game configuration
+  const handleSaveGameConfig = (gameLength: GameLength) => {
+    onConfigureGame(gameLength)
+  }
+
   return (
     <div className="space-y-8">
       {/* Game Info */}
@@ -739,6 +842,9 @@ export default function GameTable({
       {/* Buttons */}
       <div className="flex justify-center space-x-4">
         {!gameStarted && <Button onClick={onShare}>Share Game Link</Button>}
+        {!gameStarted && isOwner && players.length >= 2 && (
+          <Button onClick={() => setShowConfigureDialog(true)}>Configure Game</Button>
+        )}
         {canStartGame && <Button onClick={onStartGame}>Start Game</Button>}
       </div>
 
@@ -768,7 +874,7 @@ export default function GameTable({
           let chipColor = "bg-green-700" // Default for positive scores that aren't the highest
 
           if (player.score === 0) {
-            chipColor = "bg-gray-400" // Zero score
+            chipColor = "bg-gray-500" // Zero score
           } else if (player.score < 0 && player.score !== highestScore) {
             chipColor = "bg-red-600" // Negative score but not the highest
           } else if (player.score === highestScore) {
@@ -789,7 +895,7 @@ export default function GameTable({
               {/* Bet Banner */}
               {showBetBanner && (
                 <div
-                  className="absolute -top-14 left-1/2 transform -translate-x-1/2 bg-purple-700 text-white px-3 py-1 rounded-md shadow-md z-10 whitespace-nowrap"
+                  className="absolute -top-16 left-1/2 transform -translate-x-1/2 bg-purple-900 text-white px-3 py-1 rounded-md shadow-md z-10 whitespace-nowrap"
                   style={{
                     animation: "fadeIn 0.3s ease-in-out",
                   }}
@@ -1041,6 +1147,12 @@ export default function GameTable({
         isFirstCard={cardsOnTable.length === 0}
         isValidSimple={isValidSimplePlay()}
         availableOptions={cardsOnTable.length === 0 ? ["Trumps", "Poker", "Simple"] : ["Poker", "Simple"]}
+      />
+      <ConfigureGameDialog
+        isOpen={showConfigureDialog}
+        onClose={() => setShowConfigureDialog(false)}
+        onSave={handleSaveGameConfig}
+        currentGameLength={safeGameData.gameLength || "short"}
       />
 
       {/* Add CSS for animations */}

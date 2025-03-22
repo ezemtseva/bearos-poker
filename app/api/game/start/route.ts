@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
-import type { GameData, Player, Card, ScoreTableRow, PlayerScore } from "../../../../types/game"
+import type { GameData, GameLength, Player, Card, ScoreTableRow, PlayerScore } from "../../../../types/game"
 import { createDeck } from "../../../utils/deck"
 
 export const runtime = "edge"
@@ -15,17 +15,12 @@ function dealCards(players: Player[], deck: Card[], cardsPerPlayer: number): [Pl
   return [updatedPlayers, deck]
 }
 
-function initializeScoreTable(players: Player[]): ScoreTableRow[] {
-  return Array.from({ length: 18 }, (_, index) => {
+// Update the initializeScoreTable function to use the game length
+function initializeScoreTable(players: Player[], gameLength: GameLength): ScoreTableRow[] {
+  const roundNames = getRoundNames(gameLength)
+
+  return roundNames.map((roundName, index) => {
     const roundId = index + 1
-    let roundName
-    if (roundId <= 6) {
-      roundName = roundId.toString()
-    } else if (roundId <= 12) {
-      roundName = "B"
-    } else {
-      roundName = (19 - roundId).toString()
-    }
     const scores: { [playerName: string]: PlayerScore } = players.reduce(
       (acc, player) => {
         acc[player.name] = { cumulativePoints: 0, roundPoints: 0, bet: null }
@@ -35,6 +30,72 @@ function initializeScoreTable(players: Player[]): ScoreTableRow[] {
     )
     return { roundId, roundName, scores }
   })
+}
+
+// Add a function to get the round names based on game length
+function getRoundNames(gameLength: GameLength): string[] {
+  switch (gameLength) {
+    case "short":
+      return ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
+    case "basic":
+      return [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "6",
+        "6",
+        "B",
+        "B",
+        "B",
+        "B",
+        "B",
+        "B",
+        "6",
+        "6",
+        "6",
+        "5",
+        "4",
+        "3",
+        "2",
+        "1",
+      ]
+    case "long":
+      return [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "6",
+        "6",
+        "6",
+        "6",
+        "6",
+        "B",
+        "B",
+        "B",
+        "B",
+        "B",
+        "B",
+        "6",
+        "6",
+        "6",
+        "6",
+        "6",
+        "6",
+        "5",
+        "4",
+        "3",
+        "2",
+        "1",
+      ]
+    default:
+      return ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -84,6 +145,10 @@ export async function POST(req: NextRequest) {
     const ownerIndex = playersWithCards.findIndex((p) => p.isOwner)
     console.log(`[START-GAME] Owner index: ${ownerIndex}`)
 
+    // In the POST function, get the game length from the database
+    const gameLength = game.game_length || "short"
+
+    // Update the gameData object to include gameLength
     const gameData: GameData = {
       tableId: game.table_id,
       players: playersWithCards,
@@ -93,7 +158,7 @@ export async function POST(req: NextRequest) {
       currentTurn: ownerIndex,
       cardsOnTable: [],
       deck: remainingDeck,
-      scoreTable: initializeScoreTable(playersWithCards),
+      scoreTable: initializeScoreTable(playersWithCards, gameLength),
       allCardsPlayedTimestamp: null,
       playEndTimestamp: null,
       lastPlayedCard: null,
@@ -103,6 +168,7 @@ export async function POST(req: NextRequest) {
       allBetsPlaced: false,
       gameOver: false,
       currentBettingTurn: ownerIndex,
+      gameLength: gameLength,
     }
 
     await sql`

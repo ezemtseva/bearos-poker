@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
-import type { GameData, Player, Card, ScoreTableRow, PlayerScore } from "../../../../types/game"
+import type { GameData, Player, Card, ScoreTableRow, PlayerScore, GameLength } from "../../../../types/game"
 import { createDeck } from "../../../utils/deck"
 
 export const runtime = "edge"
@@ -105,21 +105,94 @@ function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[]): bool
   return true
 }
 
-function cardsPerRound(round: number): number {
-  if (round <= 6) return round
-  if (round <= 12) return 6
-  return 19 - round
+// Add a function to get the total number of rounds based on game length
+function getTotalRounds(gameLength: GameLength): number {
+  switch (gameLength) {
+    case "short":
+      return 18
+    case "basic":
+      return 22
+    case "long":
+      return 28
+    default:
+      return 18
+  }
 }
 
-function getValidCardsAfterTrumps(hand: Card[]): Card[] {
-  const trumps = hand.filter((c) => c.suit === "diamonds")
-  if (trumps.length > 0) {
-    const highestTrump = trumps.reduce((max, card) => (card.value > max.value ? card : max))
-    return [highestTrump]
+// Add a function to get the round names based on game length
+function getRoundNames(gameLength: GameLength): string[] {
+  switch (gameLength) {
+    case "short":
+      return ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
+    case "basic":
+      return [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "6",
+        "6",
+        "B",
+        "B",
+        "B",
+        "B",
+        "B",
+        "B",
+        "6",
+        "6",
+        "6",
+        "5",
+        "4",
+        "3",
+        "2",
+        "1",
+      ]
+    case "long":
+      return [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "6",
+        "6",
+        "6",
+        "6",
+        "6",
+        "B",
+        "B",
+        "B",
+        "B",
+        "B",
+        "B",
+        "6",
+        "6",
+        "6",
+        "6",
+        "6",
+        "6",
+        "5",
+        "4",
+        "3",
+        "2",
+        "1",
+      ]
+    default:
+      return ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
   }
-  // If no trumps, return the highest card(s) of any suit
-  const highestValue = Math.max(...hand.map((c) => c.value))
-  return hand.filter((c) => c.value === highestValue)
+}
+
+// Update the cardsPerRound function to handle different game lengths
+function cardsPerRound(round: number, gameLength: GameLength): number {
+  const roundNames = getRoundNames(gameLength)
+  if (round <= 0 || round > roundNames.length) return 0
+
+  const roundName = roundNames[round - 1]
+  if (roundName === "B") return 6
+  return Number.parseInt(roundName, 10)
 }
 
 export async function POST(req: NextRequest) {
@@ -267,7 +340,8 @@ export async function POST(req: NextRequest) {
 
       // Prepare for the next play or round
       currentPlay++
-      const cardsPerRoundValue = cardsPerRound(currentRound)
+      const gameLength = game.game_length || "short"
+      const cardsPerRoundValue = cardsPerRound(currentRound, gameLength)
       if (currentPlay > cardsPerRoundValue) {
         // End of round
         // Update scores in the score table
@@ -308,11 +382,16 @@ export async function POST(req: NextRequest) {
           player.bet = null // Reset bet for next round
         })
 
-        if (currentRound < 18) {
+        // In the POST function, update the code to use the game length
+        const gameLength = game.game_length || "short"
+        const totalRounds = getTotalRounds(gameLength)
+
+        // Update the code that checks if the round is over
+        if (currentRound < totalRounds) {
           // Start new round
           currentRound++
           currentPlay = 1
-          const newCardsPerRound = cardsPerRound(currentRound)
+          const newCardsPerRound = cardsPerRound(currentRound, gameLength)
           if (deck.length < newCardsPerRound * players.length) {
             deck = createDeck() // Create a new deck if needed
           }
@@ -339,46 +418,50 @@ export async function POST(req: NextRequest) {
             WHERE table_id = ${tableId}
           `
         } else {
-          // Game over
-          const gameOverData: GameData = {
-            tableId: game.table_id,
-            players,
-            gameStarted: false,
-            currentRound: 18,
-            currentPlay: 0,
-            currentTurn: -1,
-            cardsOnTable: [],
-            deck: [],
-            scoreTable,
-            allCardsPlayedTimestamp: Date.now(),
-            playEndTimestamp: null,
-            lastPlayedCard: null,
-            allCardsPlayed: false,
-            highestCard: null,
-            roundStartPlayerIndex,
-            allBetsPlaced: false,
-            gameOver: true,
+          // Update the game over check
+          if (currentRound >= totalRounds) {
+            // Game over
+            const gameOverData: GameData = {
+              tableId: game.table_id,
+              players,
+              gameStarted: false,
+              currentRound: totalRounds,
+              currentPlay: 0,
+              currentTurn: -1,
+              cardsOnTable: [],
+              deck: [],
+              scoreTable,
+              allCardsPlayedTimestamp: Date.now(),
+              playEndTimestamp: null,
+              lastPlayedCard: null,
+              allCardsPlayed: false,
+              highestCard: null,
+              roundStartPlayerIndex,
+              allBetsPlaced: false,
+              gameOver: true,
+              gameLength,
+            }
+            await sql`
+              UPDATE poker_games
+              SET game_started = false,
+                  players = ${JSON.stringify(players)}::jsonb,
+                  current_round = ${totalRounds},
+                  current_play = 0,
+                  current_turn = -1,
+                  cards_on_table = '[]'::jsonb,
+                  score_table = ${JSON.stringify(scoreTable)}::jsonb,
+                  all_cards_played_timestamp = ${gameOverData.allCardsPlayedTimestamp},
+                  play_end_timestamp = null,
+                  last_played_card = null,
+                  all_cards_played = false,
+                  highest_card = null,
+                  round_start_player_index = ${roundStartPlayerIndex},
+                  all_bets_placed = false,
+                  game_over = true
+              WHERE table_id = ${tableId}
+            `
+            return NextResponse.json({ message: "Game over", gameData: gameOverData })
           }
-          await sql`
-            UPDATE poker_games
-            SET game_started = false,
-                players = ${JSON.stringify(players)}::jsonb,
-                current_round = 18,
-                current_play = 0,
-                current_turn = -1,
-                cards_on_table = '[]'::jsonb,
-                score_table = ${JSON.stringify(scoreTable)}::jsonb,
-                all_cards_played_timestamp = ${gameOverData.allCardsPlayedTimestamp},
-                play_end_timestamp = null,
-                last_played_card = null,
-                all_cards_played = false,
-                highest_card = null,
-                round_start_player_index = ${roundStartPlayerIndex},
-                all_bets_placed = false,
-                game_over = true
-            WHERE table_id = ${tableId}
-          `
-          return NextResponse.json({ message: "Game over", gameData: gameOverData })
         }
       } else {
         // Set the starting player for the next play to the winner of the current play

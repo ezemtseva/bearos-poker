@@ -33,7 +33,8 @@ export async function GET() {
           all_bets_placed BOOLEAN DEFAULT FALSE,
           game_over BOOLEAN DEFAULT FALSE,
           current_betting_turn INTEGER,
-          bets_placed_timestamp BIGINT
+          bets_placed_timestamp BIGINT,
+          game_length TEXT DEFAULT 'short'
         );
       `
       console.log("Table 'poker_games' created successfully")
@@ -57,7 +58,8 @@ export async function GET() {
         ADD COLUMN IF NOT EXISTS all_bets_placed BOOLEAN DEFAULT FALSE,
         ADD COLUMN IF NOT EXISTS game_over BOOLEAN DEFAULT FALSE,
         ADD COLUMN IF NOT EXISTS current_betting_turn INTEGER,
-        ADD COLUMN IF NOT EXISTS bets_placed_timestamp BIGINT;
+        ADD COLUMN IF NOT EXISTS bets_placed_timestamp BIGINT,
+        ADD COLUMN IF NOT EXISTS game_length TEXT DEFAULT 'short';
       `
       console.log("Table 'poker_games' updated successfully")
     }
