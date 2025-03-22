@@ -762,7 +762,7 @@ export default function GameTable({
       currentBettingPlayerName,
     })
 
-    // If we're in the golden round, show a special message
+    // NEW: If we're in the golden round, show a special message
     if (safeGameData.isGoldenRound) {
       if (isCurrentPlayerTurn) {
         return <span className="text-amber-500 font-bold">Golden Round! It's your turn to play a card!</span>

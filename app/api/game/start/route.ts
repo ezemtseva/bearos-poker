@@ -15,9 +15,12 @@ function dealCards(players: Player[], deck: Card[], cardsPerPlayer: number): [Pl
   return [updatedPlayers, deck]
 }
 
-// Update the initializeScoreTable function to use the game length
-function initializeScoreTable(players: Player[], gameLength: GameLength): ScoreTableRow[] {
-  const roundNames = getRoundNames(gameLength)
+// First, let's fix the issue where the Golden Round disappears when starting the game
+
+// 1. Find the function `initializeScoreTable` and update it to include the Golden Round:
+
+function initializeScoreTable(players: Player[], gameLength: GameLength, hasGoldenRound: boolean): ScoreTableRow[] {
+  const roundNames = getRoundNames(gameLength, hasGoldenRound)
 
   return roundNames.map((roundName, index) => {
     const roundId = index + 1
@@ -32,13 +35,17 @@ function initializeScoreTable(players: Player[], gameLength: GameLength): ScoreT
   })
 }
 
-// Add a function to get the round names based on game length
-function getRoundNames(gameLength: GameLength): string[] {
+// 2. Add the function to get round names with Golden Round support:
+
+function getRoundNames(gameLength: GameLength, hasGoldenRound: boolean): string[] {
+  let rounds: string[] = []
+
   switch (gameLength) {
     case "short":
-      return ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
+      rounds = ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
+      break
     case "basic":
-      return [
+      rounds = [
         "1",
         "2",
         "3",
@@ -62,8 +69,9 @@ function getRoundNames(gameLength: GameLength): string[] {
         "2",
         "1",
       ]
+      break
     case "long":
-      return [
+      rounds = [
         "1",
         "2",
         "3",
@@ -93,9 +101,17 @@ function getRoundNames(gameLength: GameLength): string[] {
         "2",
         "1",
       ]
+      break
     default:
-      return ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
+      rounds = ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
   }
+
+  // Add golden round if enabled
+  if (hasGoldenRound) {
+    rounds.push("G")
+  }
+
+  return rounds
 }
 
 export async function POST(req: NextRequest) {
@@ -145,10 +161,13 @@ export async function POST(req: NextRequest) {
     const ownerIndex = playersWithCards.findIndex((p) => p.isOwner)
     console.log(`[START-GAME] Owner index: ${ownerIndex}`)
 
-    // In the POST function, get the game length from the database
-    const gameLength = game.game_length || "short"
+    // 3. In the POST function, update the code to use the hasGoldenRound parameter:
 
-    // Update the gameData object to include gameLength
+    // In the POST function, get the game length and hasGoldenRound from the database
+    const gameLength = game.game_length || "short"
+    const hasGoldenRound = game.has_golden_round || false
+
+    // Update the gameData object to include hasGoldenRound
     const gameData: GameData = {
       tableId: game.table_id,
       players: playersWithCards,
@@ -158,7 +177,7 @@ export async function POST(req: NextRequest) {
       currentTurn: ownerIndex,
       cardsOnTable: [],
       deck: remainingDeck,
-      scoreTable: initializeScoreTable(playersWithCards, gameLength),
+      scoreTable: initializeScoreTable(playersWithCards, gameLength, hasGoldenRound),
       allCardsPlayedTimestamp: null,
       playEndTimestamp: null,
       lastPlayedCard: null,
@@ -169,6 +188,7 @@ export async function POST(req: NextRequest) {
       gameOver: false,
       currentBettingTurn: ownerIndex,
       gameLength: gameLength,
+      hasGoldenRound: hasGoldenRound,
     }
 
     await sql`

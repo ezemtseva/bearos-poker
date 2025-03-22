@@ -105,12 +105,12 @@ function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[]): bool
   return true
 }
 
-// Add this function to check if the current round is the golden round
+// NEW FUNCTION: Check if the current round is the golden round
 function isGoldenRound(roundName: string): boolean {
   return roundName === "G"
 }
 
-// Add a function to get the total number of rounds based on game length
+// NEW FUNCTION: Get the total number of rounds based on game length
 function getTotalRounds(gameLength: GameLength, hasGoldenRound: boolean): number {
   let baseRounds = 0
 
@@ -131,13 +131,16 @@ function getTotalRounds(gameLength: GameLength, hasGoldenRound: boolean): number
   return hasGoldenRound ? baseRounds + 1 : baseRounds
 }
 
-// Add a function to get the round names based on game length
+// NEW FUNCTION: Get the round names based on game length
 function getRoundNames(gameLength: GameLength, hasGoldenRound: boolean): string[] {
+  let rounds: string[] = []
+
   switch (gameLength) {
     case "short":
-      return ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
+      rounds = ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
+      break
     case "basic":
-      return [
+      rounds = [
         "1",
         "2",
         "3",
@@ -161,8 +164,9 @@ function getRoundNames(gameLength: GameLength, hasGoldenRound: boolean): string[
         "2",
         "1",
       ]
+      break
     case "long":
-      return [
+      rounds = [
         "1",
         "2",
         "3",
@@ -192,12 +196,20 @@ function getRoundNames(gameLength: GameLength, hasGoldenRound: boolean): string[
         "2",
         "1",
       ]
+      break
     default:
-      return ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
+      rounds = ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
   }
+
+  // Add golden round if enabled
+  if (hasGoldenRound) {
+    rounds.push("G")
+  }
+
+  return rounds
 }
 
-// Update the cardsPerRound function to handle different game lengths
+// UPDATED FUNCTION: Handle different game lengths and golden round
 function cardsPerRound(round: number, gameLength: GameLength, hasGoldenRound: boolean): number {
   const roundNames = getRoundNames(gameLength, hasGoldenRound)
   if (round <= 0 || round > roundNames.length) return 0
@@ -361,6 +373,7 @@ export async function POST(req: NextRequest) {
         // Update scores in the score table
         const roundIndex = currentRound - 1
         const isRoundB = scoreTable[roundIndex].roundName === "B"
+        // NEW: Check if this is the Golden Round
         const isRoundG = isGoldenRound(scoreTable[roundIndex].roundName)
         const multiplier = isRoundB ? 2 : 1
 
@@ -370,7 +383,7 @@ export async function POST(req: NextRequest) {
 
           let roundPoints = 0
 
-          // Special scoring for Golden Round
+          // NEW: Special scoring for Golden Round
           if (isRoundG) {
             // Winner gets 100 points, others get 0
             if (playsWon > 0) {
@@ -407,7 +420,7 @@ export async function POST(req: NextRequest) {
           player.bet = null // Reset bet for next round
         })
 
-        // In the POST function, update the code that checks if the round is over
+        // UPDATED: Check if the game is over using the total rounds calculation
         const gameLength = game.game_length || "basic"
         const hasGoldenRound = game.has_golden_round || false
         const totalRounds = getTotalRounds(gameLength, hasGoldenRound)
@@ -418,10 +431,10 @@ export async function POST(req: NextRequest) {
           currentRound++
           currentPlay = 1
 
-          // Check if we're entering the golden round
+          // NEW: Check if we're entering the golden round
           const isEnteringGoldenRound = hasGoldenRound && currentRound === totalRounds
 
-          // Update the database to mark if we're in the golden round
+          // NEW: Update the database to mark if we're in the golden round
           if (isEnteringGoldenRound) {
             await sql`
               UPDATE poker_games
@@ -440,7 +453,7 @@ export async function POST(req: NextRequest) {
           roundStartPlayerIndex = getNextRoundStartPlayer(currentRound, players)
           currentTurn = roundStartPlayerIndex
 
-          // For golden round, we skip betting
+          // NEW: For golden round, we skip betting
           if (isEnteringGoldenRound) {
             allBetsPlaced = true
           } else {
