@@ -638,6 +638,16 @@ export default function GameTable({
       return validCards.some((c) => c.suit === card.suit && c.value === card.value)
     }
 
+    // Add this new check: Special case for 7 of spades with 'Poker' option as the first card
+    if (
+      cardsOnTable.length > 0 &&
+      cardsOnTable[0].suit === "spades" &&
+      cardsOnTable[0].value === 7 &&
+      cardsOnTable[0].pokerOption === "Poker"
+    ) {
+      return true // Any card can be played in response to 7 of spades with 'Poker' option
+    }
+
     // Special case: 7 of spades can always be played (except when Trumps is active)
     if (card.suit === "spades" && card.value === 7) {
       return true // 7 of spades can now be played anytime
@@ -1070,6 +1080,7 @@ export default function GameTable({
               <p>No cards in hand</p>
             )}
           </div>
+          {/* Replace the hardcoded check with the dynamic getTotalRounds function */}
           {gameStarted && currentRound <= getTotalRounds(safeGameData.gameLength || "basic") && (
             <p className="text-center mt-2 font-bold">{renderGameStatusMessage()}</p>
           )}
