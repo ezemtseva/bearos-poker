@@ -15,6 +15,10 @@ import PokerCardDialog from "./PokerCardDialog"
 import { useMemo } from "react"
 // Add the import for ConfigureGameDialog near the top with other imports
 import ConfigureGameDialog, { type GameLength } from "./ConfigureGameDialog"
+// Add this import at the top with other imports
+import { useSound } from "@/hooks/use-sound"
+// Add the import for SoundToggle at the top of the file:
+import SoundToggle from "./SoundToggle"
 
 interface GameTableProps {
   tableId: string
@@ -65,6 +69,8 @@ export default function GameTable({
   const [lastKnownBettingPlayer, setLastKnownBettingPlayer] = useState<string>("Waiting for players...")
   const [stableBettingUI, setStableBettingUI] = useState<boolean>(false)
   const { toast } = useToast()
+  // Add this inside the GameTable component, near the top with other hooks
+  const { playSound } = useSound()
 
   // Refs to track stable state across renders
   const currentRoundRef = useRef<number>(currentRound)
@@ -393,6 +399,33 @@ export default function GameTable({
     }
 
     if (!safeGameData.allBetsPlaced && !allPlayersHaveBet) {
+      playSound("error")
+      toast({
+        title: "Cannot play card",
+        description: "Please wait for all players to place their bets.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // For 7 of spades, show the dialog and play special card sound
+    if (card.suit === "spades" && card.value === 7) {
+      playSound("specialCard")
+      let availableOptions = ["Poker", "Simple"]
+
+      // If it's the first card, Trumps is also available
+      if (cardsOnTable.length === 0) {
+        availableOptions = ["Trumps", "Poker", "Simple"]
+      }
+
+      setPokerCardOption(null)
+      setShowPokerCardDialog(true)
+      return
+    }
+
+    // Remove the playSound("playCard") call here since it will be played for all players in the Game component
+
+    if (!safeGameData.allBetsPlaced && !allPlayersHaveBet) {
       toast({
         title: "Cannot play card",
         description: "Please wait for all players to place their bets.",
@@ -592,8 +625,10 @@ export default function GameTable({
     return null
   }
 
+  // Modify the handlePlaceBet function to remove the local sound playing
   const handlePlaceBet = () => {
     if (betAmount === null || betAmount < 0 || betAmount > cardsThisRound) {
+      playSound("error")
       toast({
         title: "Invalid Bet",
         description: `Please enter a bet between 0 and ${cardsThisRound}.`,
@@ -604,6 +639,7 @@ export default function GameTable({
 
     const forbiddenBet = calculateForbiddenBet()
     if (forbiddenBet !== null && betAmount === forbiddenBet) {
+      playSound("error")
       toast({
         title: "Invalid Bet",
         description: `You cannot bet ${forbiddenBet} as it would make the total bets equal to the number of cards (${cardsThisRound}).`,
@@ -612,14 +648,17 @@ export default function GameTable({
       return
     }
 
+    // Remove the playSound("placeBet") call here since it will be played for all players in the Game component
+
     onPlaceBet(betAmount)
   }
 
-  // Also update the handlePokerCardOptionSelect function to set isPlayingCard
+  // Add sound to the handlePokerCardOptionSelect function
   const handlePokerCardOptionSelect = (option: "Trumps" | "Poker" | "Simple") => {
     setPokerCardOption(option)
     setShowPokerCardDialog(false)
     setIsPlayingCard(true) // Set the flag before playing the card
+    playSound("playCard")
     playCard({ suit: "spades", value: 7 }, option)
   }
 
@@ -636,6 +675,16 @@ export default function GameTable({
     if (sevenOfSpadesWithTrumps) {
       const validCards = getValidCardsAfterTrumps(currentPlayer?.hand || [])
       return validCards.some((c) => c.suit === card.suit && c.value === card.value)
+    }
+
+    // Add this new check: Special case for 7 of spades with 'Poker' option as the first card
+    if (
+      cardsOnTable.length > 0 &&
+      cardsOnTable[0].suit === "spades" &&
+      cardsOnTable[0].value === 7 &&
+      cardsOnTable[0].pokerOption === "Poker"
+    ) {
+      return true // Any card can be played in response to 7 of spades with 'Poker' option
     }
 
     // Special case: 7 of spades can always be played (except when Trumps is active)
@@ -823,7 +872,12 @@ export default function GameTable({
   return (
     <div className="space-y-8">
       {/* Game Info */}
-      <div className="text-center">
+      <div className="text-center relative">
+        {gameStarted && (
+          <div className="absolute right-0 top-0">
+            <SoundToggle />
+          </div>
+        )}
         {gameStarted ? (
           <div className="flex justify-center items-center space-x-6">
             <p>
@@ -959,7 +1013,7 @@ export default function GameTable({
               {card.suit === "spades" && card.value === 7 && card.pokerOption && (
                 <div
                   className={`absolute bottom-0 left-0 right-0 text-white text-xs py-1 px-2 text-center
-    ${card.pokerOption === "Trumps" ? "bg-red-300" : card.pokerOption === "Poker" ? "bg-yellow-300" : "bg-blue-300"}`}
+  ${card.pokerOption === "Trumps" ? "bg-red-300" : card.pokerOption === "Poker" ? "bg-yellow-300" : "bg-blue-300"}`}
                 >
                   {card.pokerOption}
                 </div>
@@ -1070,6 +1124,7 @@ export default function GameTable({
               <p>No cards in hand</p>
             )}
           </div>
+          {/* Replace the hardcoded check with the dynamic getTotalRounds function */}
           {gameStarted && currentRound <= getTotalRounds(safeGameData.gameLength || "basic") && (
             <p className="text-center mt-2 font-bold">{renderGameStatusMessage()}</p>
           )}
@@ -1083,9 +1138,9 @@ export default function GameTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="text-white font-bold">Round</TableHead>
+              <TableHead className="text-white font-bold text-left">Round</TableHead>
               {players.map((player) => (
-                <TableHead key={player.name} colSpan={3} className="text-center text-white font-bold">
+                <TableHead key={player.name} colSpan={4} className="text-left text-white font-bold">
                   {player.name}
                 </TableHead>
               ))}
@@ -1108,9 +1163,9 @@ export default function GameTable({
                 <TableRow
                   key={round.roundId}
                   className={`
-                    ${round.roundId === currentRound ? "bg-blue-400/70" : ""}
-                    ${round.roundId < currentRound ? "bg-gray-600/70" : ""}
-                  `}
+                  ${round.roundId === currentRound ? "bg-blue-400/70" : ""}
+                  ${round.roundId < currentRound ? "bg-gray-600/70" : ""}
+                `}
                 >
                   <TableCell>{round.roundName}</TableCell>
                   {players.map((player) => {
@@ -1183,11 +1238,11 @@ export default function GameTable({
 
       {/* Add CSS for animations */}
       <style jsx global>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translate(-50%, -10px); }
-          to { opacity: 1; transform: translate(-50%, 0); }
-        }
-      `}</style>
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translate(-50%, -10px); }
+        to { opacity: 1; transform: translate(-50%, 0); }
+      }
+    `}</style>
     </div>
   )
 }

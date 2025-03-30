@@ -426,6 +426,9 @@ export async function POST(req: NextRequest) {
           player.bet = null // Reset bet for next round
         })
 
+        // Check for any hardcoded round limits in the play-card route
+        // Specifically in the section that handles the end of a round and starts a new one
+
         // UPDATED: Check if the game is over using the total rounds calculation
         const gameLength = game.game_length || "basic"
         const hasGoldenRound = game.has_golden_round || false
@@ -453,6 +456,9 @@ export async function POST(req: NextRequest) {
           if (deck.length < newCardsPerRound * players.length) {
             deck = createDeck() // Create a new deck if needed
           }
+
+          // Add a flag to indicate cards were dealt
+          const cardsWereDealt = true
           ;[players, deck] = dealCards(players, deck, newCardsPerRound) // Deal the correct number of cards for the new round
 
           // Set the starting player for the new round
