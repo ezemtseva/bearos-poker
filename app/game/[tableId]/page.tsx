@@ -27,23 +27,12 @@ export default function Game() {
   const gameStartedRef = useRef<boolean>(false)
   // Add a ref to track if the current player played the last card in a trick
   const playedLastCardRef = useRef<boolean>(false)
+  // Add a ref to track if we've played the game start sound
+  const gameStartSoundPlayedRef = useRef<boolean>(false)
 
   const { playSound } = useSound()
 
-  // Add this debug function
-  useEffect(() => {
-    // Debug sound system on mount
-    console.log("Sound system initialized")
-
-    // Try playing a test sound after a short delay
-    const timer = setTimeout(() => {
-      console.log("Attempting to play test sound...")
-      playSound("gameStart")
-      console.log("Test sound play attempt complete")
-    }, 2000)
-
-    return () => clearTimeout(timer)
-  }, [playSound])
+  // Remove the debug sound test
 
   // Function to fetch game state
   const fetchGameState = async () => {
@@ -124,13 +113,18 @@ export default function Game() {
     console.log("Updating game state. Received data:", data)
 
     // Check if the game has just started (for all players to hear game-start.mp3)
-    if (data.gameStarted && !gameStartedRef.current) {
-      // Play the game start sound for everyone
+    // Only play the sound if:
+    // 1. The game is now started
+    // 2. It wasn't started before
+    // 3. We haven't already played the sound
+    if (data.gameStarted && (!gameData || !gameData.gameStarted) && !gameStartSoundPlayedRef.current) {
+      console.log("Playing game start sound")
       playSound("gameStart")
-      // Update the ref to avoid playing the sound multiple times
-      gameStartedRef.current = true
+      // Mark that we've played the sound to avoid duplicates
+      gameStartSoundPlayedRef.current = true
     } else if (!data.gameStarted) {
       // Reset the ref if the game is not started (e.g., after a game ends)
+      gameStartSoundPlayedRef.current = false
       gameStartedRef.current = false
     }
 
@@ -305,10 +299,14 @@ export default function Game() {
     })
   }
 
-  // Modify the handleStartGame function to remove the local sound playing
+  // Update the handleStartGame function to play the sound only for the owner
   const handleStartGame = async () => {
     try {
-      // Remove the playSound("gameStart") call here since it will be played for all players in the updateGameState function
+      // Play the game start sound for the owner immediately
+      playSound("gameStart")
+      // Mark that we've played the sound to avoid duplicates when the state updates
+      gameStartSoundPlayedRef.current = true
+
       const response = await fetch("/api/game/start", {
         method: "POST",
         headers: {
