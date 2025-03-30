@@ -247,12 +247,8 @@ export default function Game() {
       if (prevData && data.currentPlay > prevData.currentPlay) {
         console.log("NEW PLAY DETECTED - Clearing table")
 
-        // Only play the win sound if the current player played the last card in the previous trick
-        if (playedLastCardRef.current) {
-          playSound("winTrick")
-          // Reset the flag
-          playedLastCardRef.current = false
-        }
+        // Reset the flag without playing the win trick sound
+        playedLastCardRef.current = false
 
         return {
           ...data,
@@ -293,6 +289,8 @@ export default function Game() {
   const handleShare = () => {
     const shareUrl = `${window.location.origin}/join-game?tableId=${tableId}`
     navigator.clipboard.writeText(shareUrl)
+    // Play the copy sound when the user clicks the Share button
+    playSound("copy")
     toast({
       title: "Link Copied!",
       description: "Share this link with your friends to invite them to the game.",
