@@ -8,11 +8,11 @@ export default function Home() {
         <h1 className="text-3xl font-bold mb-4 text-center">Welcome to Bearos Poker</h1>
         <div className="flex justify-center space-x-4 mt-6">
           <Link href="/create-game">
-            <Button>Create Game</Button>
+            <Button>Create Table</Button>
           </Link>
           <Link href="/join-game">
             <Button variant="outline" className="text-primary hover:text-primary-foreground">
-              Join Game
+              Join Table
             </Button>
           </Link>
         </div>

@@ -58,7 +58,7 @@ export default function CreateGame() {
   return (
     <div className="container mx-auto px-4 min-h-screen flex items-center justify-center">
       <div className="max-w-md w-full">
-        <h1 className="text-2xl font-bold mb-4 text-center text-white">New Game</h1>
+        <h1 className="text-2xl font-bold mb-4 text-center text-white">New Table</h1>
         <form onSubmit={handleCreateGame} className="space-y-4">
           <div>
             <label htmlFor="playerName" className="block text-sm font-medium text-white mb-1">
