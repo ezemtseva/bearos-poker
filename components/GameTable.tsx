@@ -257,6 +257,7 @@ export default function GameTable({
 
   useEffect(() => {
     if (safeGameData.gameOver) {
+      console.log("Game over detected in GameTable - showing results dialog")
       setShowResultsDialog(true)
     }
   }, [safeGameData.gameOver])
@@ -1246,4 +1247,3 @@ export default function GameTable({
     </div>
   )
 }
-

@@ -1,6 +1,10 @@
+"use client"
+
 import { Dialog, DialogContent, DialogHeader, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import type { Player } from "../types/game"
+import { useEffect } from "react"
+import { useSound } from "@/hooks/use-sound"
 
 interface GameResultsDialogProps {
   isOpen: boolean
@@ -11,6 +15,19 @@ interface GameResultsDialogProps {
 export default function GameResultsDialog({ isOpen, onClose, players }: GameResultsDialogProps) {
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score)
   const winner = sortedPlayers[0]
+  const { playSound } = useSound()
+
+  // Play the game-over sound when the dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      console.log("GameResultsDialog opened - Playing game over sound")
+      // Use a small timeout to ensure the sound plays after the dialog is visible
+      const timer = setTimeout(() => {
+        playSound("gameOver")
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [isOpen, playSound])
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -44,4 +61,3 @@ export default function GameResultsDialog({ isOpen, onClose, players }: GameResu
     </Dialog>
   )
 }
-
