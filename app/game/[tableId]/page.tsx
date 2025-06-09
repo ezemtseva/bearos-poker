@@ -27,6 +27,8 @@ export default function Game() {
   const gameStartedRef = useRef<boolean>(false)
   const playedLastCardRef = useRef<boolean>(false)
   const gameStartSoundPlayedRef = useRef<boolean>(false)
+  const clearTableTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const tableJustClearedRef = useRef<boolean>(false)
 
   const fetchGameStateUnified = async (options?: {
     delayMs?: number
@@ -74,7 +76,8 @@ export default function Game() {
     pollingIntervalRef.current = setInterval(() => fetchGameStateUnified(), 3000)
 
     return () => {
-      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current)
+    if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current)
+    if (clearTableTimeoutRef.current) clearTimeout(clearTableTimeoutRef.current)
     }
   }, [tableId, toast])
 
@@ -117,6 +120,27 @@ export default function Game() {
         }
       }
       lastCardsOnTableRef.current = [...data.cardsOnTable]
+
+      // NEW: Локальная очистка стола после полной раздачи
+      if (
+        data.cardsOnTable.length === data.players.length &&
+        !tableJustClearedRef.current
+      ) {
+        tableJustClearedRef.current = true
+
+        clearTableTimeoutRef.current && clearTimeout(clearTableTimeoutRef.current)
+        clearTableTimeoutRef.current = setTimeout(() => {
+          setGameData((prevData) => {
+            if (!prevData) return prevData
+            return {
+              ...prevData,
+              cardsOnTable: [],
+              lastPlayedCard: null,
+            }
+          })
+          tableJustClearedRef.current = false
+        }, 2000)
+      }
     } else {
       lastCardsOnTableRef.current = []
     }
