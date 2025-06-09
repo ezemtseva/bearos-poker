@@ -82,6 +82,7 @@ export default function Game() {
   }, [tableId, toast])
 
   const updateGameState = (data: GameData) => {
+    let deferClearFromServer = tableJustClearedRef.current;
     console.log("Updating game state. Received data:", data)
 
     if (data.gameStarted && (!gameData || !gameData.gameStarted) && !gameStartSoundPlayedRef.current) {
@@ -130,6 +131,7 @@ export default function Game() {
 
         clearTableTimeoutRef.current && clearTimeout(clearTableTimeoutRef.current)
         clearTableTimeoutRef.current = setTimeout(() => {
+          deferClearFromServer = false
           setGameData((prevData) => {
             if (!prevData) return prevData
             return {
@@ -194,7 +196,7 @@ export default function Game() {
     }
 
     setGameData((prevData) => {
-      if (prevData && data.currentRound > prevData.currentRound) {
+      if (!deferClearFromServer && prevData && data.currentRound > prevData.currentRound) {
         playSound("roundEnd")
         return {
           ...data,
@@ -203,7 +205,7 @@ export default function Game() {
         }
       }
 
-      if (prevData && data.currentPlay > prevData.currentPlay) {
+      if (!deferClearFromServer && prevData && data.currentPlay > prevData.currentPlay) {
         playedLastCardRef.current = false
         return {
           ...data,
