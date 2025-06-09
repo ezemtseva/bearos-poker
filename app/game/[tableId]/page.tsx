@@ -74,7 +74,7 @@ export default function Game() {
     fetchGameState()
 
     // Set up polling
-    pollingIntervalRef.current = setInterval(fetchGameState, 5000)
+    pollingIntervalRef.current = setInterval(fetchGameState, 10000)
 
     return () => {
       if (pollingIntervalRef.current) {
