@@ -139,8 +139,7 @@ export default function Game() {
         for (let i = 0; i < currentPlayer.hand.length - previousPlayer.hand.length; i++) {
           // Stagger the deal sounds slightly
           setTimeout(() => {
-            playSound("dealCard")
-          }, i * 200)
+            }, i * 200)
         }
       }
     }
@@ -191,43 +190,6 @@ export default function Game() {
       if (newBetPlaced) {
         // Play the bet sound for everyone
         playSound("placeBet")
-      }
-    }
-
-    // Check if the last played card is the 7 of spades with a specific option
-    if (
-      data.lastPlayedCard &&
-      data.lastPlayedCard.suit === "spades" &&
-      data.lastPlayedCard.value === 7 &&
-      data.lastPlayedCard.pokerOption &&
-      data.lastPlayedCard.playerName
-    ) {
-      // Create a unique identifier for this special card play
-      const specialCardId = `${data.lastPlayedCard.playerName}-${data.lastPlayedCard.pokerOption}`
-
-      // Check if this is a new special card play we haven't played a sound for yet
-      if (
-        !lastSpecialCardRef.current ||
-        `${lastSpecialCardRef.current.playerName}-${lastSpecialCardRef.current.pokerOption}` !== specialCardId
-      ) {
-        // Update the ref to avoid playing the sound multiple times
-        lastSpecialCardRef.current = {
-          playerName: data.lastPlayedCard.playerName,
-          pokerOption: data.lastPlayedCard.pokerOption,
-        }
-
-        // Play the appropriate sound based on the option
-        switch (data.lastPlayedCard.pokerOption) {
-          case "Trumps":
-            playSound("specialCardTrumps")
-            break
-          case "Poker":
-            playSound("specialCardPoker")
-            break
-          case "Simple":
-            playSound("specialCardSimple")
-            break
-        }
       }
     }
 
@@ -290,8 +252,7 @@ export default function Game() {
     const shareUrl = `${window.location.origin}/join-game?tableId=${tableId}`
     navigator.clipboard.writeText(shareUrl)
     // Play the copy sound when the user clicks the Share button
-    playSound("copy")
-    toast({
+      toast({
       title: "Link Copied!",
       description: "Share this link with your friends to invite them to the game.",
     })
@@ -329,7 +290,6 @@ export default function Game() {
         description: "The game has been started successfully!",
       })
     } catch (error) {
-      playSound("error")
       console.error("Error starting game:", error)
       toast({
         title: "Error",

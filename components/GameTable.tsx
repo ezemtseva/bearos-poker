@@ -400,8 +400,7 @@ export default function GameTable({
     }
 
     if (!safeGameData.allBetsPlaced && !allPlayersHaveBet) {
-      playSound("error")
-      toast({
+        toast({
         title: "Cannot play card",
         description: "Please wait for all players to place their bets.",
         variant: "destructive",
@@ -411,7 +410,6 @@ export default function GameTable({
 
     // For 7 of spades, show the dialog and play special card sound
     if (card.suit === "spades" && card.value === 7) {
-      playSound("specialCard")
       let availableOptions = ["Poker", "Simple"]
 
       // If it's the first card, Trumps is also available
@@ -629,8 +627,7 @@ export default function GameTable({
   // Modify the handlePlaceBet function to remove the local sound playing
   const handlePlaceBet = () => {
     if (betAmount === null || betAmount < 0 || betAmount > cardsThisRound) {
-      playSound("error")
-      toast({
+        toast({
         title: "Invalid Bet",
         description: `Please enter a bet between 0 and ${cardsThisRound}.`,
         variant: "destructive",
@@ -640,8 +637,7 @@ export default function GameTable({
 
     const forbiddenBet = calculateForbiddenBet()
     if (forbiddenBet !== null && betAmount === forbiddenBet) {
-      playSound("error")
-      toast({
+        toast({
         title: "Invalid Bet",
         description: `You cannot bet ${forbiddenBet} as it would make the total bets equal to the number of cards (${cardsThisRound}).`,
         variant: "destructive",
