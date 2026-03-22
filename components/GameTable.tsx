@@ -825,10 +825,10 @@ export default function GameTable({
     // NEW: If we're in the golden round, show a special message
     if (safeGameData.isGoldenRound) {
       if (isCurrentPlayerTurn) {
-        return <span className="text-amber-500 font-bold">Golden Round! It's your turn to play a card!</span>
+        return <span className="text-amber-500 italic">Golden Round! It's your turn to play a card!</span>
       } else {
         return (
-          <span className="text-amber-500 font-bold">
+          <span className="text-amber-500 italic">
             Golden Round! Waiting for {players[currentTurn]?.name || "other player"} to play a card...
           </span>
         )
@@ -838,10 +838,10 @@ export default function GameTable({
     // If all bets are placed, we're in the card playing phase
     if (safeGameData.allBetsPlaced) {
       if (isCurrentPlayerTurn) {
-        return <span className="text-green-600">It's your turn to play a card!</span>
+        return <span className="text-green-600 italic">It's your turn to play a card!</span>
       } else {
         return (
-          <span className="text-yellow-600">
+          <span className="text-yellow-600 italic">
             Waiting for {players[currentTurn]?.name || "other player"} to play a card...
           </span>
         )
@@ -850,22 +850,22 @@ export default function GameTable({
 
     // If the player has already placed a bet, show a stable message
     if (currentPlayer && currentPlayer.bet !== null) {
-      return <span className="text-blue-600">Waiting for other players to place their bets...</span>
+      return <span className="text-yellow-600 italic">Waiting for other players to place their bets...</span>
     }
 
     // If all players have bet but allBetsPlaced is false, we're in the transition period
     if (allPlayersHaveBet && !safeGameData.allBetsPlaced) {
-      return <span className="text-blue-600">Preparing to start the round...</span>
+      return <span className="text-yellow-600 italic">Preparing to start the round...</span>
     }
 
     // If it's the current player's turn to bet, show that message
     if (isCurrentPlayerBettingTurn) {
-      return <span className="text-green-600">It's your turn to place a bet!</span>
+      return <span className="text-green-600 italic">It's your turn to place a bet!</span>
     }
 
     // Otherwise, we're waiting for another player to bet
     return (
-      <span className="text-yellow-600">
+      <span className="text-yellow-600 italic">
         Waiting for{" "}
         {currentBettingPlayerName.startsWith("Waiting")
           ? players.find((p) => p.name !== currentPlayerName)?.name || "other players"
@@ -896,12 +896,12 @@ export default function GameTable({
 
   const scoreTablePanel = (
     <div
-      className={`flex-shrink-0 transition-all duration-300 ${
+      className={`flex-shrink-0 transition-all duration-300 mx-auto ${
         isBottomPosition
-          ? scoreTableExpanded ? "w-full" : "h-10 overflow-hidden"
+          ? scoreTableExpanded ? "" : "h-10 overflow-hidden"
           : scoreTableExpanded ? "" : "w-auto"
       }`}
-      style={!isBottomPosition && scoreTableExpanded ? { width: visibleWidth } : undefined}
+      style={scoreTableExpanded ? { width: visibleWidth } : undefined}
     >
       {/* Header row: toggle + title + gear */}
       <div className="flex items-center gap-2 mb-3">
@@ -934,7 +934,7 @@ export default function GameTable({
             onChange={(e) => setScoreTablePlayerCount(Number(e.target.value))}
             className="text-xs bg-gray-700 text-white border border-gray-600 rounded px-2 py-1"
           >
-            {Array.from({ length: players.length }, (_, i) => i + 1).map((n) => (
+            {Array.from({ length: Math.max(0, players.length - 1) }, (_, i) => i + 2).map((n) => (
               <option key={n} value={n}>{n}</option>
             ))}
           </select>
@@ -952,7 +952,7 @@ export default function GameTable({
       )}
 
       {scoreTableExpanded && (
-        <div className="overflow-x-auto" style={{ maxWidth: isBottomPosition ? undefined : visibleWidth }}>
+        <div className="overflow-x-auto" style={{ maxWidth: visibleWidth }}>
           <Table>
             <TableHeader>
               <TableRow>
@@ -964,7 +964,7 @@ export default function GameTable({
                 ))}
               </TableRow>
               <TableRow>
-                <TableHead className="border-r border-gray-600"></TableHead>
+                <TableHead className="border-r border-gray-600">Round</TableHead>
                 {orderedPlayers.map((player) => (
                   <React.Fragment key={player.name}>
                     <TableHead className="text-center">Bet</TableHead>
@@ -1029,7 +1029,8 @@ export default function GameTable({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={orderedPlayers.length * 4 + 1}>No scores available</TableCell>
+                  <TableCell className="border-r border-gray-600"></TableCell>
+                  <TableCell colSpan={orderedPlayers.length * 4} className="italic text-gray-400">A detailed game log will be displayed here</TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -1040,7 +1041,7 @@ export default function GameTable({
   )
 
   return (
-    <div className={`flex gap-4 ${isBottomPosition ? "flex-col items-stretch" : "flex-row items-start"}`}>
+    <div className={`flex gap-4 ${isBottomPosition ? "flex-col" : "flex-row items-start"}`}>
 
       {/* Score table: left or right position */}
       {scoreTablePosition === "left" && scoreTablePanel}
@@ -1072,7 +1073,7 @@ export default function GameTable({
           <>
             <p>Table ID: {tableId}</p>
             {players.length < 2 ? (
-              <p className="text-yellow-600 font-semibold">Waiting for more players to join...</p>
+              <p className="text-yellow-600 italic">Waiting for more players to join...</p>
             ) : (
               <p>Waiting for game to start...</p>
             )}
@@ -1226,12 +1227,13 @@ export default function GameTable({
       <div className="flex mt-4">
         {/* Spacer div */}
         <div className="w-1/6"></div>
-        {/* Your Bet/Win section — hidden once current player has placed their bet */}
-        {(!gameStarted || !currentPlayer || currentPlayer.bet === null) && <div className={`w-1/3 mr-8 flex flex-col rounded-xl p-3 border-2 ${isCurrentPlayerBettingTurn ? "border-green-400 animate-bet-border" : "border-transparent"}`}>
-          <h2 className="text-xl font-bold mb-2 text-center">Make Your Bet</h2>
+        {/* Your Bet/Win section — container always present to keep hand position stable */}
+        <div className={`w-1/3 mr-8 flex flex-col rounded-xl p-3 border-2 ${isCurrentPlayerBettingTurn ? "border-green-400 animate-bet-border" : "border-transparent"}`}>
+        {(!gameStarted || !currentPlayer || currentPlayer.bet === null) && <>
+          <h2 className="text-xl font-bold mb-2 text-center">{!gameStarted ? "Your Bet" : "Make Your Bet"}</h2>
           {!gameStarted ? (
             <div className="flex flex-col items-center mt-1">
-              <p className="text-center">No bets and wins</p>
+              <p className="text-center italic">You will place your bets here</p>
             </div>
           ) : currentPlayer && currentPlayer.bet === null ? (
             isCurrentPlayerBettingTurn ? (
@@ -1268,7 +1270,7 @@ export default function GameTable({
                 </div>
               </div>
             ) : (
-              <p className="text-center text-yellow-600 mt-4">
+              <p className="text-center text-yellow-600 italic mt-4">
                 {waitingForBetDelay ? (
                   "Preparing to start the round..."
                 ) : (
@@ -1283,7 +1285,8 @@ export default function GameTable({
               </p>
             )
           ) : null}
-        </div>}
+        </>}
+        </div>
 
         {/* Player's hand */}
         <div className="w-2/3">
@@ -1312,12 +1315,12 @@ export default function GameTable({
                 />
               ))
             ) : (
-              <p>No cards in hand</p>
+              <p className="italic">Your cards will appear here</p>
             )}
           </div>
           {/* Replace the hardcoded check with the dynamic getTotalRounds function */}
           {gameStarted && currentRound <= getTotalRounds(safeGameData.gameLength || "basic") && (
-            <p className="text-center mt-2 font-bold">{renderGameStatusMessage()}</p>
+            <p className="text-center mt-2">{renderGameStatusMessage()}</p>
           )}
           {errorMessage && <p className="text-red-600 text-center mt-2">{errorMessage}</p>}
         </div>

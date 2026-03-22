@@ -13,7 +13,7 @@ export default function Navigation() {
   return (
     <nav className="bg-black/80 text-white p-4 fixed top-0 left-0 right-0 z-10 backdrop-blur-sm">
       <div className="w-full flex justify-between items-center">
-        <Link href="/" className="flex items-center gap-2 text-2xl font-bold">
+        <Link href="/" className="flex items-center gap-2 font-bold" style={{ fontSize: "17.5px" }}>
           <Image src="/logo.png" alt="Bearos Poker Logo" width={36} height={36} />
           Bearos Poker
         </Link>
