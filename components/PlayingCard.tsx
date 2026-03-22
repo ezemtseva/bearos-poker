@@ -7,6 +7,7 @@ interface PlayingCardProps {
   disabled?: boolean
   className?: string
   showBack?: boolean
+  size?: "normal" | "small"
 }
 
 const SuitSymbol = ({ suit, className = "" }: { suit: string; className?: string }) => {
@@ -61,9 +62,12 @@ export default function PlayingCard({
   disabled = false,
   className = "",
   showBack = false,
+  size = "normal",
 }: PlayingCardProps) {
+  const isSmall = size === "small"
+
   if (showBack) {
-    return <CardBack className={className} />
+    return <CardBack className={className} size={size} />
   }
 
   const isRed = suit === "hearts" || suit === "diamonds"
@@ -71,30 +75,37 @@ export default function PlayingCard({
   const cardColor = isPokerCard ? "bg-blue-100" : suit === "diamonds" ? "bg-red-100" : "bg-white"
   const displayValue = valueToDisplay(value)
 
+  const sizeClass = isSmall ? "w-14 h-[84px] rounded-xl" : "w-24 h-36 rounded-2xl"
+  const valueClass = isSmall ? "text-sm" : "text-xl"
+  const cornerIconClass = isSmall ? "w-3 h-3" : "w-4 h-4"
+  const centerIconClass = isSmall ? "w-10 h-10" : "w-16 h-16"
+  const cornerPad = isSmall ? "top-1 left-1" : "top-2 left-2"
+  const cornerPadBR = isSmall ? "bottom-1 right-1" : "bottom-2 right-2"
+
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`relative w-24 h-36 rounded-2xl shadow-md transition-transform 
-        ${disabled ? "opacity-100" : "hover:scale-105 hover:shadow-lg"} 
+      className={`relative ${sizeClass} shadow-md transition-transform
+        ${disabled ? "opacity-100" : "hover:scale-105 hover:shadow-lg"}
         ${cardColor}
         border border-gray-300 overflow-hidden ${className}`}
       aria-label={`${displayValue} of ${suit}`}
     >
       {/* Card corners */}
-      <div className="absolute top-2 left-2 flex flex-col items-center">
-        <span className={`text-xl font-bold ${isRed ? "text-red-600" : "text-black"}`}>{displayValue}</span>
-        <SuitSymbol suit={suit} className={`w-4 h-4 ${isRed ? "text-red-600" : "text-black"}`} />
+      <div className={`absolute ${cornerPad} flex flex-col items-center`}>
+        <span className={`${valueClass} font-bold ${isRed ? "text-red-600" : "text-black"}`}>{displayValue}</span>
+        <SuitSymbol suit={suit} className={`${cornerIconClass} ${isRed ? "text-red-600" : "text-black"}`} />
       </div>
 
-      <div className="absolute bottom-2 right-2 flex flex-col items-center rotate-180">
-        <span className={`text-xl font-bold ${isRed ? "text-red-600" : "text-black"}`}>{displayValue}</span>
-        <SuitSymbol suit={suit} className={`w-4 h-4 ${isRed ? "text-red-600" : "text-black"}`} />
+      <div className={`absolute ${cornerPadBR} flex flex-col items-center rotate-180`}>
+        <span className={`${valueClass} font-bold ${isRed ? "text-red-600" : "text-black"}`}>{displayValue}</span>
+        <SuitSymbol suit={suit} className={`${cornerIconClass} ${isRed ? "text-red-600" : "text-black"}`} />
       </div>
 
       {/* Center symbol */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <SuitSymbol suit={suit} className={`w-16 h-16 ${isRed ? "text-red-600" : "text-black"}`} />
+        <SuitSymbol suit={suit} className={`${centerIconClass} ${isRed ? "text-red-600" : "text-black"}`} />
       </div>
     </button>
   )

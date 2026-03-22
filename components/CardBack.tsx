@@ -5,13 +5,15 @@ import { CARD_BACK_SKINS } from "./SettingsPanel"
 
 interface CardBackProps {
   className?: string
+  size?: "normal" | "small"
 }
 
 function readCardBackSkin(): string {
   try { return localStorage.getItem("cardBackSkin") || "black" } catch { return "black" }
 }
 
-export default function CardBack({ className = "" }: CardBackProps) {
+export default function CardBack({ className = "", size = "normal" }: CardBackProps) {
+  const sizeClass = size === "small" ? "w-14 h-[84px] rounded-xl" : "w-24 h-36 rounded-2xl"
   const patternId = useId()
   const [skinId, setSkinId] = useState("black")
 
@@ -28,7 +30,7 @@ export default function CardBack({ className = "" }: CardBackProps) {
   const skin = CARD_BACK_SKINS.find((s) => s.id === skinId) ?? CARD_BACK_SKINS[0]
 
   return (
-    <div className={`w-24 h-36 rounded-2xl overflow-hidden border border-white/20 ${className}`}>
+    <div className={`${sizeClass} overflow-hidden border border-white/20 ${className}`}>
       {skin.type === "image" ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={skin.value} alt="card back" className="w-full h-full object-cover" />
