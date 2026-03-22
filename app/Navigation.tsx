@@ -2,7 +2,10 @@
 
 import Link from "next/link"
 import Image from "next/image"
+import dynamic from "next/dynamic"
 import { usePathname } from "next/navigation"
+
+const SoundToggle = dynamic(() => import("@/components/SoundToggle"), { ssr: false })
 
 export default function Navigation() {
   const pathname = usePathname()
@@ -14,13 +17,14 @@ export default function Navigation() {
           <Image src="/logo.png" alt="Bearos Poker Logo" width={36} height={36} />
           Bearos Poker
         </Link>
-        <div className="space-x-6">
+        <div className="flex items-center space-x-6">
           <Link
             href="/how-to-play"
             className={`hover:text-gray-300 ${pathname === "/how-to-play" ? "underline font-semibold" : ""}`}
           >
             How to Play
           </Link>
+          <SoundToggle />
         </div>
       </div>
     </nav>

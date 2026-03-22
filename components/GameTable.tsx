@@ -17,8 +17,6 @@ import { useMemo } from "react"
 import ConfigureGameDialog, { type GameLength } from "./ConfigureGameDialog"
 // Add this import at the top with other imports
 import { useSound } from "@/hooks/use-sound"
-// Add the import for SoundToggle at the top of the file:
-import SoundToggle from "./SoundToggle"
 
 interface GameTableProps {
   tableId: string
@@ -870,11 +868,6 @@ export default function GameTable({
     <div className="space-y-8">
       {/* Game Info */}
       <div className="text-center relative">
-        {gameStarted && (
-          <div className="absolute right-0 top-0">
-            <SoundToggle />
-          </div>
-        )}
         {gameStarted ? (
           <div className="flex justify-center items-center space-x-6">
             <p>
@@ -915,7 +908,7 @@ export default function GameTable({
       </div>
 
       {/* Table with seats */}
-      <div className="relative w-[800px] h-[400px] mx-auto">
+      <div className="relative w-[800px] h-[400px] mx-auto overflow-visible">
         {/* Table shadow */}
         <div className="absolute inset-0 rounded-[200px/100px] bg-black/20 transform translate-y-2 blur-md"></div>
 
@@ -930,11 +923,18 @@ export default function GameTable({
 
         {/* Player seats */}
         {players.map((player, index) => {
-          const angle = index * (360 / players.length) * (Math.PI / 180)
-          const xRadius = 380 // Increased radius for wider oval
-          const yRadius = 200
-          const left = 400 + xRadius * Math.cos(angle)
-          const top = 200 + yRadius * Math.sin(angle)
+          // Seat positions centered on each border segment of the rounded-rect table.
+          // Flat edge centers: bottom (400,400), top (400,0), left (0,200), right (800,200)
+          // Corner arc midpoints (border-radius 200px/100px): TL(59,29) TR(741,29) BL(59,371) BR(741,371)
+          const seatPositions: Record<number, [number, number][]> = {
+            1: [[400, 400]],
+            2: [[400, 400], [400, 0]],
+            3: [[400, 400], [59, 29], [741, 29]],
+            4: [[400, 400], [0, 200], [400, 0], [800, 200]],
+            5: [[400, 400], [59, 371], [59, 29], [741, 29], [741, 371]],
+            6: [[400, 400], [59, 371], [59, 29], [400, 0], [741, 29], [741, 371]],
+          }
+          const [left, top] = seatPositions[players.length]?.[index] ?? [400, 200]
 
           // Determine chip color based on score
           let chipColor = "bg-green-700" // Default for positive scores that aren't the highest
