@@ -17,6 +17,7 @@ export default function Game() {
   const { toast } = useToast()
   const clientIdRef = useRef<string>(`client-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`)
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const reactionPollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const isPollingRef = useRef<boolean>(false)
   const lastActionRef = useRef<number>(0)
   // Add refs to track the last played card and bets to avoid playing sounds multiple times
@@ -76,10 +77,31 @@ export default function Game() {
     // Set up polling
     pollingIntervalRef.current = setInterval(fetchGameState, 2000)
 
+    // Fast reaction polling (300ms)
+    const fetchReactions = async () => {
+      try {
+        const res = await fetch(`/api/game/reactions?tableId=${tableId}`)
+        if (!res.ok) return
+        const data = await res.json()
+        const reactionMap = new Map<string, { emoji: string; timestamp: number } | null>(
+          data.reactions.map((r: { playerName: string; reaction: { emoji: string; timestamp: number } | null }) => [r.playerName, r.reaction])
+        )
+        setGameData((prev) => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            players: prev.players.map((p) =>
+              reactionMap.has(p.name) ? { ...p, reaction: reactionMap.get(p.name) ?? undefined } : p
+            ),
+          }
+        })
+      } catch {}
+    }
+    reactionPollingIntervalRef.current = setInterval(fetchReactions, 300)
+
     return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current)
-      }
+      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current)
+      if (reactionPollingIntervalRef.current) clearInterval(reactionPollingIntervalRef.current)
     }
   }, [tableId, toast])
 
@@ -394,6 +416,33 @@ export default function Game() {
     }
   }
 
+  const handleSetAvatar = async (avatar: string) => {
+    if (!currentPlayerName) return
+    try {
+      await fetch("/api/game/set-avatar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tableId, playerName: currentPlayerName, avatar }),
+      })
+      fetchLatestState()
+    } catch (error) {
+      console.error("Error setting avatar:", error)
+    }
+  }
+
+  const handleSendReaction = async (emoji: string) => {
+    if (!currentPlayerName) return
+    try {
+      await fetch("/api/game/send-reaction", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tableId, playerName: currentPlayerName, emoji }),
+      })
+    } catch (error) {
+      console.error("Error sending reaction:", error)
+    }
+  }
+
   const handleConfigureGame = async (gameLength: GameLength, hasGoldenRound: boolean) => {
     try {
       const response = await fetch("/api/game/configure", {
@@ -485,6 +534,8 @@ export default function Game() {
         onPlayCard={handlePlayCard}
         onPlaceBet={handlePlaceBet}
         onConfigureGame={handleConfigureGame}
+        onSetAvatar={handleSetAvatar}
+        onSendReaction={handleSendReaction}
         gameData={safeGameData}
       />
     </div>

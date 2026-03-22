@@ -32,9 +32,17 @@ interface GameTableProps {
   onPlayCard: (card: Card) => void
   onPlaceBet: (bet: number) => void
   onConfigureGame: (gameLength: GameLength, hasGoldenRound: boolean) => void
+  onSetAvatar: (avatar: string) => void
+  onSendReaction: (emoji: string) => void
   gameData: GameData
   lastPlayedCard: Card | null
 }
+
+const EMOJI_LIST = [
+  "😀","😂","🥰","😎","🤔","😤","😱","🤯","😈","🥳",
+  "👍","👎","💪","🙏","👑","🔥","💯","🎉","💥","🌟",
+  "❤️","💔","🃏","🎲","🤞","🍀","💰","🤑","🏆","🐻",
+]
 
 export default function GameTable({
   tableId,
@@ -52,6 +60,8 @@ export default function GameTable({
   gameData,
   lastPlayedCard,
   onConfigureGame,
+  onSetAvatar,
+  onSendReaction,
 }: GameTableProps) {
   // Add a new state variable for the dialog
   const [showConfigureDialog, setShowConfigureDialog] = useState(false)
@@ -76,6 +86,11 @@ export default function GameTable({
   const [scoreTablePosition, setScoreTablePosition] = useState<"left" | "right" | "bottom">(() => {
     try { const v = localStorage.getItem("scoreTablePosition"); return (v as "left" | "right" | "bottom") || "left" } catch { return "left" }
   })
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false)
+  const [avatarPickerTab, setAvatarPickerTab] = useState<"image" | "emoji">("emoji")
+  const [activeReactions, setActiveReactions] = useState<Map<string, { emoji: string; key: number }>>(new Map())
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const lastReactionTimestampRef = useRef<Map<string, number>>(new Map())
   const { toast } = useToast()
   // Add this inside the GameTable component, near the top with other hooks
   const { playSound } = useSound()
@@ -84,6 +99,54 @@ export default function GameTable({
   useEffect(() => { try { localStorage.setItem("scoreTableExpanded", String(scoreTableExpanded)) } catch {} }, [scoreTableExpanded])
   useEffect(() => { try { localStorage.setItem("scoreTablePlayerCount", String(scoreTablePlayerCount)) } catch {} }, [scoreTablePlayerCount])
   useEffect(() => { try { localStorage.setItem("scoreTablePosition", scoreTablePosition) } catch {} }, [scoreTablePosition])
+
+  // Track emoji reactions from other players
+  useEffect(() => {
+    players.forEach((player) => {
+      if (!player.reaction) return
+      const { emoji, timestamp } = player.reaction
+      const lastSeen = lastReactionTimestampRef.current.get(player.name)
+      if (lastSeen !== timestamp && Date.now() - timestamp < 5000) {
+        lastReactionTimestampRef.current.set(player.name, timestamp)
+        setActiveReactions((prev) => {
+          const next = new Map(prev)
+          next.set(player.name, { emoji, key: timestamp })
+          return next
+        })
+        setTimeout(() => {
+          setActiveReactions((prev) => {
+            const next = new Map(prev)
+            next.delete(player.name)
+            return next
+          })
+        }, 3000)
+      }
+    })
+  }, [players])
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement("canvas")
+        canvas.width = 64
+        canvas.height = 64
+        const ctx = canvas.getContext("2d")!
+        ctx.fillStyle = "#ffffff"
+        ctx.fillRect(0, 0, 64, 64)
+        ctx.drawImage(img, 0, 0, 64, 64)
+        const base64 = canvas.toDataURL("image/jpeg", 0.7)
+        onSetAvatar(base64)
+        setShowAvatarPicker(false)
+      }
+      img.src = ev.target?.result as string
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ""
+  }
 
   // Refs to track stable state across renders
   const currentRoundRef = useRef<number>(currentRound)
@@ -987,36 +1050,40 @@ export default function GameTable({
                   >
                     <TableCell className="border-r border-gray-600">{round.roundName}</TableCell>
                     {orderedPlayers.map((player) => {
-                      const playerScore: PlayerScore = round.scores[player.name] || {
+                      const scoreData = round.scores[player.name]
+                      const playerScore: PlayerScore = scoreData || {
                         cumulativePoints: 0,
                         roundPoints: 0,
                         bet: null,
                       }
+                      const hasScore = !!scoreData && round.roundId <= currentRound
                       const wins =
                         round.roundId === currentRound ? player.roundWins || 0 : round.scores[player.name]?.wins || 0
                       return (
                         <React.Fragment key={player.name}>
                           <TableCell className="text-center">
-                            {playerScore.bet !== null ? playerScore.bet : "-"}
+                            {hasScore ? (playerScore.bet !== null ? playerScore.bet : "-") : "-"}
                           </TableCell>
                           <TableCell className="text-center">
                             {round.roundId === currentRound
                               ? wins
-                              : playerScore.wins !== undefined
-                                ? playerScore.wins
+                              : hasScore
+                                ? (playerScore.wins !== undefined ? playerScore.wins : "-")
                                 : "-"}
                           </TableCell>
-                          <TableCell className="text-center">{playerScore.cumulativePoints}</TableCell>
+                          <TableCell className="text-center">
+                            {hasScore ? playerScore.cumulativePoints : "-"}
+                          </TableCell>
                           <TableCell
                             className={`text-center border-r border-gray-600 ${
-                              playerScore.roundPoints < 0
+                              hasScore && playerScore.roundPoints < 0
                                 ? "text-red-600"
-                                : playerScore.roundPoints > 0
+                                : hasScore && playerScore.roundPoints > 0
                                   ? "text-green-600"
                                   : ""
                             }`}
                           >
-                            {playerScore.roundPoints > 0
+                            {!hasScore ? "-" : playerScore.roundPoints > 0
                               ? `+${playerScore.roundPoints}`
                               : playerScore.roundPoints === 0
                                 ? "-"
@@ -1081,17 +1148,8 @@ export default function GameTable({
         )}
       </div>
 
-      {/* Buttons */}
-      <div className="flex justify-center space-x-4">
-        {!gameStarted && <Button onClick={onShare}>Share Game Link</Button>}
-        {!gameStarted && isOwner && players.length >= 2 && (
-          <Button onClick={() => setShowConfigureDialog(true)}>Configure Game</Button>
-        )}
-        {canStartGame && <Button onClick={onStartGame}>Start Game</Button>}
-      </div>
-
       {/* Table with seats */}
-      <div className="relative w-[800px] h-[400px] mx-auto overflow-visible">
+      <div className="relative w-[800px] h-[400px] mx-auto overflow-visible" style={{ marginTop: "80px" }}>
         {/* Table shadow */}
         <div className="absolute inset-0 rounded-[200px/100px] bg-black/20 transform translate-y-2 blur-md"></div>
 
@@ -1153,19 +1211,46 @@ export default function GameTable({
             ? seatBorderTurn
             : seatBorder
 
+          const isCurrentPlayerSeat = player.name === currentPlayerName
+          const reaction = activeReactions.get(player.name)
+
           return (
             <div
               key={index}
               className="absolute -translate-x-1/2 -translate-y-1/2"
               style={{ left: `${left}px`, top: `${top}px` }}
             >
+              {/* Reaction animation */}
+              {reaction && (
+                <div
+                  key={reaction.key}
+                  className="absolute left-1/2 pointer-events-none text-3xl reaction-float z-20"
+                  style={{ top: "-10px" }}
+                >
+                  {reaction.emoji}
+                </div>
+              )}
               <div
                 className={`w-[150px] rounded-xl shadow-lg border-2 ${isActiveTurn ? seatBgTurn : seatBg} ${seatText} ${borderClass}`}
               >
                 {/* Top row: avatar + name */}
                 <div className="flex items-center gap-2 px-3 py-2">
-                  <div className="w-7 h-7 rounded-full bg-gray-500 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
-                    {player.name.charAt(0).toUpperCase()}
+                  <div
+                    className={`relative w-7 h-7 rounded-full flex-shrink-0 overflow-hidden outline-none ${isCurrentPlayerSeat ? "cursor-pointer group" : ""}`}
+                    onClick={isCurrentPlayerSeat ? () => { setShowAvatarPicker(true); setAvatarPickerTab("emoji") } : undefined}
+                  >
+                    {player.avatar ? (
+                      <img src={player.avatar} alt={player.name} className="w-full h-full object-cover border-0 outline-none ring-0" />
+                    ) : (
+                      <div className="w-full h-full bg-gray-500 flex items-center justify-center text-white text-xs font-bold">
+                        {player.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    {isCurrentPlayerSeat && (
+                      <div className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center rounded-full">
+                        <span className="text-white text-[8px]">✏️</span>
+                      </div>
+                    )}
                   </div>
                   <span className={`text-sm font-bold ${isActiveTurn ? "text-gray-500" : ""}`}>{player.name}</span>
                 </div>
@@ -1188,6 +1273,17 @@ export default function GameTable({
             </div>
           )
         })}
+
+        {/* Buttons in center of table (pre-game only) */}
+        {!gameStarted && (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 z-10">
+            <Button onClick={onShare}>Share Game Link</Button>
+            {isOwner && players.length >= 2 && (
+              <Button onClick={() => setShowConfigureDialog(true)}>Configure Game</Button>
+            )}
+            {canStartGame && <Button onClick={onStartGame}>Start Game</Button>}
+          </div>
+        )}
 
         {/* Cards on table */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex space-x-2">
@@ -1229,7 +1325,7 @@ export default function GameTable({
         <div className="w-1/6"></div>
         {/* Your Bet/Win section — container always present to keep hand position stable */}
         <div className={`w-1/3 mr-8 flex flex-col rounded-xl p-3 border-2 ${isCurrentPlayerBettingTurn ? "border-green-400 animate-bet-border" : "border-transparent"}`}>
-        {(!gameStarted || !currentPlayer || currentPlayer.bet === null) && <>
+        {(!gameStarted || (currentPlayer && currentPlayer.bet === null && isCurrentPlayerBettingTurn)) && <>
           <h2 className="text-xl font-bold mb-2 text-center">{!gameStarted ? "Your Bet" : "Make Your Bet"}</h2>
           {!gameStarted ? (
             <div className="flex flex-col items-center mt-1">
@@ -1351,6 +1447,75 @@ export default function GameTable({
         currentHasGoldenRound={safeGameData.hasGoldenRound || false}
       />
 
+      {/* Avatar / Reaction Picker Modal */}
+      {showAvatarPicker && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+          onClick={() => setShowAvatarPicker(false)}
+        >
+          <div className="bg-gray-800 rounded-xl p-4 w-80 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-white font-semibold text-sm">Emoji and Avatar</h3>
+              <button onClick={() => setShowAvatarPicker(false)} className="text-gray-400 hover:text-white text-lg leading-none">✕</button>
+            </div>
+            {/* Tabs */}
+            <div className="flex gap-2 mb-4">
+              <button
+                className={`flex-1 py-1.5 rounded text-xs ${avatarPickerTab === "emoji" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`}
+                onClick={() => setAvatarPickerTab("emoji")}
+              >😀 Emoji</button>
+              <button
+                className={`flex-1 py-1.5 rounded text-xs ${avatarPickerTab === "image" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`}
+                onClick={() => setAvatarPickerTab("image")}
+              >📷 Avatar</button>
+            </div>
+
+            {avatarPickerTab === "emoji" && (
+              <div>
+                <div className="grid grid-cols-6 gap-1">
+                  {EMOJI_LIST.map((emoji) => (
+                    <button
+                      key={emoji}
+                      className="text-2xl hover:bg-gray-700 rounded p-1 transition-colors"
+                      onClick={() => { onSendReaction(emoji); setShowAvatarPicker(false) }}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {avatarPickerTab === "image" && (
+              <div className="flex flex-col items-center gap-3">
+                {players.find((p) => p.name === currentPlayerName)?.avatar && (
+                  <img
+                    src={players.find((p) => p.name === currentPlayerName)!.avatar}
+                    alt="avatar"
+                    className="w-16 h-16 rounded-full object-cover border-0 outline-none ring-0"
+                  />
+                )}
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => fileInputRef.current?.click()}>
+                    Choose Photo
+                  </Button>
+                  {players.find((p) => p.name === currentPlayerName)?.avatar && (
+                    <Button
+                      size="sm"
+                      className="bg-red-600 hover:bg-red-500 text-white"
+                      onClick={() => { onSetAvatar(""); setShowAvatarPicker(false) }}
+                    >
+                      Remove Photo
+                    </Button>
+                  )}
+                </div>
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Add CSS for animations */}
       <style jsx global>{`
       @keyframes fadeIn {
@@ -1363,6 +1528,14 @@ export default function GameTable({
       }
       .animate-bet-border {
         animation: betBorder 1s ease-in-out infinite;
+      }
+      @keyframes reactionFloat {
+        0%   { opacity: 1; transform: translateX(-50%) translateY(0)   scale(1); }
+        40%  { opacity: 1; transform: translateX(-50%) translateY(-50px) scale(1.4); }
+        100% { opacity: 0; transform: translateX(-50%) translateY(-90px) scale(0.8); }
+      }
+      .reaction-float {
+        animation: reactionFloat 3s ease-out forwards;
       }
     `}</style>
     </div>

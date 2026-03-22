@@ -6,6 +6,8 @@ export interface Player {
   score: number
   roundWins: number
   bet: number | null
+  avatar?: string
+  reaction?: { emoji: string; timestamp: number }
 }
 
 export interface ScoreTableRow {
