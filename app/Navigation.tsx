@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 
 export default function Navigation() {
@@ -9,7 +10,8 @@ export default function Navigation() {
   return (
     <nav className="bg-black/80 text-white p-4 fixed top-0 left-0 right-0 z-10 backdrop-blur-sm">
       <div className="container mx-auto flex justify-between items-center">
-        <Link href="/" className="text-2xl font-bold">
+        <Link href="/" className="flex items-center gap-2 text-2xl font-bold">
+          <Image src="/logo.png" alt="Bearos Poker Logo" width={36} height={36} />
           Bearos Poker
         </Link>
         <div className="space-x-6">

@@ -896,9 +896,10 @@ export default function GameTable({
         ) : (
           <>
             <p>Table ID: {tableId}</p>
-            <p>Waiting for game to start...</p>
-            {!gameStarted && players.length < 2 && (
+            {players.length < 2 ? (
               <p className="text-yellow-600 font-semibold">Waiting for more players to join...</p>
+            ) : (
+              <p>Waiting for game to start...</p>
             )}
           </>
         )}
