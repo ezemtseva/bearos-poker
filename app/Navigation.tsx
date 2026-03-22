@@ -6,6 +6,7 @@ import dynamic from "next/dynamic"
 import { usePathname } from "next/navigation"
 
 const SoundToggle = dynamic(() => import("@/components/SoundToggle"), { ssr: false })
+const SettingsPanel = dynamic(() => import("@/components/SettingsPanel"), { ssr: false })
 
 export default function Navigation() {
   const pathname = usePathname()
@@ -25,6 +26,7 @@ export default function Navigation() {
             How to Play
           </Link>
           <SoundToggle />
+          <SettingsPanel />
         </div>
       </div>
     </nav>

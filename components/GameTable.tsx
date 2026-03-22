@@ -17,6 +17,7 @@ import ConfigureGameDialog, { type GameLength } from "./ConfigureGameDialog"
 // Add this import at the top with other imports
 import { useSound } from "@/hooks/use-sound"
 import { Settings, ChevronLeft, ChevronRight } from "lucide-react"
+import { TABLE_SKINS, SEAT_SKINS } from "./SettingsPanel"
 
 interface GameTableProps {
   tableId: string
@@ -89,11 +90,38 @@ export default function GameTable({
   const [showAvatarPicker, setShowAvatarPicker] = useState(false)
   const [avatarPickerTab, setAvatarPickerTab] = useState<"image" | "emoji">("emoji")
   const [activeReactions, setActiveReactions] = useState<Map<string, { emoji: string; key: number }>>(new Map())
+  const [betBlinkEnabled, setBetBlinkEnabled] = useState(false)
+  const [tableSkin, setTableSkin] = useState("blue")
+  const [seatSkin, setSeatSkin] = useState("gray")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const lastReactionTimestampRef = useRef<Map<string, number>>(new Map())
   const { toast } = useToast()
   // Add this inside the GameTable component, near the top with other hooks
   const { playSound } = useSound()
+
+  // Load settings from localStorage on mount
+  useEffect(() => {
+    try {
+      const blink = localStorage.getItem("betBlinkEnabled")
+      if (blink !== null) setBetBlinkEnabled(blink === "true")
+      const skin = localStorage.getItem("tableSkin")
+      if (skin) setTableSkin(skin)
+      const seat = localStorage.getItem("seatSkin")
+      if (seat) setSeatSkin(seat)
+    } catch {}
+  }, [])
+
+  // Listen for settings changes from SettingsPanel
+  useEffect(() => {
+    function handleSettingsChanged(e: Event) {
+      const detail = (e as CustomEvent).detail
+      if ("betBlinkEnabled" in detail) setBetBlinkEnabled(detail.betBlinkEnabled)
+      if ("tableSkin" in detail) setTableSkin(detail.tableSkin)
+      if ("seatSkin" in detail) setSeatSkin(detail.seatSkin)
+    }
+    window.addEventListener("settingsChanged", handleSettingsChanged)
+    return () => window.removeEventListener("settingsChanged", handleSettingsChanged)
+  }, [])
 
   // Persist score table settings to localStorage
   useEffect(() => { try { localStorage.setItem("scoreTableExpanded", String(scoreTableExpanded)) } catch {} }, [scoreTableExpanded])
@@ -1157,7 +1185,15 @@ export default function GameTable({
         <div className="absolute inset-0 rounded-[200px/100px] bg-[#e6e0d4] shadow-lg"></div>
 
         {/* Table felt */}
-        <div className="absolute inset-[20px] rounded-[180px/90px] bg-[#0f4c81]">
+        <div
+          className="absolute inset-[20px] rounded-[180px/90px]"
+          style={(() => {
+            const skin = TABLE_SKINS.find((s) => s.id === tableSkin)
+            if (!skin) return { backgroundColor: "#0f4c81" }
+            if (skin.type === "image") return { backgroundImage: `url(${skin.value})`, backgroundSize: "cover", backgroundPosition: "center" }
+            return { backgroundColor: skin.value }
+          })()}
+        >
           {/* Inner felt line */}
           <div className="absolute inset-[30px] rounded-[150px/75px] border-2 border-[#0a3d6a] opacity-50"></div>
         </div>
@@ -1195,7 +1231,8 @@ export default function GameTable({
           const betValue = shouldShowBetBanners() && player.bet !== null ? player.bet : "—"
 
           // ─── Seat appearance — edit these to restyle seats ───────────────
-          const seatBg         = "bg-gray-700"           // default background
+          const seatBgColor    = SEAT_SKINS.find((s) => s.id === seatSkin)?.value ?? "#374151"
+          const seatBg         = ""                      // color applied via inline style
           const seatBgTurn     = "bg-yellow-100"           // background when it's this player's turn
           const seatText       = "text-gray-100"         // default text color
           const seatBorder     = "border-gray-500"       // default border
@@ -1232,6 +1269,7 @@ export default function GameTable({
               )}
               <div
                 className={`w-[150px] rounded-xl shadow-lg border-2 ${isActiveTurn ? seatBgTurn : seatBg} ${seatText} ${borderClass}`}
+                style={isActiveTurn ? undefined : { backgroundColor: seatBgColor }}
               >
                 {/* Top row: avatar + name */}
                 <div className="flex items-center gap-2 px-3 py-2">
@@ -1324,7 +1362,7 @@ export default function GameTable({
         {/* Spacer div */}
         <div className="w-1/6"></div>
         {/* Your Bet/Win section — container always present to keep hand position stable */}
-        <div className={`w-1/3 mr-8 flex flex-col rounded-xl p-3 border-2 ${isCurrentPlayerBettingTurn ? "border-green-400 animate-bet-border" : "border-transparent"}`}>
+        <div className={`w-1/3 mr-8 flex flex-col rounded-xl p-3 border-2 ${isCurrentPlayerBettingTurn && betBlinkEnabled ? "border-green-400 animate-bet-border" : "border-transparent"}`}>
         {(!gameStarted || (currentPlayer && currentPlayer.bet === null && isCurrentPlayerBettingTurn)) && <>
           <h2 className="text-xl font-bold mb-2 text-center">{!gameStarted ? "Your Bet" : "Make Your Bet"}</h2>
           {!gameStarted ? (
@@ -1359,7 +1397,7 @@ export default function GameTable({
                   {(() => {
                     const forbiddenBet = calculateForbiddenBet()
                     return forbiddenBet !== null
-                      ? <p className="text-red-500 text-sm">You cannot bet {forbiddenBet}</p>
+                      ? <p className="text-red-500 text-sm italic">You cannot bet {forbiddenBet}</p>
                       : null
                   })()}
                   <Button onClick={handlePlaceBet}>Confirm</Button>

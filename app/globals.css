@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --background-image: url("https://hebbkx1anhila5yf.public.blob.vercel-storage.com/abstract-luxury-gradient-blue-background-smooth-dark-blue-with-black-vignette-studio-banner.jpg-fGygqDq66fCafTuUSv6AtHTzoiPOek.jpeg");
+  --background-image: radial-gradient(ellipse at center, #2e6bb0 0%, #050d1a 100%);
 
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;

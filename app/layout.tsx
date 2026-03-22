@@ -2,6 +2,9 @@ import type React from "react"
 import "./globals.css"
 import { Inter } from "next/font/google"
 import Navigation from "./Navigation"
+import dynamic from "next/dynamic"
+
+const RoomSkinApplier = dynamic(() => import("@/components/RoomSkinApplier"), { ssr: false })
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -19,6 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
+        <RoomSkinApplier />
         <Navigation />
         <div className="content-wrapper">
           <div className="pt-16">{children}</div>
