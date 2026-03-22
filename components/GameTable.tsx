@@ -6,7 +6,6 @@ import { useState, useEffect, useRef } from "react"
 import type { Player, Card, GameData, ScoreTableRow, PlayerScore } from "../types/game"
 import { Table, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import PlayingCard from "./PlayingCard"
 import { useToast } from "@/hooks/use-toast"
 import GameResultsDialog from "./GameResultsDialog"
@@ -17,6 +16,7 @@ import { useMemo } from "react"
 import ConfigureGameDialog, { type GameLength } from "./ConfigureGameDialog"
 // Add this import at the top with other imports
 import { useSound } from "@/hooks/use-sound"
+import { Settings, ChevronLeft, ChevronRight } from "lucide-react"
 
 interface GameTableProps {
   tableId: string
@@ -66,9 +66,24 @@ export default function GameTable({
   const [pokerCardOption, setPokerCardOption] = useState<"Trumps" | "Poker" | "Simple" | null>(null)
   const [lastKnownBettingPlayer, setLastKnownBettingPlayer] = useState<string>("Waiting for players...")
   const [stableBettingUI, setStableBettingUI] = useState<boolean>(false)
+  const [scoreTableExpanded, setScoreTableExpanded] = useState(() => {
+    try { const v = localStorage.getItem("scoreTableExpanded"); return v !== null ? v === "true" : true } catch { return true }
+  })
+  const [showScoreSettings, setShowScoreSettings] = useState(false)
+  const [scoreTablePlayerCount, setScoreTablePlayerCount] = useState(() => {
+    try { const v = localStorage.getItem("scoreTablePlayerCount"); return v !== null ? Number(v) : (players.length || 1) } catch { return players.length || 1 }
+  })
+  const [scoreTablePosition, setScoreTablePosition] = useState<"left" | "right" | "bottom">(() => {
+    try { const v = localStorage.getItem("scoreTablePosition"); return (v as "left" | "right" | "bottom") || "left" } catch { return "left" }
+  })
   const { toast } = useToast()
   // Add this inside the GameTable component, near the top with other hooks
   const { playSound } = useSound()
+
+  // Persist score table settings to localStorage
+  useEffect(() => { try { localStorage.setItem("scoreTableExpanded", String(scoreTableExpanded)) } catch {} }, [scoreTableExpanded])
+  useEffect(() => { try { localStorage.setItem("scoreTablePlayerCount", String(scoreTablePlayerCount)) } catch {} }, [scoreTablePlayerCount])
+  useEffect(() => { try { localStorage.setItem("scoreTablePosition", scoreTablePosition) } catch {} }, [scoreTablePosition])
 
   // Refs to track stable state across renders
   const currentRoundRef = useRef<number>(currentRound)
@@ -259,6 +274,7 @@ export default function GameTable({
       setShowResultsDialog(true)
     }
   }, [safeGameData.gameOver])
+
 
   // Add a function to get the total number of rounds based on game length
   const getTotalRounds = (gameLength: GameLength): number => {
@@ -864,8 +880,174 @@ export default function GameTable({
     onConfigureGame(gameLength, hasGoldenRound)
   }
 
+  // Score table helpers (used in both panel and layout)
+  const stCurrentIdx = players.findIndex((p) => p.name === currentPlayerName)
+  const orderedPlayers = stCurrentIdx > 0
+    ? [players[stCurrentIdx], ...players.filter((_, i) => i !== stCurrentIdx)]
+    : [...players]
+  const visibleWidth = 70 + Math.max(1, Math.min(scoreTablePlayerCount, players.length || 1)) * 200
+
+  const isBottomPosition = scoreTablePosition === "bottom"
+
+  // Chevron direction depends on position
+  const collapseIcon = isBottomPosition
+    ? (scoreTableExpanded ? "▼" : "▲")
+    : (scoreTablePosition === "right" ? (scoreTableExpanded ? "▶" : "◀") : (scoreTableExpanded ? "◀" : "▶"))
+
+  const scoreTablePanel = (
+    <div
+      className={`flex-shrink-0 transition-all duration-300 ${
+        isBottomPosition
+          ? scoreTableExpanded ? "w-full" : "h-10 overflow-hidden"
+          : scoreTableExpanded ? "" : "w-auto"
+      }`}
+      style={!isBottomPosition && scoreTableExpanded ? { width: visibleWidth } : undefined}
+    >
+      {/* Header row: toggle + title + gear */}
+      <div className="flex items-center gap-2 mb-3">
+        <button
+          onClick={() => setScoreTableExpanded((v) => !v)}
+          className="text-sm font-semibold text-gray-300 hover:text-white"
+        >
+          {collapseIcon}
+        </button>
+        <span className="text-sm font-semibold text-gray-300 flex-1 whitespace-nowrap">Score Table</span>
+        {scoreTableExpanded && (
+          <>
+            <button
+              onClick={() => setShowScoreSettings((v) => !v)}
+              className="text-gray-400 hover:text-white"
+              title="Score table settings"
+            >
+              <Settings size={15} />
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Settings panel */}
+      {scoreTableExpanded && showScoreSettings && (
+        <div className="mb-3 p-3 bg-gray-800 rounded-lg flex flex-wrap items-center gap-3">
+          <span className="text-xs text-gray-300 whitespace-nowrap">Players shown:</span>
+          <select
+            value={scoreTablePlayerCount}
+            onChange={(e) => setScoreTablePlayerCount(Number(e.target.value))}
+            className="text-xs bg-gray-700 text-white border border-gray-600 rounded px-2 py-1"
+          >
+            {Array.from({ length: players.length }, (_, i) => i + 1).map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+          <span className="text-xs text-gray-300 whitespace-nowrap">Position:</span>
+          <select
+            value={scoreTablePosition}
+            onChange={(e) => setScoreTablePosition(e.target.value as "left" | "right" | "bottom")}
+            className="text-xs bg-gray-700 text-white border border-gray-600 rounded px-2 py-1"
+          >
+            <option value="left">Left</option>
+            <option value="right">Right</option>
+            <option value="bottom">Bottom</option>
+          </select>
+        </div>
+      )}
+
+      {scoreTableExpanded && (
+        <div className="overflow-x-auto" style={{ maxWidth: isBottomPosition ? undefined : visibleWidth }}>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-white font-bold text-left border-r border-gray-600 border-b-0"></TableHead>
+                {orderedPlayers.map((player) => (
+                  <TableHead key={player.name} colSpan={4} className="text-left text-white font-bold border-r border-gray-600">
+                    {player.name}
+                  </TableHead>
+                ))}
+              </TableRow>
+              <TableRow>
+                <TableHead className="border-r border-gray-600"></TableHead>
+                {orderedPlayers.map((player) => (
+                  <React.Fragment key={player.name}>
+                    <TableHead className="text-center">Bet</TableHead>
+                    <TableHead className="text-center">Wins</TableHead>
+                    <TableHead className="text-center">Points</TableHead>
+                    <TableHead className="text-center border-r border-gray-600">Round</TableHead>
+                  </React.Fragment>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {safeGameData.scoreTable && safeGameData.scoreTable.length > 0 ? (
+                safeGameData.scoreTable.map((round: ScoreTableRow) => (
+                  <TableRow
+                    key={round.roundId}
+                    className={`
+                    ${round.roundId === currentRound ? "bg-blue-400/70" : ""}
+                    ${round.roundId < currentRound ? "bg-gray-600/70" : ""}
+                  `}
+                  >
+                    <TableCell className="border-r border-gray-600">{round.roundName}</TableCell>
+                    {orderedPlayers.map((player) => {
+                      const playerScore: PlayerScore = round.scores[player.name] || {
+                        cumulativePoints: 0,
+                        roundPoints: 0,
+                        bet: null,
+                      }
+                      const wins =
+                        round.roundId === currentRound ? player.roundWins || 0 : round.scores[player.name]?.wins || 0
+                      return (
+                        <React.Fragment key={player.name}>
+                          <TableCell className="text-center">
+                            {playerScore.bet !== null ? playerScore.bet : "-"}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {round.roundId === currentRound
+                              ? wins
+                              : playerScore.wins !== undefined
+                                ? playerScore.wins
+                                : "-"}
+                          </TableCell>
+                          <TableCell className="text-center">{playerScore.cumulativePoints}</TableCell>
+                          <TableCell
+                            className={`text-center border-r border-gray-600 ${
+                              playerScore.roundPoints < 0
+                                ? "text-red-600"
+                                : playerScore.roundPoints > 0
+                                  ? "text-green-600"
+                                  : ""
+                            }`}
+                          >
+                            {playerScore.roundPoints > 0
+                              ? `+${playerScore.roundPoints}`
+                              : playerScore.roundPoints === 0
+                                ? "-"
+                                : playerScore.roundPoints}
+                          </TableCell>
+                        </React.Fragment>
+                      )
+                    })}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={orderedPlayers.length * 4 + 1}>No scores available</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
+  )
+
   return (
-    <div className="space-y-8">
+    <div className={`flex gap-4 ${isBottomPosition ? "flex-col items-stretch" : "flex-row items-start"}`}>
+
+      {/* Score table: left or right position */}
+      {scoreTablePosition === "left" && scoreTablePanel}
+
+      {/* Main content */}
+      <div className="flex-1 space-y-8">
+
       {/* Game Info */}
       <div className="text-center relative">
         {gameStarted ? (
@@ -936,54 +1118,70 @@ export default function GameTable({
           }
           const [left, top] = seatPositions[players.length]?.[index] ?? [400, 200]
 
-          // Determine chip color based on score
-          let chipColor = "bg-green-700" // Default for positive scores that aren't the highest
-
+          // Score color: positive = green, negative = red, zero = gray
+          let scoreColor = "text-green-400"
           if (player.score === 0) {
-            chipColor = "bg-gray-500" // Zero score
-          } else if (player.score < 0 && player.score !== highestScore) {
-            chipColor = "bg-red-600" // Negative score but not the highest
-          } else if (player.score === highestScore) {
-            chipColor = "bg-yellow-500" // Highest score (even if negative)
+            scoreColor = "text-gray-400"
+          } else if (player.score < 0) {
+            scoreColor = "text-red-400"
           }
 
-          const showBetBanner = shouldShowBetBanners() && player.bet !== null
+          const isCurrentTurn = safeGameData.allBetsPlaced && players[currentTurn]?.name === player.name
+          const isBettingTurn =
+            !safeGameData.allBetsPlaced &&
+            typeof safeGameData.currentBettingTurn === "number" &&
+            players[safeGameData.currentBettingTurn]?.name === player.name
+          const isActiveTurn = isCurrentTurn || isBettingTurn
+          const isLeader = player.score === highestScore && highestScore > 0
+          const betValue = shouldShowBetBanners() && player.bet !== null ? player.bet : "—"
+
+          // ─── Seat appearance — edit these to restyle seats ───────────────
+          const seatBg         = "bg-gray-700"           // default background
+          const seatBgTurn     = "bg-yellow-100"           // background when it's this player's turn
+          const seatText       = "text-gray-100"         // default text color
+          const seatBorder     = "border-gray-500"       // default border
+          const seatBorderTurn = "border-transparent"     // border when it's this player's turn
+          const seatBorderLead = "border-yellow-400 ring-1 ring-yellow-400"              // leader highlight
+          const dividerColor   = "border-gray-600"       // divider between name and stats rows
+          const labelColor     = "text-gray-400"         // stat labels (pts / bet / wins)
+          // ─────────────────────────────────────────────────────────────────
+
+          const borderClass = isLeader
+            ? seatBorderLead
+            : isActiveTurn
+            ? seatBorderTurn
+            : seatBorder
 
           return (
             <div
               key={index}
-              className="absolute"
-              style={{
-                left: `${left}px`,
-                top: `${top}px`,
-              }}
+              className="absolute -translate-x-1/2 -translate-y-1/2"
+              style={{ left: `${left}px`, top: `${top}px` }}
             >
-              {/* Bet Banner */}
-              {showBetBanner && (
-                <div
-                  className="absolute -top-16 left-1/2 transform -translate-x-1/2 bg-purple-900 text-white px-3 py-1 rounded-md shadow-md z-10 whitespace-nowrap"
-                  style={{
-                    animation: "fadeIn 0.3s ease-in-out",
-                  }}
-                >
-                  Bet: {player.bet}
-                </div>
-              )}
-
               <div
-                className={`relative w-20 h-20 -ml-10 -mt-10 rounded-full flex items-center justify-center text-center shadow-md ${
-                  players[currentTurn]?.name === player.name ? "bg-yellow-200" : "bg-gray-200"
-                }`}
+                className={`w-[150px] rounded-xl shadow-lg border-2 ${isActiveTurn ? seatBgTurn : seatBg} ${seatText} ${borderClass}`}
               >
-                <div>
-                  <p className="font-bold text-sm text-black">{player.name}</p>
-                  {player.isOwner && <p className="text-xs text-gray-600">(Owner)</p>}
+                {/* Top row: avatar + name */}
+                <div className="flex items-center gap-2 px-3 py-2">
+                  <div className="w-7 h-7 rounded-full bg-gray-500 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
+                    {player.name.charAt(0).toUpperCase()}
+                  </div>
+                  <span className={`text-sm font-bold ${isActiveTurn ? "text-gray-500" : ""}`}>{player.name}</span>
                 </div>
-                {/* Points Chip */}
-                <div
-                  className={`absolute -bottom-2 -left-2 w-8 h-8 rounded-full ${chipColor} flex items-center justify-center text-white text-xs font-bold shadow-md`}
-                >
-                  {player.score}
+                {/* Stats row: pts | bet | wins */}
+                <div className={`grid grid-cols-3 border-t ${dividerColor} px-1 py-1.5`}>
+                  <div className="flex flex-col items-center">
+                    <span className={`text-[10px] uppercase tracking-wide ${labelColor}`}>pts</span>
+                    <span className={`text-sm font-bold ${scoreColor}`}>{player.score}</span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <span className={`text-[10px] uppercase tracking-wide ${labelColor}`}>bet</span>
+                    <span className="text-sm font-bold text-purple-300">{betValue}</span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <span className={`text-[10px] uppercase tracking-wide ${labelColor}`}>wins</span>
+                    <span className="text-sm font-bold text-blue-300">{player.roundWins}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1028,69 +1226,64 @@ export default function GameTable({
       <div className="flex mt-4">
         {/* Spacer div */}
         <div className="w-1/6"></div>
-        {/* Your Bet/Win section */}
-        <div className="w-1/3 mr-8">
-          <h2 className="text-xl font-bold mb-2 text-center">Your Bets & Wins</h2>
+        {/* Your Bet/Win section — hidden once current player has placed their bet */}
+        {(!gameStarted || !currentPlayer || currentPlayer.bet === null) && <div className={`w-1/3 mr-8 flex flex-col rounded-xl p-3 border-2 ${isCurrentPlayerBettingTurn ? "border-green-400 animate-bet-border" : "border-transparent"}`}>
+          <h2 className="text-xl font-bold mb-2 text-center">Make Your Bet</h2>
           {!gameStarted ? (
             <div className="flex flex-col items-center mt-1">
               <p className="text-center">No bets and wins</p>
             </div>
           ) : currentPlayer && currentPlayer.bet === null ? (
-            <div className="flex flex-col items-center space-y-2 mt-2">
-              {isCurrentPlayerBettingTurn ? (
-                <>
-                  <div className="flex flex-col items-center space-y-2">
-                    <Input
-                      type="number"
-                      min={0}
-                      max={cardsThisRound}
-                      value={betAmount !== null ? betAmount.toString() : ""}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        if (value === "" || value === "-") {
-                          setBetAmount(null)
-                        } else {
-                          const numValue = Number.parseInt(value, 10)
-                          if (!isNaN(numValue) && numValue >= 0 && numValue <= cardsThisRound) {
-                            setBetAmount(numValue)
-                          }
-                        }
-                      }}
-                      className="w-20 text-center"
-                    />
-                    <Button onClick={handlePlaceBet}>Confirm Bet</Button>
-                  </div>
+            isCurrentPlayerBettingTurn ? (
+              <div className="flex flex-col flex-1">
+                {/* Number display + up/down buttons */}
+                <div className="relative flex items-center justify-center flex-1">
+                  <span className="text-white text-6xl font-bold select-none">
+                    {betAmount ?? 0}
+                  </span>
+                  <button
+                    onClick={() => setBetAmount((v) => Math.max((v ?? 0) - 1, 0))}
+                    className="absolute w-10 h-10 flex items-center justify-center rounded-lg bg-gray-700 hover:bg-gray-600 text-white border border-gray-500"
+                    style={{ right: "calc(50% + 2.5rem)" }}
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button
+                    onClick={() => setBetAmount((v) => Math.min((v ?? 0) + 1, cardsThisRound))}
+                    className="absolute w-10 h-10 flex items-center justify-center rounded-lg bg-gray-700 hover:bg-gray-600 text-white border border-gray-500"
+                    style={{ left: "calc(50% + 2.5rem)" }}
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </div>
+                {/* Confirm + forbidden bet — aligned with hand status messages */}
+                <div className="flex flex-col items-center gap-1 mt-2">
                   {(() => {
                     const forbiddenBet = calculateForbiddenBet()
-                    if (forbiddenBet !== null) {
-                      return <p className="text-red-500 text-sm mt-2">You cannot bet {forbiddenBet}</p>
-                    }
-                    return null
+                    return forbiddenBet !== null
+                      ? <p className="text-red-500 text-sm">You cannot bet {forbiddenBet}</p>
+                      : null
                   })()}
-                </>
-              ) : (
-                <p className="text-center text-yellow-600">
-                  {waitingForBetDelay ? (
-                    "Preparing to start the round..."
-                  ) : (
-                    <>
-                      Waiting for{" "}
-                      {currentBettingPlayerName.startsWith("Waiting")
-                        ? players.find((p) => p.name !== currentPlayerName)?.name || "other players"
-                        : currentBettingPlayerName}{" "}
-                      to place their bet...
-                    </>
-                  )}
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center space-y-2 mt-10">
-              <p className="text-center">Current round bet: {currentPlayer?.bet}</p>
-              <p className="text-center">Current round wins: {currentPlayer?.roundWins || 0}</p>
-            </div>
-          )}
-        </div>
+                  <Button onClick={handlePlaceBet}>Confirm</Button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-center text-yellow-600 mt-4">
+                {waitingForBetDelay ? (
+                  "Preparing to start the round..."
+                ) : (
+                  <>
+                    Waiting for{" "}
+                    {currentBettingPlayerName.startsWith("Waiting")
+                      ? players.find((p) => p.name !== currentPlayerName)?.name || "other players"
+                      : currentBettingPlayerName}{" "}
+                    to place their bet...
+                  </>
+                )}
+              </p>
+            )
+          ) : null}
+        </div>}
 
         {/* Player's hand */}
         <div className="w-2/3">
@@ -1130,92 +1323,13 @@ export default function GameTable({
         </div>
       </div>
 
-      {/* Score Table */}
-      <div className="max-w-5xl mx-auto mt-8 overflow-x-auto">
-        <h2 className="text-2xl font-bold mb-4">Score Table</h2>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-white font-bold text-left">Round</TableHead>
-              {players.map((player) => (
-                <TableHead key={player.name} colSpan={4} className="text-left text-white font-bold">
-                  {player.name}
-                </TableHead>
-              ))}
-            </TableRow>
-            <TableRow>
-              <TableHead></TableHead>
-              {players.map((player) => (
-                <React.Fragment key={player.name}>
-                  <TableHead className="text-center">Bet</TableHead>
-                  <TableHead className="text-center">Wins</TableHead>
-                  <TableHead className="text-center">Points</TableHead>
-                  <TableHead className="text-center">Round</TableHead>
-                </React.Fragment>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {safeGameData.scoreTable && safeGameData.scoreTable.length > 0 ? (
-              safeGameData.scoreTable.map((round: ScoreTableRow) => (
-                <TableRow
-                  key={round.roundId}
-                  className={`
-                  ${round.roundId === currentRound ? "bg-blue-400/70" : ""}
-                  ${round.roundId < currentRound ? "bg-gray-600/70" : ""}
-                `}
-                >
-                  <TableCell>{round.roundName}</TableCell>
-                  {players.map((player) => {
-                    const playerScore: PlayerScore = round.scores[player.name] || {
-                      cumulativePoints: 0,
-                      roundPoints: 0,
-                      bet: null,
-                    }
-                    // Get the current wins for this player in this round
-                    const wins =
-                      round.roundId === currentRound ? player.roundWins || 0 : round.scores[player.name]?.wins || 0
-                    return (
-                      <React.Fragment key={player.name}>
-                        <TableCell className="text-center">
-                          {playerScore.bet !== null ? playerScore.bet : "-"}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {round.roundId === currentRound
-                            ? wins
-                            : playerScore.wins !== undefined
-                              ? playerScore.wins
-                              : "-"}
-                        </TableCell>
-                        <TableCell className="text-center">{playerScore.cumulativePoints}</TableCell>
-                        <TableCell
-                          className={`text-center ${
-                            playerScore.roundPoints < 0
-                              ? "text-red-600"
-                              : playerScore.roundPoints > 0
-                                ? "text-green-600"
-                                : ""
-                          }`}
-                        >
-                          {playerScore.roundPoints > 0
-                            ? `+${playerScore.roundPoints}`
-                            : playerScore.roundPoints === 0
-                              ? "-"
-                              : playerScore.roundPoints}
-                        </TableCell>
-                      </React.Fragment>
-                    )
-                  })}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={players.length * 4 + 1}>No scores available</TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      </div>{/* end main content column */}
+
+      {/* Score table: right position */}
+      {scoreTablePosition === "right" && scoreTablePanel}
+
+      {/* Score table: bottom position (rendered inside flex-col after main content) */}
+      {scoreTablePosition === "bottom" && scoreTablePanel}
 
       <GameResultsDialog isOpen={showResultsDialog} onClose={() => setShowResultsDialog(false)} players={players} />
       <PokerCardDialog
@@ -1239,6 +1353,13 @@ export default function GameTable({
       @keyframes fadeIn {
         from { opacity: 0; transform: translate(-50%, -10px); }
         to { opacity: 1; transform: translate(-50%, 0); }
+      }
+      @keyframes betBorder {
+        0%, 100% { border-color: rgb(74 222 128); box-shadow: 0 0 8px rgb(74 222 128 / 0.6); }
+        50% { border-color: transparent; box-shadow: none; }
+      }
+      .animate-bet-border {
+        animation: betBorder 1s ease-in-out infinite;
       }
     `}</style>
     </div>
