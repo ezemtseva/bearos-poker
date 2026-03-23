@@ -7,7 +7,7 @@ export const runtime = "edge"
 
 export async function POST(req: NextRequest) {
   try {
-    const { playerName } = await req.json()
+    const { playerName, avatar } = await req.json()
 
     if (!playerName) {
       return NextResponse.json({ error: "Player name is required" }, { status: 400 })
@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
       score: 0,
       roundWins: 0,
       bet: null,
+      ...(avatar ? { avatar } : {}),
     }
 
     // Update the gameData object to use "basic" as the default game length

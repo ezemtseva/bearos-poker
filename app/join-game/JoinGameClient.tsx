@@ -6,8 +6,10 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
+import { useSession } from "next-auth/react"
 
 export default function JoinGameClient() {
+  const { data: session } = useSession()
   const [tableId, setTableId] = useState("")
   const [playerName, setPlayerName] = useState("")
   const router = useRouter()
@@ -16,15 +18,11 @@ export default function JoinGameClient() {
 
   useEffect(() => {
     const tableIdParam = searchParams?.get("tableId")
-    if (tableIdParam) {
-      setTableId(tableIdParam)
-    }
+    if (tableIdParam) setTableId(tableIdParam)
 
-    const storedPlayerName = localStorage.getItem("playerName")
-    if (storedPlayerName) {
-      setPlayerName(storedPlayerName)
-    }
-  }, [searchParams])
+    const name = session?.user?.name || localStorage.getItem("playerName") || ""
+    if (name) setPlayerName(name)
+  }, [searchParams, session?.user?.name])
 
   const handleJoinGame = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -38,15 +36,14 @@ export default function JoinGameClient() {
     }
 
     localStorage.setItem("playerName", playerName)
-    console.log("Player name stored in localStorage:", playerName)
+
+    const avatar = session?.user?.image ?? undefined
 
     try {
       const response = await fetch("/api/game/join", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ tableId, playerName }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tableId, playerName, avatar }),
       })
 
       if (!response.ok) {

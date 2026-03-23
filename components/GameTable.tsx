@@ -18,6 +18,7 @@ import ConfigureGameDialog, { type GameLength } from "./ConfigureGameDialog"
 import { useSound } from "@/hooks/use-sound"
 import { Settings, ChevronLeft, ChevronRight } from "lucide-react"
 import { TABLE_SKINS, SEAT_SKINS } from "./SettingsPanel"
+import { useSession } from "next-auth/react"
 import { useViewport } from "@/hooks/use-viewport"
 
 interface GameTableProps {
@@ -41,9 +42,12 @@ interface GameTableProps {
 }
 
 const EMOJI_LIST = [
-  "😀","😂","🥰","😎","🤔","😤","😱","🤯","😈","🥳",
-  "👍","👎","💪","🙏","👑","🔥","💯","🎉","💥","🌟",
-  "❤️","💔","🃏","🎲","🤞","🍀","💰","🤑","🏆","🐻",
+  "💩","🤡","😈","👺","👻","💀","👹","🤑","🤥","😁",
+  "🤣","🥲","🥹","😊","😇","😉","😌","😘","😜","🤪",
+  "🤨","🤓","🥸","🥳","😭","😮‍💨","😤","🤬","🤯","🥶",
+  "😱","🫣","🫡","🤔","🤭","🤫","🫠","💋","🫦","🧠",
+  "💪","🫶","👍","👎","🖕","✌️","🤞","🫰","🤘","🫵",
+  "🤌","🐻","🐼","🐻‍❄️","🐔","🦍","🍌","🍆","🍑",
 ]
 
 export default function GameTable({
@@ -66,6 +70,33 @@ export default function GameTable({
   onSendReaction,
 }: GameTableProps) {
   const { isMobile, isTablet, width: viewportWidth } = useViewport()
+  const { data: session } = useSession()
+
+  // Sync session name → localStorage so the rest of the component works unchanged
+  useEffect(() => {
+    if (session?.user?.name) {
+      try { localStorage.setItem("playerName", session.user.name) } catch {}
+    }
+  }, [session?.user?.name])
+
+  // Load settings from DB if logged in (overrides localStorage)
+  useEffect(() => {
+    if (!session?.user?.id) return
+    fetch("/api/profile")
+      .then(r => r.json())
+      .then(data => {
+        if (!data.settings) return
+        const s = data.settings
+        try {
+          if (s.table_skin) { localStorage.setItem("tableSkin", s.table_skin); setTableSkin(s.table_skin) }
+          if (s.seat_skin) { localStorage.setItem("seatSkin", s.seat_skin); setSeatSkin(s.seat_skin) }
+          if (s.bet_blink_enabled !== undefined) { localStorage.setItem("betBlinkEnabled", String(s.bet_blink_enabled)); setBetBlinkEnabled(s.bet_blink_enabled) }
+          // broadcast so SettingsPanel and RoomSkinApplier react
+          window.dispatchEvent(new CustomEvent("settingsChanged", { detail: { tableSkin: s.table_skin, seatSkin: s.seat_skin, roomSkin: s.room_skin, cardBackSkin: s.card_back_skin, betBlinkEnabled: s.bet_blink_enabled } }))
+        } catch {}
+      })
+      .catch(() => {})
+  }, [session?.user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Add a new state variable for the dialog
   const [showConfigureDialog, setShowConfigureDialog] = useState(false)
@@ -94,6 +125,7 @@ export default function GameTable({
   const [avatarPickerTab, setAvatarPickerTab] = useState<"image" | "emoji">("emoji")
   const [activeReactions, setActiveReactions] = useState<Map<string, { emoji: string; key: number }>>(new Map())
   const [betBlinkEnabled, setBetBlinkEnabled] = useState(false)
+  const pokerHandsRef = useRef(0) // count rounds where 7♠ was in current player's hand
   const [tableSkin, setTableSkin] = useState("blue")
   const [seatSkin, setSeatSkin] = useState("gray")
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -212,6 +244,20 @@ export default function GameTable({
   // Get current player information early
   const currentPlayerName = localStorage.getItem("playerName")
   const currentPlayer = players.find((p) => p.name === currentPlayerName)
+
+  // Track poker hands (7♠ in current player's hand each round)
+  const prevHandLengthRef = useRef(0)
+  useEffect(() => {
+    if (!currentPlayer?.hand) return
+    const handLen = currentPlayer.hand.length
+    if (handLen > prevHandLengthRef.current) {
+      if (currentPlayer.hand.some((c) => c.suit === "spades" && c.value === 7)) {
+        pokerHandsRef.current += 1
+      }
+    }
+    prevHandLengthRef.current = handLen
+  }, [currentPlayer?.hand]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const canStartGame = isOwner && players.length >= 2 && !gameStarted
   const isCurrentPlayerTurn =
     currentPlayer &&
@@ -366,8 +412,46 @@ export default function GameTable({
     if (safeGameData.gameOver) {
       console.log("Game over detected in GameTable - showing results dialog")
       setShowResultsDialog(true)
+
+      // Record game history for logged-in users
+      if (session?.user?.id) {
+        const currentPlayerName = localStorage.getItem("playerName")
+
+        // Compute each player's total score
+        const playerTotals: Record<string, number> = {}
+        for (const row of (safeGameData.scoreTable ?? [])) {
+          for (const [name, s] of Object.entries(row.scores ?? {})) {
+            playerTotals[name] = (playerTotals[name] ?? 0) + ((s as PlayerScore).roundPoints ?? 0)
+          }
+        }
+
+        // Sort players by score descending to determine places
+        const sorted = Object.entries(playerTotals).sort((a, b) => b[1] - a[1])
+        const playersData = sorted.map(([name, score], idx) => ({ name, score, place: idx + 1 }))
+
+        const finalScore = playerTotals[currentPlayerName ?? ""] ?? 0
+        const place = playersData.findIndex(p => p.name === currentPlayerName) + 1
+        const isWinner = place === 1 && playersData.length > 0
+
+        fetch("/api/game/history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tableId,
+            playerName: currentPlayerName,
+            totalRounds: safeGameData.currentRound,
+            finalScore,
+            playersCount: players.length,
+            gameLength: safeGameData.gameLength ?? "basic",
+            isWinner,
+            pokerHands: pokerHandsRef.current,
+            playersData,
+            place,
+          }),
+        }).catch(() => {})
+      }
     }
-  }, [safeGameData.gameOver])
+  }, [safeGameData.gameOver]) // eslint-disable-line react-hooks/exhaustive-deps
 
 
   // Add a function to get the total number of rounds based on game length
@@ -1159,7 +1243,7 @@ export default function GameTable({
             {players.map((p, i) => (
               <div key={i} className="flex items-center gap-2 bg-black/20 rounded-lg px-3 py-2">
                 <div className="w-6 h-6 rounded-full bg-gray-600 flex items-center justify-center text-xs overflow-hidden">
-                  {p.avatar ? (p.avatar.startsWith("data:") ? <img src={p.avatar} alt="" className="w-full h-full object-cover" /> : <span>{p.avatar}</span>) : p.name[0]}
+                  {p.avatar ? (p.avatar.startsWith("data:") || p.avatar.startsWith("http") ? <img src={p.avatar} alt="" className="w-full h-full object-cover" /> : <span>{p.avatar}</span>) : p.name[0]}
                 </div>
                 <span className="text-sm">{p.name}</span>
               </div>
@@ -1191,7 +1275,7 @@ export default function GameTable({
                 >
                   <div className="flex items-center gap-1 mb-1">
                     <div className="w-5 h-5 rounded-full bg-gray-500 flex items-center justify-center text-[10px] overflow-hidden flex-shrink-0">
-                      {player.avatar ? (player.avatar.startsWith("data:") ? <img src={player.avatar} alt="" className="w-full h-full object-cover" /> : <span>{player.avatar}</span>) : player.name[0]}
+                      {player.avatar ? (player.avatar.startsWith("data:") || player.avatar.startsWith("http") ? <img src={player.avatar} alt="" className="w-full h-full object-cover" /> : <span>{player.avatar}</span>) : player.name[0]}
                     </div>
                     <span className={`text-[11px] font-medium truncate ${isActiveTurnM ? "text-gray-800" : "text-gray-100"}`}>{player.name}</span>
                   </div>

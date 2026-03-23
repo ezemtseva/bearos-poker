@@ -5,7 +5,7 @@ import type { Player, GameData } from "../../../../types/game"
 export const runtime = "edge"
 
 export async function POST(req: NextRequest) {
-  const { tableId, playerName } = await req.json()
+  const { tableId, playerName, avatar } = await req.json()
 
   console.log(`[JOIN-GAME] Received join request: tableId=${tableId}, playerName=${playerName}`)
 
@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
       score: 0,
       roundWins: 0,
       bet: null,
+      ...(avatar ? { avatar } : {}),
     }
     players.push(newPlayer)
 
