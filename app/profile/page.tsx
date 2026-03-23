@@ -58,8 +58,7 @@ export default function ProfilePage() {
       .then((d: ProfileData) => {
         setData(d)
         setNickname(d.profile?.nickname ?? session?.user?.name ?? "")
-        const url = d.profile?.avatar_url ?? session?.user?.image ?? null
-        setAvatarUrl(url ? `${url}?t=${Date.now()}` : null)
+        setAvatarUrl(d.profile?.avatar_url ?? session?.user?.image ?? null)
       })
   }, [status, session])
 
@@ -73,7 +72,7 @@ export default function ProfilePage() {
       const res = await fetch("/api/profile/avatar", { method: "POST", body: form })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || "Upload failed")
-      setAvatarUrl(`${json.url}?t=${Date.now()}`)
+      setAvatarUrl(json.url)
       await update()
     } catch (err) {
       alert((err as Error).message || "Upload failed")

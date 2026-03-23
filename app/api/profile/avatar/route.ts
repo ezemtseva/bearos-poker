@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { put } from "@vercel/blob"
+import { put, del } from "@vercel/blob"
 import { sql } from "@vercel/postgres"
 import { auth } from "@/lib/auth"
 
@@ -30,13 +30,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "File too large. Max 5MB" }, { status: 400 })
     }
 
+    // Delete old avatar if exists
+    const { rows } = await sql`SELECT avatar_url FROM user_profiles WHERE user_id = ${userId}`
+    if (rows[0]?.avatar_url) {
+      try { await del(rows[0].avatar_url) } catch {}
+    }
+
     const ext = file.name.split(".").pop() ?? "jpg"
     const buffer = await file.arrayBuffer()
 
-    const blob = await put(`avatars/${userId}.${ext}`, buffer, {
+    const blob = await put(`avatars/${userId}-${Date.now()}.${ext}`, buffer, {
       access: "public",
-      addRandomSuffix: false,
-      allowOverwrite: true,
       contentType: file.type,
     })
 
