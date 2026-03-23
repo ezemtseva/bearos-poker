@@ -85,7 +85,7 @@ export default function GameTable({
     fetch("/api/profile")
       .then(r => r.json())
       .then(data => {
-        if (!data.settings) return
+        if (!data.settings?.is_customized) return
         const s = data.settings
         try {
           const detail: Record<string, unknown> = {}

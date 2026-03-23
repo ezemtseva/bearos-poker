@@ -82,7 +82,7 @@ function readSeatSkin(): string {
 
 function saveSettingsToDB(patch: Record<string, unknown>) {
   fetch("/api/profile", {
-    method: "POST",
+    method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ settings: patch }),
   }).catch(() => {})
