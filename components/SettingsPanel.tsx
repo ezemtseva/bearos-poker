@@ -147,7 +147,7 @@ export default function SettingsPanel() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-12 w-80 bg-[#111827] border border-white/10 rounded-xl shadow-2xl z-50 p-4 max-h-[calc(100vh-80px)] overflow-y-auto">
+        <div className="absolute right-0 top-12 w-80 bg-gray-800 border border-white/10 rounded-xl shadow-2xl z-50 p-4 max-h-[calc(100vh-80px)] overflow-y-auto">
           <div className="flex justify-between items-center mb-4">
             <span className="font-semibold text-white text-sm">Table Settings</span>
             <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-white">

@@ -36,7 +36,7 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(ellipse_at_center,_#2e6bb0_0%,_#050d1a_100%)] px-4">
-      <div className="w-full max-w-sm bg-[#111827] border border-white/10 rounded-2xl p-8 shadow-2xl">
+      <div className="w-full max-w-sm bg-gray-800 border border-white/10 rounded-2xl p-8 shadow-2xl">
         <div className="flex flex-col items-center mb-6">
           <Image src="/logo.png" alt="Bearos Poker" width={48} height={48} className="mb-2" />
           <h1 className="text-xl font-bold text-white">Sign in</h1>
@@ -76,7 +76,7 @@ function LoginForm() {
 
         <div className="relative mb-4">
           <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10" /></div>
-          <div className="relative flex justify-center"><span className="bg-[#111827] px-2 text-xs text-gray-500">or</span></div>
+          <div className="relative flex justify-center"><span className="bg-gray-800 px-2 text-xs text-gray-500">or</span></div>
         </div>
 
         <button

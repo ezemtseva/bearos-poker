@@ -107,7 +107,7 @@ export default function ProfilePage() {
       <h1 className="text-2xl font-bold mb-8">My Profile</h1>
 
       {/* Avatar + name */}
-      <div className="bg-[#111827] border border-white/10 rounded-2xl p-6 mb-4">
+      <div className="bg-gray-800 border border-white/10 rounded-2xl p-6 mb-4">
         <div className="flex items-center gap-6">
           {/* Avatar */}
           <div className="relative flex-shrink-0">
@@ -172,7 +172,7 @@ export default function ProfilePage() {
         return (
           <div className="grid grid-cols-3 gap-3 mb-4">
             {stats.map(stat => (
-              <div key={stat.label} className="bg-[#111827] border border-white/10 rounded-xl p-4 text-center">
+              <div key={stat.label} className="bg-gray-800 border border-white/10 rounded-xl p-4 text-center">
                 <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
                 <div className="text-xs text-gray-400 mt-1">{stat.label}</div>
               </div>
@@ -182,7 +182,7 @@ export default function ProfilePage() {
       })()}
 
       {/* Game history */}
-      <div className="bg-[#111827] border border-white/10 rounded-2xl overflow-hidden">
+      <div className="bg-gray-800 border border-white/10 rounded-2xl overflow-hidden">
         <div className="flex items-center gap-2 px-5 py-4 border-b border-white/10">
           <Trophy size={16} className="text-yellow-400" />
           <span className="font-semibold text-sm">Game History</span>
