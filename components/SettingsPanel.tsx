@@ -192,9 +192,6 @@ export default function SettingsPanel() {
                 </button>
               ))}
             </div>
-            <div className="mt-1 text-xs text-gray-400 text-center">
-              {ROOM_SKINS.find((s) => s.id === roomSkin)?.label}
-            </div>
           </div>
 
           {/* Divider */}
@@ -224,9 +221,6 @@ export default function SettingsPanel() {
                   )}
                 </button>
               ))}
-            </div>
-            <div className="mt-1 text-xs text-gray-400 text-center">
-              {TABLE_SKINS.find((s) => s.id === tableSkin)?.label}
             </div>
           </div>
 
@@ -269,9 +263,6 @@ export default function SettingsPanel() {
                 </button>
               ))}
             </div>
-            <div className="mt-1 text-xs text-gray-400 text-center">
-              {CARD_BACK_SKINS.find((s) => s.id === cardBackSkin)?.label}
-            </div>
           </div>
 
           {/* Divider */}
@@ -296,9 +287,6 @@ export default function SettingsPanel() {
                   )}
                 </button>
               ))}
-            </div>
-            <div className="mt-1 text-xs text-gray-400 text-center">
-              {SEAT_SKINS.find((s) => s.id === seatSkin)?.label}
             </div>
           </div>
         </div>
