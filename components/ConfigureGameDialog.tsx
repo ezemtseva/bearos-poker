@@ -42,8 +42,8 @@ export default function ConfigureGameDialog({
           <DialogTitle>{t("configureGame")}</DialogTitle>
         </DialogHeader>
         <div className="py-4 space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="game-length" className="text-sm font-medium">
+          <div className="flex items-center gap-3">
+            <label htmlFor="game-length" className="text-sm font-medium whitespace-nowrap">
               {t("gameType")}
             </label>
             <Select value={selectedLength} onValueChange={(value: string) => setSelectedLength(value as GameLength)}>
@@ -58,20 +58,19 @@ export default function ConfigureGameDialog({
             </Select>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="golden-round"
-              checked={hasGoldenRound}
-              onCheckedChange={(checked) => setHasGoldenRound(checked === true)}
-            />
-            <label htmlFor="golden-round" className="text-sm font-medium cursor-pointer">
-              {t("goldenRound")}
-            </label>
+          <div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="golden-round"
+                checked={hasGoldenRound}
+                onCheckedChange={(checked) => setHasGoldenRound(checked === true)}
+              />
+              <label htmlFor="golden-round" className="text-sm font-medium cursor-pointer">
+                {t("goldenRound")}
+              </label>
+            </div>
+            <div className="text-xs text-gray-400 mt-1 ml-6">{t("goldenRoundDesc")}</div>
           </div>
-
-          {hasGoldenRound && (
-            <div className="text-sm text-amber-500">{t("goldenRoundDesc")}</div>
-          )}
         </div>
         <DialogFooter className="flex justify-between">
           <Button variant="outline" onClick={onClose}>

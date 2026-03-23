@@ -34,7 +34,7 @@ export default function PokerCardDialog({
             {availableOptions.includes("Trumps") && (
               <Button
                 onClick={() => onOptionSelect("Trumps")}
-                className="w-full justify-start text-left bg-red-100 hover:bg-red-200"
+                className="w-full justify-start text-left bg-red-900/50 hover:bg-red-800/70 text-white border-red-700/50"
                 variant="outline"
               >
                 {t("trumps")}
@@ -43,7 +43,7 @@ export default function PokerCardDialog({
             {availableOptions.includes("Poker") && (
               <Button
                 onClick={() => onOptionSelect("Poker")}
-                className="w-full justify-start text-left bg-yellow-100 hover:bg-yellow-200"
+                className="w-full justify-start text-left bg-yellow-900/50 hover:bg-yellow-800/70 text-white border-yellow-700/50"
                 variant="outline"
               >
                 {t("pokerOption")}
@@ -52,7 +52,7 @@ export default function PokerCardDialog({
             {availableOptions.includes("Simple") && (
               <Button
                 onClick={() => onOptionSelect("Simple")}
-                className="w-full justify-start text-left bg-blue-100 hover:bg-blue-200"
+                className="w-full justify-start text-left bg-blue-900/50 hover:bg-blue-800/70 text-white border-blue-700/50"
                 variant="outline"
                 disabled={!isValidSimple}
               >

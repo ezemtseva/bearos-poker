@@ -168,6 +168,13 @@ export default function GameTable({
   useEffect(() => { try { localStorage.setItem("scoreTablePlayerCount", String(scoreTablePlayerCount)) } catch {} }, [scoreTablePlayerCount])
   useEffect(() => { try { localStorage.setItem("scoreTablePosition", scoreTablePosition) } catch {} }, [scoreTablePosition])
 
+  // Auto-expand visible player count when new players join
+  useEffect(() => {
+    if (players.length > scoreTablePlayerCount) {
+      setScoreTablePlayerCount(players.length)
+    }
+  }, [players.length])
+
   // Track emoji reactions from other players
   useEffect(() => {
     players.forEach((player) => {
@@ -1468,7 +1475,7 @@ export default function GameTable({
             {players.length < 2 ? (
               <p className="text-yellow-600 italic">{t("waitingMorePlayers")}</p>
             ) : (
-              <p>{t("waitingStart")}</p>
+              <p className="text-yellow-600 italic">{t("waitingStart")}</p>
             )}
           </>
         )}

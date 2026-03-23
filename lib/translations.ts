@@ -118,7 +118,7 @@ export const translations = {
     basicRounds: "Basic (22 rounds)",
     longRounds: "Long (28 rounds)",
     goldenRound: "Golden Round",
-    goldenRoundDesc: "Adds a special final round where the winner gets 100 points!",
+    goldenRoundDesc: "Adds a special final round where the winner gets 100 points",
     cancel: "Cancel",
 
     // GameResultsDialog

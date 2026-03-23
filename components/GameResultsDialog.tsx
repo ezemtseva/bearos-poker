@@ -47,8 +47,8 @@ export default function GameResultsDialog({ isOpen, onClose, players }: GameResu
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px] shadow-[0_0_15px_5px_rgba(255,215,0,0.7)]">
         <DialogHeader>
-          <DialogDescription className="text-center text-lg font-bold text-gray-700">
-            {t("congratsTo")} <span className="underline text-gray-900">{winner.name}</span>!
+          <DialogDescription className="text-center text-lg font-bold text-white">
+            {t("congratsTo")} <span className="underline text-yellow-300">{winner.name}</span>!
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
@@ -56,7 +56,7 @@ export default function GameResultsDialog({ isOpen, onClose, players }: GameResu
             {sortedPlayers.map((player, index) => (
               <li
                 key={player.name}
-                className={`flex justify-between items-center ${index === 0 ? "font-bold text-primary" : ""}`}
+                className={`flex justify-between items-center ${index === 0 ? "font-bold text-yellow-300" : "text-gray-300"}`}
               >
                 <span>
                   {index + 1}. {player.name}
