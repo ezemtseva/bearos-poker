@@ -72,7 +72,7 @@ export default function ProfilePage() {
       const res = await fetch("/api/profile/avatar", { method: "POST", body: form })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || "Upload failed")
-      setAvatarUrl(json.url)
+      setAvatarUrl(`${json.url}?t=${Date.now()}`)
       await update()
     } catch (err) {
       alert((err as Error).message || "Upload failed")
