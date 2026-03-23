@@ -88,6 +88,15 @@ class SoundManager {
     }
   }
 
+  playFile(path: string) {
+    if (this.muted || typeof window === 'undefined' || this.volume === 0) return
+    const audio = new Audio(path)
+    audio.volume = this.volume
+    audio.play().catch((err) => {
+      console.warn(`SoundManager: Failed to play file ${path}`, err)
+    })
+  }
+
   setMuted(muted: boolean) {
     this.muted = muted
     try {

@@ -6,6 +6,14 @@ import type { Player } from "../types/game"
 import { useEffect } from "react"
 import { useSound } from "@/hooks/use-sound"
 import { useLocale } from "@/lib/locale-context"
+import soundManager from "@/app/utils/sound"
+
+const SKIN_GAME_OVER: Record<string, string> = {
+  modniy_luk:  "/sounds/game-over (shopping).mp3",
+  chechnia:    "/sounds/game-over (mucuraev).mp3",
+  verstalibin: "/sounds/game-over (mercedes).mp3",
+  bombardini:  "/sounds/game-over (aaa boshki).mp3",
+}
 
 interface GameResultsDialogProps {
   isOpen: boolean
@@ -22,10 +30,14 @@ export default function GameResultsDialog({ isOpen, onClose, players }: GameResu
   // Play the game-over sound when the dialog opens
   useEffect(() => {
     if (isOpen) {
-      console.log("GameResultsDialog opened - Playing game over sound")
-      // Use a small timeout to ensure the sound plays after the dialog is visible
       const timer = setTimeout(() => {
-        playSound("gameOver")
+        const skin = (() => { try { return localStorage.getItem("tableSkin") || "" } catch { return "" } })()
+        const customPath = SKIN_GAME_OVER[skin]
+        if (customPath) {
+          soundManager.playFile(customPath)
+        } else {
+          playSound("gameOver")
+        }
       }, 100)
       return () => clearTimeout(timer)
     }

@@ -20,6 +20,7 @@ const TABLE_SKINS = [
   { id: "modniy_luk", label: "Shopping Modniy Look", type: "image", value: "/table-skins/modniy_luk.jpg" },
   { id: "chechnia", label: "Chechnia", type: "image", value: "/table-skins/chechnia.png" },
   { id: "verstalibin", label: "Verstalibin", type: "image", value: "/table-skins/verstalibin.jpeg" },
+  { id: "bombardini", label: "Bombardini Ronaldini", type: "image", value: "/table-skins/bombardini.png" },
 ] as const
 
 const SEAT_SKINS = [
