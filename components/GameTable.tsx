@@ -1150,7 +1150,7 @@ export default function GameTable({
                     <TableHead className="text-center">{t("betLabel")}</TableHead>
                     <TableHead className="text-center">{t("winsLabel")}</TableHead>
                     <TableHead className="text-center">{t("pointsLabel")}</TableHead>
-                    <TableHead className="text-center border-r border-gray-600">{t("roundLabel")}</TableHead>
+                    <TableHead className="text-center border-r border-gray-600">{t("roundIncrLabel")}</TableHead>
                   </React.Fragment>
                 ))}
               </TableRow>
@@ -1344,7 +1344,7 @@ export default function GameTable({
                   className={!isCurrentPlayerTurn || !isValidCardToPlay(card) || !safeGameData.allBetsPlaced || isPlayingCard ? "opacity-50" : ""}
                 />
               ))
-              : <p className="italic text-gray-400 text-sm">{t("cardsHereHint")}</p>
+              : <p className="italic text-gray-400 text-sm">{gameStarted ? t("allCardsPlayed") : t("cardsHereHint")}</p>
             }
           </div>
         </div>
@@ -1747,7 +1747,7 @@ export default function GameTable({
                 />
               ))
             ) : (
-              <p className="italic">{t("cardsHereHint")}</p>
+              <p className="italic">{gameStarted ? t("allCardsPlayed") : t("cardsHereHint")}</p>
             )}
           </div>
           {/* Replace the hardcoded check with the dynamic getTotalRounds function */}
