@@ -4,6 +4,7 @@ export const translations = {
   en: {
     // Navigation
     howToPlay: "How to Play",
+    appName: "Bearos Poker",
 
     // UserMenu
     signIn: "Sign in",
@@ -227,7 +228,8 @@ export const translations = {
 
   ru: {
     // Navigation
-    howToPlay: "Как играть",
+    howToPlay: "Об игре",
+    appName: "Пермский Покер",
 
     // UserMenu
     signIn: "Войти",
@@ -237,7 +239,7 @@ export const translations = {
     // Settings Panel
     settings: "Настройки",
     bettingAlarm: "Сигнал ставки",
-    bettingAlarmDesc: "Подсвечивать рамку, когда твоя очередь делать ставку",
+    bettingAlarmDesc: "Подсвечивает рамку секции ставок, когда подошла ваша очередь",
     roomColor: "Цвет комнаты",
     tableSkin: "Сукно стола",
     cardBack: "Рубашка карт",
@@ -278,7 +280,7 @@ export const translations = {
     // Stats
     games: "Игры",
     wins: "Победы",
-    winRate: "Винрейт",
+    winRate: "% Побед",
     points: "Очки",
     pointsRecord: "Рекорд",
     pokerHand: "Покер",
@@ -313,9 +315,9 @@ export const translations = {
     won: "Взял",
     gameOver: "Игра окончена",
     createTable: "Создать стол",
-    joinTable: "Войти за стол",
+    joinTable: "Присоединиться",
     enterTableId: "ID стола",
-    enterYourName: "Введи имя",
+    enterYourName: "Введите имя",
     join: "Войти",
     create: "Создать",
     short: "Короткая",
@@ -331,7 +333,7 @@ export const translations = {
     newGame: "Новая игра",
 
     // Home page
-    welcomeTitle: "Добро пожаловать в Bearos Poker",
+    welcomeTitle: "Добро пожаловать в Пермский Покер",
 
     // ConfigureGameDialog
     configureGame: "Настройка игры",
@@ -407,7 +409,7 @@ export const translations = {
     gameLogPlaceholder: "Здесь появится лог игры",
 
     // How to Play
-    howToPlayTitle: "Как играть в Bearos Poker",
+    howToPlayTitle: "Как играть в Пермский Покер",
     htpOverview: "Обзор игры",
     htpOverviewText: "Bearos Poker — карточная игра на взятки для 2-6 игроков. Игроки делают ставки на количество взяток, которые возьмут за раунд, и стараются попасть точно. За точные предсказания начисляются очки!",
     htpSetup: "Подготовка",

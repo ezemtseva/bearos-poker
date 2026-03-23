@@ -31,7 +31,7 @@ export default function Navigation() {
         <div className="flex justify-center">
           <Link href="/" className="flex items-center gap-2 font-bold" style={{ fontSize: "17.5px" }}>
             <Image src="/logo.png" alt="Bearos Poker Logo" width={36} height={36} />
-            Bearos Poker
+            {t("appName")}
           </Link>
         </div>
 

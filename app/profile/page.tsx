@@ -131,7 +131,7 @@ export default function ProfilePage() {
 
           {/* Nickname */}
           <div className="flex-1">
-            <label className="text-xs text-gray-400 mb-1 block">Nickname</label>
+            <label className="text-xs text-gray-400 mb-1 block">{t("nickname")}</label>
             <div className="flex gap-2">
               <input
                 type="text"
