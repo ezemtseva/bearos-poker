@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { useSession } from "next-auth/react"
 import { Settings, X } from "lucide-react"
 
 const TABLE_SKINS = [
@@ -79,7 +80,17 @@ function readSeatSkin(): string {
   try { return localStorage.getItem("seatSkin") || "gray" } catch { return "gray" }
 }
 
+function saveSettingsToDB(patch: Record<string, unknown>) {
+  fetch("/api/profile", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ settings: patch }),
+  }).catch(() => {})
+}
+
 export default function SettingsPanel() {
+  const { status } = useSession()
+  const loggedIn = status === "authenticated"
   const [open, setOpen] = useState(false)
   const [betBlink, setBetBlink] = useState(false)
   const [tableSkin, setTableSkin] = useState("blue")
@@ -110,30 +121,35 @@ export default function SettingsPanel() {
     setBetBlink(val)
     try { localStorage.setItem("betBlinkEnabled", String(val)) } catch {}
     window.dispatchEvent(new CustomEvent("settingsChanged", { detail: { betBlinkEnabled: val } }))
+    if (loggedIn) saveSettingsToDB({ bet_blink_enabled: val })
   }
 
   function selectSkin(id: string) {
     setTableSkin(id)
     try { localStorage.setItem("tableSkin", id) } catch {}
     window.dispatchEvent(new CustomEvent("settingsChanged", { detail: { tableSkin: id } }))
+    if (loggedIn) saveSettingsToDB({ table_skin: id })
   }
 
   function selectSeatSkin(id: string) {
     setSeatSkin(id)
     try { localStorage.setItem("seatSkin", id) } catch {}
     window.dispatchEvent(new CustomEvent("settingsChanged", { detail: { seatSkin: id } }))
+    if (loggedIn) saveSettingsToDB({ seat_skin: id })
   }
 
   function selectRoomSkin(id: string) {
     setRoomSkin(id)
     try { localStorage.setItem("roomSkin", id) } catch {}
     window.dispatchEvent(new CustomEvent("settingsChanged", { detail: { roomSkin: id } }))
+    if (loggedIn) saveSettingsToDB({ room_skin: id })
   }
 
   function selectCardBackSkin(id: string) {
     setCardBackSkin(id)
     try { localStorage.setItem("cardBackSkin", id) } catch {}
     window.dispatchEvent(new CustomEvent("settingsChanged", { detail: { cardBackSkin: id } }))
+    if (loggedIn) saveSettingsToDB({ card_back_skin: id })
   }
 
   return (
