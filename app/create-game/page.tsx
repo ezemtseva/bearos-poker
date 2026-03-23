@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { useSession } from "next-auth/react"
+import { useLocale } from "@/lib/locale-context"
 
 export default function CreateGame() {
   const { data: session } = useSession()
+  const { t } = useLocale()
   const [playerName, setPlayerName] = useState("")
   const router = useRouter()
   const { toast } = useToast()
@@ -56,11 +58,11 @@ export default function CreateGame() {
   return (
     <div className="container mx-auto px-4 min-h-screen flex items-center justify-center">
       <div className="max-w-md w-full">
-        <h1 className="text-2xl font-bold mb-4 text-center text-white">New Table</h1>
+        <h1 className="text-2xl font-bold mb-4 text-center text-white">{t("createTable")}</h1>
         <form onSubmit={handleCreateGame} className="space-y-4">
           <div>
             <label htmlFor="playerName" className="block text-sm font-medium text-white mb-1">
-              Enter Your Name
+              {t("enterYourName")}
             </label>
             <Input
               type="text"
@@ -72,7 +74,7 @@ export default function CreateGame() {
             />
           </div>
           <Button type="submit" className="mx-auto block w-[120px] h-[40px]">
-            Create
+            {t("create")}
           </Button>
         </form>
       </div>

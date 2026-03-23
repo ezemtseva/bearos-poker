@@ -659,13 +659,10 @@ export default function GameTable({
         return
       }
     } else if (!isValidPlay(card)) {
-      setErrorMessage(
-        "Invalid card play. You must follow the leading suit if possible, or play a trump if you don't have the leading suit.",
-      )
+      setErrorMessage(t("mustFollowSuit"))
       toast({
         title: t("invalidPlay"),
-        description:
-          "You must follow the leading suit if possible, or play a trump if you don't have the leading suit.",
+        description: t("mustFollowSuit"),
         variant: "destructive",
       })
       return
@@ -757,20 +754,20 @@ export default function GameTable({
 
       if (data.message === "Game over") {
         toast({
-          title: "Game Over",
-          description: "The game has ended. Check the final scores!",
+          title: t("gameOverTitle"),
+          description: t("gameOverDesc"),
         })
       } else {
         toast({
-          title: "Card Played",
-          description: "Your card has been played successfully.",
+          title: t("gameOver"),
+          description: "",
         })
       }
     } catch (error) {
       console.error("Error playing card:", error)
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to play the card. Please try again.",
+        title: t("cannotPlayCard"),
+        description: error instanceof Error ? error.message : t("failedToPlayCard"),
         variant: "destructive",
       })
 
@@ -825,8 +822,8 @@ export default function GameTable({
   const handlePlaceBet = () => {
     if (betAmount === null || betAmount < 0 || betAmount > cardsThisRound) {
         toast({
-        title: "Invalid Bet",
-        description: `Please enter a bet between 0 and ${cardsThisRound}.`,
+        title: t("invalidBet"),
+        description: `${t("betRange")} ${cardsThisRound}.`,
         variant: "destructive",
       })
       return
@@ -835,8 +832,8 @@ export default function GameTable({
     const forbiddenBet = calculateForbiddenBet()
     if (forbiddenBet !== null && betAmount === forbiddenBet) {
         toast({
-        title: "Invalid Bet",
-        description: `You cannot bet ${forbiddenBet} as it would make the total bets equal to the number of cards (${cardsThisRound}).`,
+        title: t("invalidBet"),
+        description: `${t("betForbidden")} ${forbiddenBet} ${t("betForbiddenSuffix")} (${cardsThisRound}).`,
         variant: "destructive",
       })
       return
@@ -1008,11 +1005,11 @@ export default function GameTable({
     // NEW: If we're in the golden round, show a special message
     if (safeGameData.isGoldenRound) {
       if (isCurrentPlayerTurn) {
-        return <span className="text-amber-500 italic">Golden Round! It's your turn to play a card!</span>
+        return <span className="text-amber-500 italic">{t("goldenRoundYourTurn")}</span>
       } else {
         return (
           <span className="text-amber-500 italic">
-            Golden Round! Waiting for {players[currentTurn]?.name || "other player"} to play a card...
+            {t("goldenRoundWaiting")} {players[currentTurn]?.name || "..."} {t("toPlayCard")}
           </span>
         )
       }
@@ -1021,11 +1018,11 @@ export default function GameTable({
     // If all bets are placed, we're in the card playing phase
     if (safeGameData.allBetsPlaced) {
       if (isCurrentPlayerTurn) {
-        return <span className="text-green-600 italic">It's your turn to play a card!</span>
+        return <span className="text-green-600 italic">{t("yourTurnCard")}</span>
       } else {
         return (
           <span className="text-yellow-600 italic">
-            Waiting for {players[currentTurn]?.name || "other player"} to play a card...
+            {t("waitingFor")} {players[currentTurn]?.name || "..."} {t("toPlayCard")}
           </span>
         )
       }
@@ -1033,27 +1030,27 @@ export default function GameTable({
 
     // If the player has already placed a bet, show a stable message
     if (currentPlayer && currentPlayer.bet !== null) {
-      return <span className="text-yellow-600 italic">Waiting for other players to place their bets...</span>
+      return <span className="text-yellow-600 italic">{t("waitingOthersBet")}</span>
     }
 
     // If all players have bet but allBetsPlaced is false, we're in the transition period
     if (allPlayersHaveBet && !safeGameData.allBetsPlaced) {
-      return <span className="text-yellow-600 italic">Preparing to start the round...</span>
+      return <span className="text-yellow-600 italic">{t("preparingRound")}</span>
     }
 
     // If it's the current player's turn to bet, show that message
     if (isCurrentPlayerBettingTurn) {
-      return <span className="text-green-600 italic">It's your turn to place a bet!</span>
+      return <span className="text-green-600 italic">{t("yourTurnBet")}</span>
     }
 
     // Otherwise, we're waiting for another player to bet
     return (
       <span className="text-yellow-600 italic">
-        Waiting for{" "}
+        {t("waitingFor")}{" "}
         {currentBettingPlayerName.startsWith("Waiting")
-          ? players.find((p) => p.name !== currentPlayerName)?.name || "other players"
+          ? players.find((p) => p.name !== currentPlayerName)?.name || "..."
           : currentBettingPlayerName}{" "}
-        to place their bet...
+        {t("toPlaceBet")}
       </span>
     )
   }
@@ -1094,7 +1091,7 @@ export default function GameTable({
         >
           {collapseIcon}
         </button>
-        <span className="text-sm font-semibold text-gray-300 flex-1 whitespace-nowrap">Score Table</span>
+        <span className="text-sm font-semibold text-gray-300 flex-1 whitespace-nowrap">{t("scoreTable")}</span>
         {scoreTableExpanded && (
           <>
             <button
@@ -1111,7 +1108,7 @@ export default function GameTable({
       {/* Settings panel */}
       {scoreTableExpanded && showScoreSettings && (
         <div className="mb-3 p-3 bg-gray-800 rounded-lg flex flex-wrap items-center gap-3">
-          <span className="text-xs text-gray-300 whitespace-nowrap">Players shown:</span>
+          <span className="text-xs text-gray-300 whitespace-nowrap">{t("playersShown")}</span>
           <select
             value={scoreTablePlayerCount}
             onChange={(e) => setScoreTablePlayerCount(Number(e.target.value))}
@@ -1121,15 +1118,15 @@ export default function GameTable({
               <option key={n} value={n}>{n}</option>
             ))}
           </select>
-          <span className="text-xs text-gray-300 whitespace-nowrap">Position:</span>
+          <span className="text-xs text-gray-300 whitespace-nowrap">{t("position")}</span>
           <select
             value={scoreTablePosition}
             onChange={(e) => setScoreTablePosition(e.target.value as "left" | "right" | "bottom")}
             className="text-xs bg-gray-700 text-white border border-gray-600 rounded px-2 py-1"
           >
-            <option value="left">Left</option>
-            <option value="right">Right</option>
-            <option value="bottom">Bottom</option>
+            <option value="left">{t("posLeft")}</option>
+            <option value="right">{t("posRight")}</option>
+            <option value="bottom">{t("posBottom")}</option>
           </select>
         </div>
       )}
@@ -1147,13 +1144,13 @@ export default function GameTable({
                 ))}
               </TableRow>
               <TableRow>
-                <TableHead className="border-r border-gray-600">Round</TableHead>
+                <TableHead className="border-r border-gray-600">{t("roundLabel")}</TableHead>
                 {orderedPlayers.map((player) => (
                   <React.Fragment key={player.name}>
-                    <TableHead className="text-center">Bet</TableHead>
-                    <TableHead className="text-center">Wins</TableHead>
-                    <TableHead className="text-center">Points</TableHead>
-                    <TableHead className="text-center border-r border-gray-600">Round</TableHead>
+                    <TableHead className="text-center">{t("betLabel")}</TableHead>
+                    <TableHead className="text-center">{t("winsLabel")}</TableHead>
+                    <TableHead className="text-center">{t("pointsLabel")}</TableHead>
+                    <TableHead className="text-center border-r border-gray-600">{t("roundLabel")}</TableHead>
                   </React.Fragment>
                 ))}
               </TableRow>
@@ -1217,7 +1214,7 @@ export default function GameTable({
               ) : (
                 <TableRow>
                   <TableCell className="border-r border-gray-600"></TableCell>
-                  <TableCell colSpan={orderedPlayers.length * 4} className="italic text-gray-400">A detailed game log will be displayed here</TableCell>
+                  <TableCell colSpan={orderedPlayers.length * 4} className="italic text-gray-400">{t("gameLogPlaceholder")}</TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -1233,12 +1230,12 @@ export default function GameTable({
       {/* Header */}
       {gameStarted ? (
         <div className="flex justify-between items-center px-4 py-2 text-sm bg-black/20 rounded-lg mx-4 mt-2">
-          <span className="text-gray-300">Round <strong>{currentRound}</strong></span>
+          <span className="text-gray-300">{t("round")} <strong>{currentRound}</strong></span>
           <span className="text-yellow-400 font-semibold text-xs">{players[currentTurn]?.name || "?"}&apos;s turn</span>
-          <span className="text-gray-300">Play <strong>{currentPlay}</strong></span>
+          <span className="text-gray-300">{t("playLabel")} <strong>{currentPlay}</strong></span>
         </div>
       ) : (
-        <div className="px-4 py-2 text-sm text-center text-gray-400 mt-2">Table: {tableId}</div>
+        <div className="px-4 py-2 text-sm text-center text-gray-400 mt-2">{t("tableIdLabel")} {tableId}</div>
       )}
 
       {/* Pre-game */}
@@ -1255,11 +1252,11 @@ export default function GameTable({
             ))}
           </div>
           <div className="flex gap-2 flex-wrap">
-            <Button size="sm" onClick={onShare}>Share Link</Button>
-            {isOwner && players.length >= 2 && <Button size="sm" onClick={() => setShowConfigureDialog(true)}>Configure</Button>}
+            <Button size="sm" onClick={onShare}>{t("shareLink")}</Button>
+            {isOwner && players.length >= 2 && <Button size="sm" onClick={() => setShowConfigureDialog(true)}>{t("configure")}</Button>}
             {canStartGame && <Button size="sm" onClick={onStartGame}>{ t("startGame") }</Button>}
           </div>
-          {players.length < 2 && <p className="text-yellow-600 italic text-sm mt-2">Waiting for more players...</p>}
+          {players.length < 2 && <p className="text-yellow-600 italic text-sm mt-2">{t("waitingMorePlayers")}</p>}
         </div>
       )}
 
@@ -1290,9 +1287,9 @@ export default function GameTable({
                     ))}
                   </div>
                   <div className="grid grid-cols-3 text-[9px] text-center">
-                    <div><div className="text-gray-400">pts</div><div className="font-bold">{player.score}</div></div>
-                    <div><div className="text-gray-400">bet</div><div className="font-bold text-purple-400">{betValueM}</div></div>
-                    <div><div className="text-gray-400">W</div><div className="font-bold text-blue-400">{player.roundWins}</div></div>
+                    <div><div className="text-gray-400">{t("pts")}</div><div className="font-bold">{player.score}</div></div>
+                    <div><div className="text-gray-400">{t("seatBetLabel")}</div><div className="font-bold text-purple-400">{betValueM}</div></div>
+                    <div><div className="text-gray-400">{t("seatWinsLabel")}</div><div className="font-bold text-blue-400">{player.roundWins}</div></div>
                   </div>
                   {activeReactions.get(player.name) && (
                     <div className="text-center text-lg mt-1">{activeReactions.get(player.name)!.emoji}</div>
@@ -1315,7 +1312,7 @@ export default function GameTable({
             })()}
           >
             {cardsOnTable.length === 0
-              ? <span className="text-white/50 text-sm italic">No cards played yet</span>
+              ? <span className="text-white/50 text-sm italic">{t("noCardsYet")}</span>
               : cardsOnTable.map((card, index) => (
                 <div key={index} className="relative">
                   <PlayingCard
@@ -1335,7 +1332,7 @@ export default function GameTable({
 
         {/* Your hand */}
         <div className="px-4">
-          <h2 className="text-sm font-bold mb-2 text-center">Your Hand</h2>
+          <h2 className="text-sm font-bold mb-2 text-center">{t("yourHand")}</h2>
           <div className="flex overflow-x-auto gap-2 pb-2 justify-center flex-wrap">
             {currentPlayer?.hand?.length
               ? currentPlayer.hand.map((card, index) => (
@@ -1347,7 +1344,7 @@ export default function GameTable({
                   className={!isCurrentPlayerTurn || !isValidCardToPlay(card) || !safeGameData.allBetsPlaced || isPlayingCard ? "opacity-50" : ""}
                 />
               ))
-              : <p className="italic text-gray-400 text-sm">Your cards will appear here</p>
+              : <p className="italic text-gray-400 text-sm">{t("cardsHereHint")}</p>
             }
           </div>
         </div>
@@ -1361,7 +1358,7 @@ export default function GameTable({
         {/* Betting */}
         {currentPlayer?.bet === null && (
           <div className={`mx-4 mt-3 rounded-xl p-4 border-2 ${isCurrentPlayerBettingTurn && betBlinkEnabled ? "border-green-400 animate-bet-border" : isCurrentPlayerBettingTurn ? "border-green-400" : "border-gray-600/30"}`}>
-            <h2 className="text-base font-bold mb-3 text-center">Make Your Bet</h2>
+            <h2 className="text-base font-bold mb-3 text-center">{t("makeYourBet")}</h2>
             {isCurrentPlayerBettingTurn ? (
               <>
                 <div className="flex items-center justify-center gap-6">
@@ -1370,11 +1367,11 @@ export default function GameTable({
                   <button onClick={() => setBetAmount(v => Math.min(cardsThisRound, (v ?? 0) + 1))} className="w-14 h-14 rounded-xl bg-gray-700 hover:bg-gray-600 text-white border border-gray-500 text-3xl font-bold">+</button>
                 </div>
                 {(() => { const fb = calculateForbiddenBet(); return fb !== null ? <p className="text-red-500 text-sm italic text-center mt-2">{t("youCannotBet")} {fb}</p> : null })()}
-                <div className="flex justify-center mt-3"><Button onClick={handlePlaceBet}>Confirm</Button></div>
+                <div className="flex justify-center mt-3"><Button onClick={handlePlaceBet}>{t("confirm")}</Button></div>
               </>
             ) : (
               <p className="text-center text-yellow-600 italic text-sm">
-                {waitingForBetDelay ? "Preparing round..." : `Waiting for ${currentBettingPlayerName.startsWith("Waiting") ? "other players" : currentBettingPlayerName}...`}
+                {waitingForBetDelay ? t("preparingRound") : `${t("waitingFor")} ${currentBettingPlayerName.startsWith("Waiting") ? "..." : currentBettingPlayerName} ${t("toPlaceBet")}`}
               </p>
             )}
           </div>
@@ -1399,12 +1396,12 @@ export default function GameTable({
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowAvatarPicker(false)}>
           <div className="bg-gray-800 rounded-xl p-4 w-80 shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-3">
-              <h3 className="text-white font-semibold text-sm">Emoji and Avatar</h3>
+              <h3 className="text-white font-semibold text-sm">{t("emojiAvatar")}</h3>
               <button onClick={() => setShowAvatarPicker(false)} className="text-gray-400 hover:text-white text-lg">✕</button>
             </div>
             <div className="flex gap-2 mb-4">
-              <button className={`flex-1 py-1.5 rounded text-xs ${avatarPickerTab === "emoji" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`} onClick={() => setAvatarPickerTab("emoji")}>😀 Emoji</button>
-              <button className={`flex-1 py-1.5 rounded text-xs ${avatarPickerTab === "image" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`} onClick={() => setAvatarPickerTab("image")}>📷 Avatar</button>
+              <button className={`flex-1 py-1.5 rounded text-xs ${avatarPickerTab === "emoji" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`} onClick={() => setAvatarPickerTab("emoji")}>{t("emojiTab")}</button>
+              <button className={`flex-1 py-1.5 rounded text-xs ${avatarPickerTab === "image" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`} onClick={() => setAvatarPickerTab("image")}>{t("avatarTab")}</button>
             </div>
             {avatarPickerTab === "emoji" && (
               <div className="grid grid-cols-6 gap-1">
@@ -1414,8 +1411,8 @@ export default function GameTable({
             {avatarPickerTab === "image" && (
               <div className="flex flex-col items-center gap-2">
                 {players.find(p => p.name === currentPlayerName)?.avatar && <img src={players.find(p => p.name === currentPlayerName)!.avatar!} alt="Avatar" className="w-16 h-16 rounded-full object-cover" />}
-                <Button size="sm" onClick={() => fileInputRef.current?.click()}>Choose Photo</Button>
-                {players.find(p => p.name === currentPlayerName)?.avatar && <Button size="sm" className="bg-red-600 hover:bg-red-500 text-white" onClick={() => { onSetAvatar(""); setShowAvatarPicker(false) }}>Remove Photo</Button>}
+                <Button size="sm" onClick={() => fileInputRef.current?.click()}>{t("choosePhoto")}</Button>
+                {players.find(p => p.name === currentPlayerName)?.avatar && <Button size="sm" className="bg-red-600 hover:bg-red-500 text-white" onClick={() => { onSetAvatar(""); setShowAvatarPicker(false) }}>{t("removePhoto")}</Button>}
               </div>
             )}
           </div>
@@ -1450,28 +1447,28 @@ export default function GameTable({
         {gameStarted ? (
           <div className="flex justify-center items-center space-x-6">
             <p>
-              <span className="font-semibold">Table ID:</span> {tableId}
+              <span className="font-semibold">{t("tableIdLabel")}</span> {tableId}
             </p>
             <p>
-              <span className="font-semibold">Round:</span> {currentRound}
+              <span className="font-semibold">{t("round")}:</span> {currentRound}
             </p>
             <p>
-              <span className="font-semibold">Play:</span> {currentPlay}
+              <span className="font-semibold">{t("playLabel")}:</span> {currentPlay}
             </p>
             <p>
-              <span className="font-semibold">Current Turn:</span> {players[currentTurn]?.name || "Waiting..."}
+              <span className="font-semibold">{t("currentTurnLabel")}:</span> {players[currentTurn]?.name || "..."}
             </p>
             <p>
-              <span className="font-semibold">Cards this Round:</span> {cardsThisRound}
+              <span className="font-semibold">{t("cardsThisRoundLabel")}:</span> {cardsThisRound}
             </p>
           </div>
         ) : (
           <>
-            <p>Table ID: {tableId}</p>
+            <p>{t("tableIdLabel")} {tableId}</p>
             {players.length < 2 ? (
-              <p className="text-yellow-600 italic">Waiting for more players to join...</p>
+              <p className="text-yellow-600 italic">{t("waitingMorePlayers")}</p>
             ) : (
-              <p>Waiting for game to start...</p>
+              <p>{t("waitingStart")}</p>
             )}
           </>
         )}
@@ -1596,15 +1593,15 @@ export default function GameTable({
                 {/* Stats row: pts | bet | wins */}
                 <div className={`grid grid-cols-3 border-t ${dividerColor} px-1 py-1.5`}>
                   <div className="flex flex-col items-center">
-                    <span className={`text-[10px] uppercase tracking-wide ${labelColor}`}>pts</span>
+                    <span className={`text-[10px] uppercase tracking-wide ${labelColor}`}>{t("pts")}</span>
                     <span className={`text-sm font-bold ${scoreColor}`}>{player.score}</span>
                   </div>
                   <div className="flex flex-col items-center">
-                    <span className={`text-[10px] uppercase tracking-wide ${labelColor}`}>bet</span>
+                    <span className={`text-[10px] uppercase tracking-wide ${labelColor}`}>{t("seatBetLabel")}</span>
                     <span className="text-sm font-bold text-purple-300">{betValue}</span>
                   </div>
                   <div className="flex flex-col items-center">
-                    <span className={`text-[10px] uppercase tracking-wide ${labelColor}`}>wins</span>
+                    <span className={`text-[10px] uppercase tracking-wide ${labelColor}`}>{t("seatWinsLabel")}</span>
                     <span className="text-sm font-bold text-blue-300">{player.roundWins}</span>
                   </div>
                 </div>
@@ -1616,9 +1613,9 @@ export default function GameTable({
         {/* Buttons in center of table (pre-game only) */}
         {!gameStarted && (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 z-10">
-            <Button onClick={onShare}>Share Game Link</Button>
+            <Button onClick={onShare}>{t("shareGameLink")}</Button>
             {isOwner && players.length >= 2 && (
-              <Button onClick={() => setShowConfigureDialog(true)}>Configure Game</Button>
+              <Button onClick={() => setShowConfigureDialog(true)}>{t("configureGameBtn")}</Button>
             )}
             {canStartGame && <Button onClick={onStartGame}>{ t("startGame") }</Button>}
           </div>
@@ -1668,7 +1665,7 @@ export default function GameTable({
           <h2 className="text-xl font-bold mb-2 text-center">{!gameStarted ? t("bet") : t("makeYourBet")}</h2>
           {!gameStarted ? (
             <div className="flex flex-col items-center mt-1">
-              <p className="text-center italic">You will place your bets here</p>
+              <p className="text-center italic">{t("youWillBetHere")}</p>
             </div>
           ) : currentPlayer && currentPlayer.bet === null ? (
             isCurrentPlayerBettingTurn ? (
@@ -1701,20 +1698,20 @@ export default function GameTable({
                       ? <p className="text-red-500 text-sm italic">{t("youCannotBet")} {forbiddenBet}</p>
                       : null
                   })()}
-                  <Button onClick={handlePlaceBet}>Confirm</Button>
+                  <Button onClick={handlePlaceBet}>{t("confirm")}</Button>
                 </div>
               </div>
             ) : (
               <p className="text-center text-yellow-600 italic mt-4">
                 {waitingForBetDelay ? (
-                  "Preparing to start the round..."
+                  t("preparingRound")
                 ) : (
                   <>
-                    Waiting for{" "}
+                    {t("waitingFor")}{" "}
                     {currentBettingPlayerName.startsWith("Waiting")
-                      ? players.find((p) => p.name !== currentPlayerName)?.name || "other players"
+                      ? players.find((p) => p.name !== currentPlayerName)?.name || "..."
                       : currentBettingPlayerName}{" "}
-                    to place their bet...
+                    {t("toPlaceBet")}
                   </>
                 )}
               </p>
@@ -1725,7 +1722,7 @@ export default function GameTable({
 
         {/* Player's hand */}
         <div className="w-2/3">
-          <h2 className="text-xl font-bold mb-2 text-center">Your Hand</h2>
+          <h2 className="text-xl font-bold mb-2 text-center">{t("yourHand")}</h2>
           <div className="flex justify-center space-x-2">
             {currentPlayer && currentPlayer.hand && currentPlayer.hand.length > 0 ? (
               currentPlayer.hand.map((card, index) => (
@@ -1750,7 +1747,7 @@ export default function GameTable({
                 />
               ))
             ) : (
-              <p className="italic">Your cards will appear here</p>
+              <p className="italic">{t("cardsHereHint")}</p>
             )}
           </div>
           {/* Replace the hardcoded check with the dynamic getTotalRounds function */}
@@ -1794,7 +1791,7 @@ export default function GameTable({
         >
           <div className="bg-gray-800 rounded-xl p-4 w-80 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-3">
-              <h3 className="text-white font-semibold text-sm">Emoji and Avatar</h3>
+              <h3 className="text-white font-semibold text-sm">{t("emojiAvatar")}</h3>
               <button onClick={() => setShowAvatarPicker(false)} className="text-gray-400 hover:text-white text-lg leading-none">✕</button>
             </div>
             {/* Tabs */}
@@ -1802,11 +1799,11 @@ export default function GameTable({
               <button
                 className={`flex-1 py-1.5 rounded text-xs ${avatarPickerTab === "emoji" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`}
                 onClick={() => setAvatarPickerTab("emoji")}
-              >😀 Emoji</button>
+              >{t("emojiTab")}</button>
               <button
                 className={`flex-1 py-1.5 rounded text-xs ${avatarPickerTab === "image" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`}
                 onClick={() => setAvatarPickerTab("image")}
-              >📷 Avatar</button>
+              >{t("avatarTab")}</button>
             </div>
 
             {avatarPickerTab === "emoji" && (
@@ -1836,7 +1833,7 @@ export default function GameTable({
                 )}
                 <div className="flex gap-2">
                   <Button size="sm" onClick={() => fileInputRef.current?.click()}>
-                    Choose Photo
+                    {t("choosePhoto")}
                   </Button>
                   {players.find((p) => p.name === currentPlayerName)?.avatar && (
                     <Button
@@ -1844,7 +1841,7 @@ export default function GameTable({
                       className="bg-red-600 hover:bg-red-500 text-white"
                       onClick={() => { onSetAvatar(""); setShowAvatarPicker(false) }}
                     >
-                      Remove Photo
+                      {t("removePhoto")}
                     </Button>
                   )}
                 </div>

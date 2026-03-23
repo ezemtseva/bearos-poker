@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useLocale } from "@/lib/locale-context"
 
 export type GameLength = "short" | "basic" | "long"
 
@@ -23,6 +24,7 @@ export default function ConfigureGameDialog({
   currentGameLength,
   currentHasGoldenRound = false,
 }: ConfigureGameDialogProps) {
+  const { t } = useLocale()
   const [selectedLength, setSelectedLength] = useState<GameLength>(
     currentGameLength === "short" ? "basic" : currentGameLength,
   )
@@ -37,21 +39,21 @@ export default function ConfigureGameDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Configure Game</DialogTitle>
+          <DialogTitle>{t("configureGame")}</DialogTitle>
         </DialogHeader>
         <div className="py-4 space-y-4">
           <div className="space-y-2">
             <label htmlFor="game-length" className="text-sm font-medium">
-              Game Type
+              {t("gameType")}
             </label>
             <Select value={selectedLength} onValueChange={(value: string) => setSelectedLength(value as GameLength)}>
               <SelectTrigger id="game-length">
-                <SelectValue placeholder="Select game length" />
+                <SelectValue placeholder={t("selectGameLength")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="short">Short (18 rounds)</SelectItem>
-                <SelectItem value="basic">Basic (22 rounds)</SelectItem>
-                <SelectItem value="long">Long (28 rounds)</SelectItem>
+                <SelectItem value="short">{t("shortRounds")}</SelectItem>
+                <SelectItem value="basic">{t("basicRounds")}</SelectItem>
+                <SelectItem value="long">{t("longRounds")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -63,22 +65,21 @@ export default function ConfigureGameDialog({
               onCheckedChange={(checked) => setHasGoldenRound(checked === true)}
             />
             <label htmlFor="golden-round" className="text-sm font-medium cursor-pointer">
-              Golden Round
+              {t("goldenRound")}
             </label>
           </div>
 
           {hasGoldenRound && (
-            <div className="text-sm text-amber-500">Adds a special final round where the winner gets 100 points!</div>
+            <div className="text-sm text-amber-500">{t("goldenRoundDesc")}</div>
           )}
         </div>
         <DialogFooter className="flex justify-between">
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {t("cancel")}
           </Button>
-          <Button onClick={handleSave}>Save</Button>
+          <Button onClick={handleSave}>{t("save")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   )
 }
-

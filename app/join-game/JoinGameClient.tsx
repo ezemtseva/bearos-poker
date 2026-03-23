@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { useSession } from "next-auth/react"
+import { useLocale } from "@/lib/locale-context"
 
 export default function JoinGameClient() {
   const { data: session } = useSession()
+  const { t } = useLocale()
   const [tableId, setTableId] = useState("")
   const [playerName, setPlayerName] = useState("")
   const router = useRouter()
@@ -70,11 +72,11 @@ export default function JoinGameClient() {
   return (
     <div className="container mx-auto px-4 min-h-screen flex items-center justify-center">
       <div className="max-w-md w-full">
-        <h1 className="text-2xl font-bold mb-4 text-center text-white">Join Table</h1>
+        <h1 className="text-2xl font-bold mb-4 text-center text-white">{t("joinTable")}</h1>
         <form onSubmit={handleJoinGame} className="space-y-4">
           <div>
             <label htmlFor="tableId" className="block text-sm font-medium text-white mb-1">
-              Table ID
+              {t("tableIdLabel")}
             </label>
             <Input
               type="text"
@@ -87,7 +89,7 @@ export default function JoinGameClient() {
           </div>
           <div>
             <label htmlFor="playerName" className="block text-sm font-medium text-white mb-1">
-              Enter Your Name
+              {t("enterYourName")}
             </label>
             <Input
               type="text"
@@ -99,7 +101,7 @@ export default function JoinGameClient() {
             />
           </div>
           <Button type="submit" className="mx-auto block w-[120px] h-[40px]">
-            Join
+            {t("join")}
           </Button>
         </form>
       </div>

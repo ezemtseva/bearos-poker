@@ -179,6 +179,25 @@ export default function SettingsPanel() {
             </button>
           </div>
 
+          {/* Language */}
+          <div className="flex items-center justify-between mb-5">
+            <div className="text-sm text-white">{t("language")}</div>
+            <div className="flex gap-1">
+              {(["en", "ru"] as Locale[]).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => selectLanguage(l)}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${locale === l ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+                >
+                  {l.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-white/10 mb-4" />
+
           {/* Bet blink toggle */}
           <div className="flex items-center justify-between mb-5">
             <div>
@@ -314,24 +333,6 @@ export default function SettingsPanel() {
             </div>
           </div>
 
-          {/* Divider */}
-          <div className="border-t border-white/10 mb-4 mt-4" />
-
-          {/* Language */}
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-white">{t("language")}</div>
-            <div className="flex gap-1">
-              {(["en", "ru"] as Locale[]).map((l) => (
-                <button
-                  key={l}
-                  onClick={() => selectLanguage(l)}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${locale === l ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
-                >
-                  {l.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       )}
     </div>

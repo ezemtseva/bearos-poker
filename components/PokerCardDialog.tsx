@@ -1,5 +1,8 @@
+"use client"
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { useLocale } from "@/lib/locale-context"
 
 interface PokerCardDialogProps {
   isOpen: boolean
@@ -18,11 +21,13 @@ export default function PokerCardDialog({
   isValidSimple,
   availableOptions,
 }: PokerCardDialogProps) {
+  const { t } = useLocale()
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>How would you like to play?</DialogTitle>
+          <DialogTitle>{t("howToPlay7")}</DialogTitle>
         </DialogHeader>
         <div className="py-4">
           <div className="space-y-2">
@@ -32,7 +37,7 @@ export default function PokerCardDialog({
                 className="w-full justify-start text-left bg-red-100 hover:bg-red-200"
                 variant="outline"
               >
-                Trumps
+                {t("trumps")}
               </Button>
             )}
             {availableOptions.includes("Poker") && (
@@ -41,7 +46,7 @@ export default function PokerCardDialog({
                 className="w-full justify-start text-left bg-yellow-100 hover:bg-yellow-200"
                 variant="outline"
               >
-                Poker
+                {t("pokerOption")}
               </Button>
             )}
             {availableOptions.includes("Simple") && (
@@ -51,18 +56,17 @@ export default function PokerCardDialog({
                 variant="outline"
                 disabled={!isValidSimple}
               >
-                Simple
+                {t("simple")}
               </Button>
             )}
           </div>
         </div>
         <DialogFooter className="flex justify-center">
           <Button onClick={onClose} variant="secondary">
-            Cancel
+            {t("cancel")}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   )
 }
-
