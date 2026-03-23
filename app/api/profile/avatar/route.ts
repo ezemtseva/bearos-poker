@@ -36,6 +36,7 @@ export async function POST(req: Request) {
     const blob = await put(`avatars/${userId}.${ext}`, buffer, {
       access: "public",
       addRandomSuffix: false,
+      allowOverwrite: true,
       contentType: file.type,
     })
 
