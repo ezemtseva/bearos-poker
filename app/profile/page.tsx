@@ -58,7 +58,8 @@ export default function ProfilePage() {
       .then((d: ProfileData) => {
         setData(d)
         setNickname(d.profile?.nickname ?? session?.user?.name ?? "")
-        setAvatarUrl(d.profile?.avatar_url ?? session?.user?.image ?? null)
+        const url = d.profile?.avatar_url ?? session?.user?.image ?? null
+        setAvatarUrl(url ? `${url}?t=${Date.now()}` : null)
       })
   }, [status, session])
 
