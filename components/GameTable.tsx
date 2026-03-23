@@ -88,11 +88,14 @@ export default function GameTable({
         if (!data.settings) return
         const s = data.settings
         try {
-          if (s.table_skin) { localStorage.setItem("tableSkin", s.table_skin); setTableSkin(s.table_skin) }
-          if (s.seat_skin) { localStorage.setItem("seatSkin", s.seat_skin); setSeatSkin(s.seat_skin) }
-          if (s.bet_blink_enabled !== undefined) { localStorage.setItem("betBlinkEnabled", String(s.bet_blink_enabled)); setBetBlinkEnabled(s.bet_blink_enabled) }
-          // broadcast so SettingsPanel and RoomSkinApplier react
-          window.dispatchEvent(new CustomEvent("settingsChanged", { detail: { tableSkin: s.table_skin, seatSkin: s.seat_skin, roomSkin: s.room_skin, cardBackSkin: s.card_back_skin, betBlinkEnabled: s.bet_blink_enabled } }))
+          const detail: Record<string, unknown> = {}
+          if (s.table_skin)    { localStorage.setItem("tableSkin", s.table_skin); setTableSkin(s.table_skin); detail.tableSkin = s.table_skin }
+          if (s.seat_skin)     { localStorage.setItem("seatSkin", s.seat_skin); setSeatSkin(s.seat_skin); detail.seatSkin = s.seat_skin }
+          if (s.room_skin)     { localStorage.setItem("roomSkin", s.room_skin); detail.roomSkin = s.room_skin }
+          if (s.card_back_skin){ localStorage.setItem("cardBackSkin", s.card_back_skin); detail.cardBackSkin = s.card_back_skin }
+          if (s.bet_blink_enabled !== undefined) { localStorage.setItem("betBlinkEnabled", String(s.bet_blink_enabled)); setBetBlinkEnabled(s.bet_blink_enabled); detail.betBlinkEnabled = s.bet_blink_enabled }
+          if (Object.keys(detail).length > 0)
+            window.dispatchEvent(new CustomEvent("settingsChanged", { detail }))
         } catch {}
       })
       .catch(() => {})
