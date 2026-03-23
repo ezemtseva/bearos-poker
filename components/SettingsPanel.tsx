@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { Settings, X } from "lucide-react"
+import { useLocale } from "@/lib/locale-context"
+import type { Locale } from "@/lib/translations"
 
 const TABLE_SKINS = [
   { id: "blue", label: "Navy Blue", type: "color", value: "#0f4c81" },
@@ -91,6 +93,7 @@ function saveSettingsToDB(patch: Record<string, unknown>) {
 export default function SettingsPanel() {
   const { status } = useSession()
   const loggedIn = status === "authenticated"
+  const { locale, setLocale, t } = useLocale()
   const [open, setOpen] = useState(false)
   const [betBlink, setBetBlink] = useState(false)
   const [tableSkin, setTableSkin] = useState("blue")
@@ -152,12 +155,17 @@ export default function SettingsPanel() {
     if (loggedIn) saveSettingsToDB({ card_back_skin: id })
   }
 
+  function selectLanguage(l: Locale) {
+    setLocale(l)
+    if (loggedIn) saveSettingsToDB({ language: l })
+  }
+
   return (
     <div className="relative" ref={panelRef}>
       <button
         onClick={() => setOpen((v) => !v)}
         className={`rounded-full w-10 h-10 p-0 flex items-center justify-center transition-colors bg-gray-800/50 hover:bg-gray-700/70 ${open ? "text-white" : "text-gray-300"}`}
-        title="Settings"
+        title={t("settings")}
       >
         <Settings size={20} />
       </button>
@@ -165,7 +173,7 @@ export default function SettingsPanel() {
       {open && (
         <div className="absolute right-0 top-12 w-80 bg-gray-800 border border-white/10 rounded-xl shadow-2xl z-50 p-4 max-h-[calc(100vh-80px)] overflow-y-auto">
           <div className="flex justify-between items-center mb-4">
-            <span className="font-semibold text-white text-sm">Table Settings</span>
+            <span className="font-semibold text-white text-sm">{t("settings")}</span>
             <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-white">
               <X size={16} />
             </button>
@@ -174,8 +182,8 @@ export default function SettingsPanel() {
           {/* Bet blink toggle */}
           <div className="flex items-center justify-between mb-5">
             <div>
-              <div className="text-sm text-white">Betting Alarm</div>
-              <div className="text-xs text-gray-400">Highlight border when it's your turn to bet</div>
+              <div className="text-sm text-white">{t("bettingAlarm")}</div>
+              <div className="text-xs text-gray-400">{t("bettingAlarmDesc")}</div>
             </div>
             <button
               onClick={() => toggleBetBlink(!betBlink)}
@@ -190,7 +198,7 @@ export default function SettingsPanel() {
 
           {/* Room color */}
           <div className="mb-4">
-            <div className="text-sm text-white mb-2">Room Color</div>
+            <div className="text-sm text-white mb-2">{t("roomColor")}</div>
             <div className="grid grid-cols-4 gap-2">
               {ROOM_SKINS.map((skin) => (
                 <button
@@ -215,7 +223,7 @@ export default function SettingsPanel() {
 
           {/* Table skin */}
           <div className="mb-4">
-            <div className="text-sm text-white mb-2">Table Skin</div>
+            <div className="text-sm text-white mb-2">{t("tableSkin")}</div>
             <div className="grid grid-cols-4 gap-2">
               {TABLE_SKINS.map((skin) => (
                 <button
@@ -245,7 +253,7 @@ export default function SettingsPanel() {
 
           {/* Card back skin */}
           <div>
-            <div className="text-sm text-white mb-2">Card Back</div>
+            <div className="text-sm text-white mb-2">{t("cardBack")}</div>
             <div className="grid grid-cols-4 gap-2">
               {CARD_BACK_SKINS.map((skin) => (
                 <button
@@ -286,7 +294,7 @@ export default function SettingsPanel() {
 
           {/* Seat color */}
           <div>
-            <div className="text-sm text-white mb-2">Seat Color</div>
+            <div className="text-sm text-white mb-2">{t("seatColor")}</div>
             <div className="grid grid-cols-4 gap-2">
               {SEAT_SKINS.map((skin) => (
                 <button
@@ -301,6 +309,25 @@ export default function SettingsPanel() {
                       <div className="w-3 h-3 rounded-full bg-white shadow" />
                     </div>
                   )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-white/10 mb-4 mt-4" />
+
+          {/* Language */}
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-white">{t("language")}</div>
+            <div className="flex gap-1">
+              {(["en", "ru"] as Locale[]).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => selectLanguage(l)}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${locale === l ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+                >
+                  {l.toUpperCase()}
                 </button>
               ))}
             </div>

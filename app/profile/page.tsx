@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react"
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Camera, Save, Trophy, Calendar } from "lucide-react"
+import { useLocale } from "@/lib/locale-context"
 
 interface PlayerData {
   name: string
@@ -39,6 +40,7 @@ export default function ProfilePage() {
   const { data: session, status, update } = useSession()
   const router = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
+  const { t } = useLocale()
 
   const [data, setData] = useState<ProfileData | null>(null)
   const [nickname, setNickname] = useState("")
@@ -96,7 +98,7 @@ export default function ProfilePage() {
   if (status === "loading" || !data) {
     return (
       <div className="min-h-screen flex items-center justify-center text-white">
-        <div className="animate-pulse text-gray-400">Loading profile...</div>
+        <div className="animate-pulse text-gray-400">{t("loadingProfile")}</div>
       </div>
     )
   }
@@ -104,7 +106,7 @@ export default function ProfilePage() {
   const initials = nickname ? nickname.slice(0, 2).toUpperCase() : "?"
   return (
     <div className="min-h-screen text-white px-4 py-8 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-8">My Profile</h1>
+      <h1 className="text-2xl font-bold mb-8">{t("myProfileHeading")}</h1>
 
       {/* Avatar + name */}
       <div className="bg-gray-800 border border-white/10 rounded-2xl p-6 mb-4">
@@ -144,7 +146,7 @@ export default function ProfilePage() {
                 className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
               >
                 <Save size={14} />
-                {saved ? "Saved!" : saving ? "..." : "Save"}
+                {saved ? t("saved") : saving ? t("saving") : t("save")}
               </button>
             </div>
             <p className="text-xs text-gray-500 mt-1">{session?.user?.email}</p>
@@ -162,12 +164,12 @@ export default function ProfilePage() {
         const pokerHands = data.history.reduce((s, g) => s + (g.poker_hands ?? 0), 0)
 
         const stats = [
-          { label: "Games", value: games, color: "text-blue-400" },
-          { label: "Wins", value: wins, color: "text-green-400" },
-          { label: "Win Rate", value: `${winRate}%`, color: "text-yellow-400" },
-          { label: "Points", value: totalPoints, color: "text-purple-400" },
-          { label: "Points Record", value: pointsRecord, color: "text-orange-400" },
-          { label: "Poker Hand", value: pokerHands, color: "text-pink-400" },
+          { label: t("games"), value: games, color: "text-blue-400" },
+          { label: t("wins"), value: wins, color: "text-green-400" },
+          { label: t("winRate"), value: `${winRate}%`, color: "text-yellow-400" },
+          { label: t("points"), value: totalPoints, color: "text-purple-400" },
+          { label: t("pointsRecord"), value: pointsRecord, color: "text-orange-400" },
+          { label: t("pokerHand"), value: pokerHands, color: "text-pink-400" },
         ]
         return (
           <div className="grid grid-cols-3 gap-3 mb-4">
@@ -185,23 +187,23 @@ export default function ProfilePage() {
       <div className="bg-gray-800 border border-white/10 rounded-2xl overflow-hidden">
         <div className="flex items-center gap-2 px-5 py-4 border-b border-white/10">
           <Trophy size={16} className="text-yellow-400" />
-          <span className="font-semibold text-sm">Game History</span>
+          <span className="font-semibold text-sm">{t("gameHistory")}</span>
         </div>
 
         {data.history.length === 0 ? (
-          <div className="px-5 py-8 text-center text-gray-500 text-sm italic">No games played yet</div>
+          <div className="px-5 py-8 text-center text-gray-500 text-sm italic">{t("noGamesYet")}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-xs text-gray-500 border-b border-white/5">
-                  <th className="text-left px-4 py-2 font-medium">Table ID</th>
-                  <th className="text-center px-3 py-2 font-medium">Players</th>
-                  <th className="text-center px-3 py-2 font-medium">Place</th>
-                  <th className="text-center px-3 py-2 font-medium">Points</th>
+                  <th className="text-left px-4 py-2 font-medium">{t("tableId")}</th>
+                  <th className="text-center px-3 py-2 font-medium">{t("players")}</th>
+                  <th className="text-center px-3 py-2 font-medium">{t("place")}</th>
+                  <th className="text-center px-3 py-2 font-medium">{t("points")}</th>
                   <th className="text-center px-3 py-2 font-medium">7♠</th>
-                  <th className="text-center px-3 py-2 font-medium">Type</th>
-                  <th className="text-right px-4 py-2 font-medium">Date</th>
+                  <th className="text-center px-3 py-2 font-medium">{t("type")}</th>
+                  <th className="text-right px-4 py-2 font-medium">{t("date")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">

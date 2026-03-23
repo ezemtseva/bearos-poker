@@ -4,8 +4,10 @@ import { useSession, signOut } from "next-auth/react"
 import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import { LogIn, LogOut, User, ChevronDown } from "lucide-react"
+import { useLocale } from "@/lib/locale-context"
 
 export default function UserMenu() {
+  const { t } = useLocale()
   const { data: session, status } = useSession()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -27,7 +29,7 @@ export default function UserMenu() {
       <Link
         href="/login"
         className="rounded-full w-10 h-10 flex items-center justify-center bg-gray-800/50 hover:bg-gray-700/70 text-gray-300 hover:text-white transition-colors"
-        title="Sign in"
+        title={t("signIn")}
       >
         <LogIn size={18} />
       </Link>
@@ -68,14 +70,14 @@ export default function UserMenu() {
             className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
           >
             <User size={15} />
-            My Profile
+            {t("myProfile")}
           </Link>
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
             className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-white/5 transition-colors"
           >
             <LogOut size={15} />
-            Sign out
+            {t("signOut")}
           </button>
         </div>
       )}

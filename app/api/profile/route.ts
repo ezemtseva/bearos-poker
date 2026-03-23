@@ -39,14 +39,15 @@ export async function PATCH(req: Request) {
   if (body.settings !== undefined) {
     const s = body.settings
     await sql`
-      INSERT INTO user_settings (user_id, table_skin, room_skin, card_back_skin, seat_skin, bet_blink_enabled, is_customized, updated_at)
-      VALUES (${userId}, ${s.table_skin ?? 'blue'}, ${s.room_skin ?? 'classic_blue'}, ${s.card_back_skin ?? 'black'}, ${s.seat_skin ?? 'gray'}, ${s.bet_blink_enabled ?? false}, TRUE, NOW())
+      INSERT INTO user_settings (user_id, table_skin, room_skin, card_back_skin, seat_skin, bet_blink_enabled, language, is_customized, updated_at)
+      VALUES (${userId}, ${s.table_skin ?? 'blue'}, ${s.room_skin ?? 'classic_blue'}, ${s.card_back_skin ?? 'black'}, ${s.seat_skin ?? 'gray'}, ${s.bet_blink_enabled ?? false}, ${s.language ?? 'en'}, TRUE, NOW())
       ON CONFLICT (user_id) DO UPDATE SET
         table_skin = COALESCE(${s.table_skin ?? null}, user_settings.table_skin),
         room_skin = COALESCE(${s.room_skin ?? null}, user_settings.room_skin),
         card_back_skin = COALESCE(${s.card_back_skin ?? null}, user_settings.card_back_skin),
         seat_skin = COALESCE(${s.seat_skin ?? null}, user_settings.seat_skin),
         bet_blink_enabled = COALESCE(${s.bet_blink_enabled ?? null}, user_settings.bet_blink_enabled),
+        language = COALESCE(${s.language ?? null}, user_settings.language),
         is_customized = TRUE,
         updated_at = NOW()
     `

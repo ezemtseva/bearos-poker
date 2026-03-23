@@ -20,6 +20,7 @@ import { Settings, ChevronLeft, ChevronRight } from "lucide-react"
 import { TABLE_SKINS, SEAT_SKINS } from "./SettingsPanel"
 import { useSession } from "next-auth/react"
 import { useViewport } from "@/hooks/use-viewport"
+import { useLocale } from "@/lib/locale-context"
 
 interface GameTableProps {
   tableId: string
@@ -71,6 +72,7 @@ export default function GameTable({
 }: GameTableProps) {
   const { isMobile, isTablet, width: viewportWidth } = useViewport()
   const { data: session } = useSession()
+  const { t } = useLocale()
 
   // Sync session name → localStorage so the rest of the component works unchanged
   useEffect(() => {
@@ -596,8 +598,8 @@ export default function GameTable({
 
     if (!safeGameData.allBetsPlaced && !allPlayersHaveBet) {
         toast({
-        title: "Cannot play card",
-        description: "Please wait for all players to place their bets.",
+        title: t("cannotPlayCard"),
+        description: t("waitForBets"),
         variant: "destructive",
       })
       return
@@ -621,8 +623,8 @@ export default function GameTable({
 
     if (!safeGameData.allBetsPlaced && !allPlayersHaveBet) {
       toast({
-        title: "Cannot play card",
-        description: "Please wait for all players to place their bets.",
+        title: t("cannotPlayCard"),
+        description: t("waitForBets"),
         variant: "destructive",
       })
       return
@@ -650,8 +652,8 @@ export default function GameTable({
       const validCards = getValidCardsAfterTrumps(currentPlayer?.hand || [])
       if (!validCards.some((c) => c.suit === card.suit && c.value === card.value)) {
         toast({
-          title: "Invalid Play",
-          description: "You must play your highest trump card or highest card if you have no trumps.",
+          title: t("invalidPlay"),
+          description: t("mustPlayHighestTrump"),
           variant: "destructive",
         })
         return
@@ -661,7 +663,7 @@ export default function GameTable({
         "Invalid card play. You must follow the leading suit if possible, or play a trump if you don't have the leading suit.",
       )
       toast({
-        title: "Invalid Play",
+        title: t("invalidPlay"),
         description:
           "You must follow the leading suit if possible, or play a trump if you don't have the leading suit.",
         variant: "destructive",
@@ -746,7 +748,7 @@ export default function GameTable({
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to play the card")
+        throw new Error(errorData.error || t("failedToPlayCard"))
       }
 
       const data = await response.json()
@@ -1255,7 +1257,7 @@ export default function GameTable({
           <div className="flex gap-2 flex-wrap">
             <Button size="sm" onClick={onShare}>Share Link</Button>
             {isOwner && players.length >= 2 && <Button size="sm" onClick={() => setShowConfigureDialog(true)}>Configure</Button>}
-            {canStartGame && <Button size="sm" onClick={onStartGame}>Start Game</Button>}
+            {canStartGame && <Button size="sm" onClick={onStartGame}>{ t("startGame") }</Button>}
           </div>
           {players.length < 2 && <p className="text-yellow-600 italic text-sm mt-2">Waiting for more players...</p>}
         </div>
@@ -1367,7 +1369,7 @@ export default function GameTable({
                   <span className="text-5xl font-bold w-16 text-center select-none">{betAmount ?? 0}</span>
                   <button onClick={() => setBetAmount(v => Math.min(cardsThisRound, (v ?? 0) + 1))} className="w-14 h-14 rounded-xl bg-gray-700 hover:bg-gray-600 text-white border border-gray-500 text-3xl font-bold">+</button>
                 </div>
-                {(() => { const fb = calculateForbiddenBet(); return fb !== null ? <p className="text-red-500 text-sm italic text-center mt-2">You cannot bet {fb}</p> : null })()}
+                {(() => { const fb = calculateForbiddenBet(); return fb !== null ? <p className="text-red-500 text-sm italic text-center mt-2">{t("youCannotBet")} {fb}</p> : null })()}
                 <div className="flex justify-center mt-3"><Button onClick={handlePlaceBet}>Confirm</Button></div>
               </>
             ) : (
@@ -1618,7 +1620,7 @@ export default function GameTable({
             {isOwner && players.length >= 2 && (
               <Button onClick={() => setShowConfigureDialog(true)}>Configure Game</Button>
             )}
-            {canStartGame && <Button onClick={onStartGame}>Start Game</Button>}
+            {canStartGame && <Button onClick={onStartGame}>{ t("startGame") }</Button>}
           </div>
         )}
 
@@ -1663,7 +1665,7 @@ export default function GameTable({
         {/* Your Bet/Win section — container always present to keep hand position stable */}
         <div className={`w-1/3 mr-8 flex flex-col rounded-xl p-3 border-2 ${isCurrentPlayerBettingTurn && betBlinkEnabled ? "border-green-400 animate-bet-border" : "border-transparent"}`}>
         {(!gameStarted || (currentPlayer && currentPlayer.bet === null && isCurrentPlayerBettingTurn)) && <>
-          <h2 className="text-xl font-bold mb-2 text-center">{!gameStarted ? "Your Bet" : "Make Your Bet"}</h2>
+          <h2 className="text-xl font-bold mb-2 text-center">{!gameStarted ? t("bet") : t("makeYourBet")}</h2>
           {!gameStarted ? (
             <div className="flex flex-col items-center mt-1">
               <p className="text-center italic">You will place your bets here</p>
@@ -1696,7 +1698,7 @@ export default function GameTable({
                   {(() => {
                     const forbiddenBet = calculateForbiddenBet()
                     return forbiddenBet !== null
-                      ? <p className="text-red-500 text-sm italic">You cannot bet {forbiddenBet}</p>
+                      ? <p className="text-red-500 text-sm italic">{t("youCannotBet")} {forbiddenBet}</p>
                       : null
                   })()}
                   <Button onClick={handlePlaceBet}>Confirm</Button>
