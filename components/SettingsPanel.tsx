@@ -16,6 +16,7 @@ const TABLE_SKINS = [
   { id: "charcoal", label: "Charcoal", type: "color", value: "#3a3f4b" },
   { id: "modniy_luk", label: "Shopping Modniy Look", type: "image", value: "/table-skins/modniy_luk.jpg" },
   { id: "chechnia", label: "Chechnia", type: "image", value: "/table-skins/chechnia.png" },
+  { id: "verstalibin", label: "Verstalibin", type: "image", value: "/table-skins/verstalibin.jpeg" },
 ] as const
 
 const SEAT_SKINS = [
