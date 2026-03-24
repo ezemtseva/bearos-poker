@@ -1139,6 +1139,7 @@ export default function GameTable({
                     <TableCell className="border-r border-gray-600">{
                       round.roundName === "NT" ? (locale === "ru" ? "Б" : "NT") :
                       round.roundName === "B" && locale === "ru" ? "Т" :
+                      round.roundName === "G" && locale === "ru" ? "З" :
                       round.roundName
                     }</TableCell>
                     {orderedPlayers.map((player) => {

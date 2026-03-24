@@ -5,6 +5,7 @@ import Navigation from "./Navigation"
 import dynamic from "next/dynamic"
 import SessionProviderWrapper from "@/components/SessionProviderWrapper"
 import { LocaleProvider } from "@/lib/locale-context"
+import { Toaster } from "@/components/ui/toaster"
 
 const RoomSkinApplier = dynamic(() => import("@/components/RoomSkinApplier"), { ssr: false })
 
@@ -31,6 +32,7 @@ export default function RootLayout({
             <div className="content-wrapper">
               <div className="pt-16">{children}</div>
             </div>
+          <Toaster />
           </LocaleProvider>
         </SessionProviderWrapper>
       </body>

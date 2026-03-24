@@ -106,6 +106,8 @@ export const translations = {
     host: "Host",
     leaveTable: "Leave Table",
     newGame: "New Game",
+    linkCopied: "Link copied",
+    linkCopiedDesc: "Share this link with your friends to invite them to the game.",
 
     // Home page
     welcomeTitle: "Welcome to Bearos Poker",
@@ -335,6 +337,8 @@ export const translations = {
     host: "Хост",
     leaveTable: "Покинуть стол",
     newGame: "Новая игра",
+    linkCopied: "Ссылка скопирована",
+    linkCopiedDesc: "Отправь эту ссылку друзьям, чтобы пригласить их в игру.",
 
     // Home page
     welcomeTitle: "Добро пожаловать в Пермский Покер",

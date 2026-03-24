@@ -6,6 +6,7 @@ import GameTable from "../../../components/GameTable"
 import { useToast } from "@/hooks/use-toast"
 import type { GameData, Card, GameLength } from "../../../types/game"
 import { useSound } from "@/hooks/use-sound"
+import { useLocale } from "@/lib/locale-context"
 
 export default function Game() {
   const params = useParams()
@@ -15,6 +16,7 @@ export default function Game() {
   const [currentPlayerName, setCurrentPlayerName] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
+  const { t } = useLocale()
   const clientIdRef = useRef<string>(`client-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`)
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const reactionPollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -273,10 +275,8 @@ export default function Game() {
   const handleShare = () => {
     const shareUrl = `${window.location.origin}/join-game?tableId=${tableId}`
     navigator.clipboard.writeText(shareUrl)
-    // Play the copy sound when the user clicks the Share button
-      toast({
-      title: "Link Copied!",
-      description: "Share this link with your friends to invite them to the game.",
+    toast({
+      title: t("linkCopied"),
     })
   }
 
