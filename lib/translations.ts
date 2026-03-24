@@ -119,6 +119,8 @@ export const translations = {
     longRounds: "Long (28 rounds)",
     goldenRound: "Golden Round",
     goldenRoundDesc: "Adds a special final round where the winner gets 100 points",
+    noTrumps: "No Trumps",
+    noTrumpsDesc: "Adds 6 rounds with no trump suit",
     cancel: "Cancel",
 
     // GameResultsDialog
@@ -346,6 +348,8 @@ export const translations = {
     longRounds: "Длинная (28 раундов)",
     goldenRound: "Золотой раунд",
     goldenRoundDesc: "Добавляет финальный раунд, где победитель получает 100 очков!",
+    noTrumps: "Бескозырка",
+    noTrumpsDesc: "Добавляет 6 раундов без козырей",
     cancel: "Отмена",
 
     // GameResultsDialog

@@ -35,7 +35,7 @@ interface GameTableProps {
   onStartGame: () => void
   onPlayCard: (card: Card) => void
   onPlaceBet: (bet: number) => void
-  onConfigureGame: (gameLength: GameLength, hasGoldenRound: boolean) => void
+  onConfigureGame: (gameLength: GameLength, hasGoldenRound: boolean, hasNoTrumps: boolean) => void
   onSetAvatar: (avatar: string) => void
   onSendReaction: (emoji: string) => void
   gameData: GameData
@@ -72,7 +72,7 @@ export default function GameTable({
 }: GameTableProps) {
   const { isMobile, isTablet, width: viewportWidth } = useViewport()
   const { data: session } = useSession()
-  const { t } = useLocale()
+  const { t, locale } = useLocale()
 
   // Sync session name → localStorage so the rest of the component works unchanged
   useEffect(() => {
@@ -374,7 +374,14 @@ export default function GameTable({
     stableBettingUI,
   ])
 
+  const isCurrentRoundNoTrumps = safeGameData.scoreTable?.[currentRound - 1]?.roundName === "NT"
+
   const getValidCardsAfterTrumps = (hand: Card[]): Card[] => {
+    // In no-trumps rounds: only highest rank matters, player chooses suit
+    if (isCurrentRoundNoTrumps) {
+      const highestValue = Math.max(...hand.map((c) => c.value))
+      return hand.filter((c) => c.value === highestValue)
+    }
     const diamonds = hand.filter((c) => c.suit === "diamonds")
     if (diamonds.length > 0) {
       const highestDiamond = diamonds.reduce((max, card) => (card.value > max.value ? card : max), diamonds[0])
@@ -467,83 +474,37 @@ export default function GameTable({
 
 
   // Add a function to get the total number of rounds based on game length
-  const getTotalRounds = (gameLength: GameLength): number => {
+  const getTotalRounds = (gameLength: GameLength, hasGoldenRound = false, hasNoTrumps = false): number => {
+    let base: number
     switch (gameLength) {
-      case "short":
-        return 18
-      case "basic":
-        return 22
-      case "long":
-        return 28
-      default:
-        return 18
+      case "short": base = 18; break
+      case "basic": base = 22; break
+      case "long": base = 28; break
+      default: base = 18
     }
+    if (hasNoTrumps) base += 6
+    return hasGoldenRound ? base + 1 : base
   }
 
   // Add a function to get the round names based on game length
-  const getRoundNames = (gameLength: GameLength): string[] => {
+  const getRoundNames = (gameLength: GameLength, hasNoTrumps = false, hasGoldenRound = false): string[] => {
+    let rounds: string[]
     switch (gameLength) {
       case "short":
-        return ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
+        rounds = ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
+        break
       case "basic":
-        return [
-          "1",
-          "2",
-          "3",
-          "4",
-          "5",
-          "6",
-          "6",
-          "6",
-          "B",
-          "B",
-          "B",
-          "B",
-          "B",
-          "B",
-          "6",
-          "6",
-          "6",
-          "5",
-          "4",
-          "3",
-          "2",
-          "1",
-        ]
+        rounds = ["1", "2", "3", "4", "5", "6", "6", "6", "B", "B", "B", "B", "B", "B", "6", "6", "6", "5", "4", "3", "2", "1"]
+        break
       case "long":
-        return [
-          "1",
-          "2",
-          "3",
-          "4",
-          "5",
-          "6",
-          "6",
-          "6",
-          "6",
-          "6",
-          "6",
-          "B",
-          "B",
-          "B",
-          "B",
-          "B",
-          "B",
-          "6",
-          "6",
-          "6",
-          "6",
-          "6",
-          "6",
-          "5",
-          "4",
-          "3",
-          "2",
-          "1",
-        ]
+        rounds = ["1", "2", "3", "4", "5", "6", "6", "6", "6", "6", "6", "B", "B", "B", "B", "B", "B", "6", "6", "6", "6", "6", "6", "5", "4", "3", "2", "1"]
+        break
       default:
-        return ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
+        rounds = ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
     }
+    if (hasNoTrumps) rounds.push("NT", "NT", "NT", "NT", "NT", "NT")
+    if (hasGoldenRound) rounds.push("G")
+    return rounds
   }
 
   // Update the cardsThisRound calculation to use the game length
@@ -551,13 +512,14 @@ export default function GameTable({
     if (!gameStarted || currentRound <= 0) return 0
 
     const gameLength = safeGameData.gameLength || "short"
-    const roundNames = getRoundNames(gameLength)
+    const roundNames = getRoundNames(gameLength, safeGameData.hasNoTrumps || false, safeGameData.hasGoldenRound || false)
     if (currentRound > roundNames.length) return 0
 
     const roundName = roundNames[currentRound - 1]
-    if (roundName === "B") return 6
+    if (roundName === "B" || roundName === "NT") return 6
+    if (roundName === "G") return 1
     return Number.parseInt(roundName, 10)
-  }, [gameStarted, currentRound, safeGameData.gameLength])
+  }, [gameStarted, currentRound, safeGameData.gameLength, safeGameData.hasNoTrumps, safeGameData.hasGoldenRound])
 
   const isValidPlay = (card: Card): boolean => {
     if (!currentPlayer) return false
@@ -586,10 +548,12 @@ export default function GameTable({
       return card.suit === leadingSuit // Must follow suit if possible (except for 7 of spades which is handled above)
     }
 
-    // If player doesn't have the leading suit, check if they have trumps
-    const hasTrumps = currentPlayer.hand.some((c) => c.suit === "diamonds")
-    if (hasTrumps) {
-      return card.suit === "diamonds" // Must play a trump if they have one and can't follow suit (except for 7 of spades)
+    // In no-trumps rounds there are no trumps to follow
+    if (!isCurrentRoundNoTrumps) {
+      const hasTrumps = currentPlayer.hand.some((c) => c.suit === "diamonds")
+      if (hasTrumps) {
+        return card.suit === "diamonds"
+      }
     }
 
     // If player has neither the leading suit nor trumps, they can play any card
@@ -1063,8 +1027,8 @@ export default function GameTable({
   }
 
   // Add this function to handle saving the game configuration
-  const handleSaveGameConfig = (gameLength: GameLength, hasGoldenRound: boolean) => {
-    onConfigureGame(gameLength, hasGoldenRound)
+  const handleSaveGameConfig = (gameLength: GameLength, hasGoldenRound: boolean, hasNoTrumps: boolean) => {
+    onConfigureGame(gameLength, hasGoldenRound, hasNoTrumps)
   }
 
   // Score table helpers (used in both panel and layout)
@@ -1172,7 +1136,11 @@ export default function GameTable({
                     ${round.roundId < currentRound ? "bg-gray-600/70" : ""}
                   `}
                   >
-                    <TableCell className="border-r border-gray-600">{round.roundName}</TableCell>
+                    <TableCell className="border-r border-gray-600">{
+                      round.roundName === "NT" ? (locale === "ru" ? "Б" : "NT") :
+                      round.roundName === "B" && locale === "ru" ? "Т" :
+                      round.roundName
+                    }</TableCell>
                     {orderedPlayers.map((player) => {
                       const scoreData = round.scores[player.name]
                       const playerScore: PlayerScore = scoreData || {
@@ -1358,7 +1326,7 @@ export default function GameTable({
 
         {/* Status */}
         <div className="px-4 pt-1 text-center text-sm">
-          {currentRound <= getTotalRounds(safeGameData.gameLength || "basic") && renderGameStatusMessage()}
+          {currentRound <= getTotalRounds(safeGameData.gameLength || "basic", safeGameData.hasGoldenRound || false, safeGameData.hasNoTrumps || false) && renderGameStatusMessage()}
           {errorMessage && <p className="text-red-500 mt-1">{errorMessage}</p>}
         </div>
 
@@ -1398,7 +1366,7 @@ export default function GameTable({
       {/* Shared dialogs */}
       <GameResultsDialog isOpen={showResultsDialog} onClose={() => setShowResultsDialog(false)} players={players} />
       <PokerCardDialog isOpen={showPokerCardDialog} onClose={() => setShowPokerCardDialog(false)} onOptionSelect={handlePokerCardOptionSelect} isFirstCard={cardsOnTable.length === 0} isValidSimple={isValidSimplePlay()} availableOptions={cardsOnTable.length === 0 ? ["Trumps", "Poker", "Simple"] : ["Poker", "Simple"]} />
-      <ConfigureGameDialog isOpen={showConfigureDialog} onClose={() => setShowConfigureDialog(false)} onSave={handleSaveGameConfig} currentGameLength={safeGameData.gameLength || "short"} currentHasGoldenRound={safeGameData.hasGoldenRound || false} />
+      <ConfigureGameDialog isOpen={showConfigureDialog} onClose={() => setShowConfigureDialog(false)} onSave={handleSaveGameConfig} currentGameLength={safeGameData.gameLength || "short"} currentHasGoldenRound={safeGameData.hasGoldenRound || false} currentHasNoTrumps={safeGameData.hasNoTrumps || false} />
       {showAvatarPicker && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowAvatarPicker(false)}>
           <div className="bg-gray-800 rounded-xl p-4 w-80 shadow-xl" onClick={e => e.stopPropagation()}>
@@ -1758,7 +1726,7 @@ export default function GameTable({
             )}
           </div>
           {/* Replace the hardcoded check with the dynamic getTotalRounds function */}
-          {gameStarted && currentRound <= getTotalRounds(safeGameData.gameLength || "basic") && (
+          {gameStarted && currentRound <= getTotalRounds(safeGameData.gameLength || "basic", safeGameData.hasGoldenRound || false, safeGameData.hasNoTrumps || false) && (
             <p className="text-center mt-2">{renderGameStatusMessage()}</p>
           )}
           {errorMessage && <p className="text-red-600 text-center mt-2">{errorMessage}</p>}
@@ -1788,6 +1756,7 @@ export default function GameTable({
         onSave={handleSaveGameConfig}
         currentGameLength={safeGameData.gameLength || "short"}
         currentHasGoldenRound={safeGameData.hasGoldenRound || false}
+        currentHasNoTrumps={safeGameData.hasNoTrumps || false}
       />
 
       {/* Avatar / Reaction Picker Modal */}

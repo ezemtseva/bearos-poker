@@ -12,9 +12,10 @@ export type GameLength = "short" | "basic" | "long"
 interface ConfigureGameDialogProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (gameLength: GameLength, hasGoldenRound: boolean) => void
+  onSave: (gameLength: GameLength, hasGoldenRound: boolean, hasNoTrumps: boolean) => void
   currentGameLength: GameLength
   currentHasGoldenRound?: boolean
+  currentHasNoTrumps?: boolean
 }
 
 export default function ConfigureGameDialog({
@@ -23,15 +24,17 @@ export default function ConfigureGameDialog({
   onSave,
   currentGameLength,
   currentHasGoldenRound = false,
+  currentHasNoTrumps = false,
 }: ConfigureGameDialogProps) {
   const { t } = useLocale()
   const [selectedLength, setSelectedLength] = useState<GameLength>(
     currentGameLength === "short" ? "basic" : currentGameLength,
   )
   const [hasGoldenRound, setHasGoldenRound] = useState<boolean>(currentHasGoldenRound)
+  const [hasNoTrumps, setHasNoTrumps] = useState<boolean>(currentHasNoTrumps)
 
   const handleSave = () => {
-    onSave(selectedLength, hasGoldenRound)
+    onSave(selectedLength, hasGoldenRound, hasNoTrumps)
     onClose()
   }
 
@@ -56,6 +59,20 @@ export default function ConfigureGameDialog({
                 <SelectItem value="long">{t("longRounds")}</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="no-trumps"
+                checked={hasNoTrumps}
+                onCheckedChange={(checked) => setHasNoTrumps(checked === true)}
+              />
+              <label htmlFor="no-trumps" className="text-sm font-medium cursor-pointer">
+                {t("noTrumps")}
+              </label>
+            </div>
+            <div className="text-xs text-gray-400 mt-1 ml-6">{t("noTrumpsDesc")}</div>
           </div>
 
           <div>

@@ -36,7 +36,8 @@ export async function GET() {
         bets_placed_timestamp BIGINT,
         game_length TEXT DEFAULT 'basic',
         has_golden_round BOOLEAN DEFAULT FALSE,
-        is_golden_round BOOLEAN DEFAULT FALSE
+        is_golden_round BOOLEAN DEFAULT FALSE,
+        has_no_trumps BOOLEAN DEFAULT FALSE
       );
     `
       console.log("Table 'poker_games' created successfully")
@@ -63,7 +64,8 @@ export async function GET() {
       ADD COLUMN IF NOT EXISTS bets_placed_timestamp BIGINT,
       ADD COLUMN IF NOT EXISTS game_length TEXT DEFAULT 'basic',
       ADD COLUMN IF NOT EXISTS has_golden_round BOOLEAN DEFAULT FALSE,
-      ADD COLUMN IF NOT EXISTS is_golden_round BOOLEAN DEFAULT FALSE;
+      ADD COLUMN IF NOT EXISTS is_golden_round BOOLEAN DEFAULT FALSE,
+      ADD COLUMN IF NOT EXISTS has_no_trumps BOOLEAN DEFAULT FALSE;
     `
       console.log("Table 'poker_games' updated successfully")
     }

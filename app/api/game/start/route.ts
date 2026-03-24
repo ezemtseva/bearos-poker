@@ -19,8 +19,8 @@ function dealCards(players: Player[], deck: Card[], cardsPerPlayer: number): [Pl
 
 // 1. Find the function `initializeScoreTable` and update it to include the Golden Round:
 
-function initializeScoreTable(players: Player[], gameLength: GameLength, hasGoldenRound: boolean): ScoreTableRow[] {
-  const roundNames = getRoundNames(gameLength, hasGoldenRound)
+function initializeScoreTable(players: Player[], gameLength: GameLength, hasGoldenRound: boolean, hasNoTrumps: boolean = false): ScoreTableRow[] {
+  const roundNames = getRoundNames(gameLength, hasGoldenRound, hasNoTrumps)
 
   return roundNames.map((roundName, index) => {
     const roundId = index + 1
@@ -37,7 +37,7 @@ function initializeScoreTable(players: Player[], gameLength: GameLength, hasGold
 
 // 2. Add the function to get round names with Golden Round support:
 
-function getRoundNames(gameLength: GameLength, hasGoldenRound: boolean): string[] {
+function getRoundNames(gameLength: GameLength, hasGoldenRound: boolean, hasNoTrumps: boolean = false): string[] {
   let rounds: string[] = []
 
   switch (gameLength) {
@@ -106,7 +106,12 @@ function getRoundNames(gameLength: GameLength, hasGoldenRound: boolean): string[
       rounds = ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
   }
 
-  // Add golden round if enabled
+  // Add no-trumps rounds if enabled (6 rounds of "NT")
+  if (hasNoTrumps) {
+    rounds.push("NT", "NT", "NT", "NT", "NT", "NT")
+  }
+
+  // Add golden round if enabled (always last)
   if (hasGoldenRound) {
     rounds.push("G")
   }
@@ -166,8 +171,9 @@ export async function POST(req: NextRequest) {
     // In the POST function, get the game length and hasGoldenRound from the database
     const gameLength = game.game_length || "short"
     const hasGoldenRound = game.has_golden_round || false
+    const hasNoTrumps = game.has_no_trumps || false
 
-    // Update the gameData object to include hasGoldenRound
+    // Update the gameData object to include hasGoldenRound and hasNoTrumps
     const gameData: GameData = {
       tableId: game.table_id,
       players: playersWithCards,
@@ -177,7 +183,7 @@ export async function POST(req: NextRequest) {
       currentTurn: ownerIndex,
       cardsOnTable: [],
       deck: remainingDeck,
-      scoreTable: initializeScoreTable(playersWithCards, gameLength, hasGoldenRound),
+      scoreTable: initializeScoreTable(playersWithCards, gameLength, hasGoldenRound, hasNoTrumps),
       allCardsPlayedTimestamp: null,
       playEndTimestamp: null,
       lastPlayedCard: null,
@@ -189,6 +195,7 @@ export async function POST(req: NextRequest) {
       currentBettingTurn: ownerIndex,
       gameLength: gameLength,
       hasGoldenRound: hasGoldenRound,
+      hasNoTrumps: hasNoTrumps,
     }
 
     await sql`

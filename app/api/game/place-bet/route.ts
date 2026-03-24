@@ -5,78 +5,35 @@ import type { GameData, GameLength, Player, ScoreTableRow } from "../../../../ty
 export const runtime = "edge"
 
 // Add a function to get the round names based on game length
-function getRoundNames(gameLength: GameLength): string[] {
+function getRoundNames(gameLength: GameLength, hasNoTrumps: boolean = false): string[] {
+  let rounds: string[]
   switch (gameLength) {
     case "short":
-      return ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
+      rounds = ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
+      break
     case "basic":
-      return [
-        "1",
-        "2",
-        "3",
-        "4",
-        "5",
-        "6",
-        "6",
-        "6",
-        "B",
-        "B",
-        "B",
-        "B",
-        "B",
-        "B",
-        "6",
-        "6",
-        "6",
-        "5",
-        "4",
-        "3",
-        "2",
-        "1",
-      ]
+      rounds = ["1", "2", "3", "4", "5", "6", "6", "6", "B", "B", "B", "B", "B", "B", "6", "6", "6", "5", "4", "3", "2", "1"]
+      break
     case "long":
-      return [
-        "1",
-        "2",
-        "3",
-        "4",
-        "5",
-        "6",
-        "6",
-        "6",
-        "6",
-        "6",
-        "6",
-        "B",
-        "B",
-        "B",
-        "B",
-        "B",
-        "B",
-        "6",
-        "6",
-        "6",
-        "6",
-        "6",
-        "6",
-        "5",
-        "4",
-        "3",
-        "2",
-        "1",
-      ]
+      rounds = ["1", "2", "3", "4", "5", "6", "6", "6", "6", "6", "6", "B", "B", "B", "B", "B", "B", "6", "6", "6", "6", "6", "6", "5", "4", "3", "2", "1"]
+      break
     default:
-      return ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
+      rounds = ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
   }
+  if (hasNoTrumps) {
+    rounds.push("NT", "NT", "NT", "NT", "NT", "NT")
+  }
+  return rounds
 }
 
 // Update the cardsPerRound function to handle different game lengths
-function cardsPerRound(round: number, gameLength: GameLength): number {
-  const roundNames = getRoundNames(gameLength)
+function cardsPerRound(round: number, gameLength: GameLength, hasNoTrumps: boolean = false): number {
+  const roundNames = getRoundNames(gameLength, hasNoTrumps)
   if (round <= 0 || round > roundNames.length) return 0
 
   const roundName = roundNames[round - 1]
   if (roundName === "B") return 6
+  if (roundName === "NT") return 6
   return Number.parseInt(roundName, 10)
 }
 
@@ -127,9 +84,10 @@ export async function POST(req: NextRequest) {
 
     // In the POST function, get the game length from the database
     const gameLength = game.game_length || "short"
+    const hasNoTrumps = game.has_no_trumps || false
 
     // Update the calculation of cardsThisRound
-    const cardsThisRound = cardsPerRound(currentRound, gameLength)
+    const cardsThisRound = cardsPerRound(currentRound, gameLength, hasNoTrumps)
 
     // Validate bet is within range
     if (bet < 0 || bet > cardsThisRound) {

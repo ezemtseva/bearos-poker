@@ -55,5 +55,6 @@ export interface GameData {
   gameLength?: GameLength
   hasGoldenRound?: boolean
   isGoldenRound?: boolean
+  hasNoTrumps?: boolean
 }
 

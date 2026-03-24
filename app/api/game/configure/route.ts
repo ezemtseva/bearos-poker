@@ -8,8 +8,9 @@ function initializeScoreTable(
   players: Player[] = [],
   gameLength: GameLength,
   hasGoldenRound: boolean,
+  hasNoTrumps: boolean = false,
 ): ScoreTableRow[] {
-  const roundNames = getRoundNames(gameLength, hasGoldenRound)
+  const roundNames = getRoundNames(gameLength, hasGoldenRound, hasNoTrumps)
 
   return roundNames.map((roundName, index) => {
     const roundId = index + 1
@@ -24,7 +25,7 @@ function initializeScoreTable(
   })
 }
 
-function getRoundNames(gameLength: GameLength, hasGoldenRound: boolean): string[] {
+function getRoundNames(gameLength: GameLength, hasGoldenRound: boolean, hasNoTrumps: boolean = false): string[] {
   let rounds: string[] = []
 
   switch (gameLength) {
@@ -93,7 +94,12 @@ function getRoundNames(gameLength: GameLength, hasGoldenRound: boolean): string[
       rounds = ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
   }
 
-  // Add golden round if enabled
+  // Add no-trumps rounds if enabled (6 rounds of "NT")
+  if (hasNoTrumps) {
+    rounds.push("NT", "NT", "NT", "NT", "NT", "NT")
+  }
+
+  // Add golden round if enabled (always last)
   if (hasGoldenRound) {
     rounds.push("G")
   }
@@ -102,7 +108,7 @@ function getRoundNames(gameLength: GameLength, hasGoldenRound: boolean): string[
 }
 
 export async function POST(req: NextRequest) {
-  const { tableId, gameLength, hasGoldenRound = false } = await req.json()
+  const { tableId, gameLength, hasGoldenRound = false, hasNoTrumps = false } = await req.json()
 
   if (!tableId || !gameLength) {
     return NextResponse.json({ error: "Table ID and game length are required" }, { status: 400 })
@@ -127,14 +133,15 @@ export async function POST(req: NextRequest) {
     const players = game.players as Player[]
 
     // Initialize score table based on game length and golden round
-    const scoreTable = initializeScoreTable(players, gameLength, hasGoldenRound)
+    const scoreTable = initializeScoreTable(players, gameLength, hasGoldenRound, hasNoTrumps)
 
     // Update the game in the database
     await sql`
       UPDATE poker_games
       SET score_table = ${JSON.stringify(scoreTable)}::jsonb,
           game_length = ${gameLength},
-          has_golden_round = ${hasGoldenRound}
+          has_golden_round = ${hasGoldenRound},
+          has_no_trumps = ${hasNoTrumps}
       WHERE table_id = ${tableId}
     `
 
@@ -162,6 +169,7 @@ export async function POST(req: NextRequest) {
       gameLength: gameLength,
       hasGoldenRound: hasGoldenRound,
       isGoldenRound: false,
+      hasNoTrumps: hasNoTrumps,
     }
 
     return NextResponse.json({ message: "Game configured successfully", gameData: updatedGameData })

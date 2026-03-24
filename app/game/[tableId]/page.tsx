@@ -443,14 +443,14 @@ export default function Game() {
     }
   }
 
-  const handleConfigureGame = async (gameLength: GameLength, hasGoldenRound: boolean) => {
+  const handleConfigureGame = async (gameLength: GameLength, hasGoldenRound: boolean, hasNoTrumps: boolean = false) => {
     try {
       const response = await fetch("/api/game/configure", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ tableId, gameLength, hasGoldenRound }),
+        body: JSON.stringify({ tableId, gameLength, hasGoldenRound, hasNoTrumps }),
       })
 
       if (!response.ok) {

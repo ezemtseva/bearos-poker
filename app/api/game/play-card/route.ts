@@ -17,10 +17,10 @@ function dealCards(players: Player[], deck: Card[], cardsPerPlayer: number): [Pl
   return [updatedPlayers, deck]
 }
 
-function determineHighestCard(cards: Card[]): Card | null {
+function determineHighestCard(cards: Card[], noTrumps: boolean = false): Card | null {
   if (cards.length === 0) return null
 
-  // 7 of spades with Trumps always wins (NEW rule)
+  // 7 of spades with Trumps always wins
   const sevenOfSpadesWithTrumps = cards.find((c) => c.suit === "spades" && c.value === 7 && c.pokerOption === "Trumps")
   if (sevenOfSpadesWithTrumps) return sevenOfSpadesWithTrumps
 
@@ -29,10 +29,13 @@ function determineHighestCard(cards: Card[]): Card | null {
   if (sevenOfSpadesWithPoker) return sevenOfSpadesWithPoker
 
   const leadingSuit = cards[0].suit
-  const trumpCards = cards.filter((c) => c.suit === "diamonds")
 
-  if (trumpCards.length > 0) {
-    return trumpCards.reduce((max, current) => (current.value > max.value ? current : max))
+  // In no-trumps rounds diamonds are not trumps — only highest of leading suit wins
+  if (!noTrumps) {
+    const trumpCards = cards.filter((c) => c.suit === "diamonds")
+    if (trumpCards.length > 0) {
+      return trumpCards.reduce((max, current) => (current.value > max.value ? current : max))
+    }
   }
 
   const leadingSuitCards = cards.filter((c) => c.suit === leadingSuit)
@@ -51,7 +54,7 @@ function getNextRoundStartPlayer(currentRound: number, players: Player[]): numbe
   return nextStartPlayer !== -1 ? nextStartPlayer : 0 // Fallback to owner if seat not found
 }
 
-function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[]): boolean {
+function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[], noTrumps: boolean = false): boolean {
   if (playerHand.length === 1) return true // Player can play their last card regardless of suit
 
   if (cardsOnTable.length === 0) return true // First player can play any card
@@ -60,7 +63,7 @@ function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[]): bool
 
   // Special case: 7 of spades can now be played anytime
   if (card.suit === "spades" && card.value === 7) {
-    return true // 7 of spades can now be played anytime
+    return true
   }
 
   // Check if 7 of spades with 'Trumps' option is on the table
@@ -68,13 +71,17 @@ function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[]): bool
     (c) => c.suit === "spades" && c.value === 7 && c.pokerOption === "Trumps",
   )
   if (sevenOfSpadesWithTrumps) {
+    // In no-trumps rounds: player must play their highest-rank card (any suit)
+    if (noTrumps) {
+      const highestValue = Math.max(...playerHand.map((c) => c.value))
+      return card.value === highestValue
+    }
+    // Normal: player must play highest diamond, or highest card if no diamonds
     const diamonds = playerHand.filter((c) => c.suit === "diamonds")
     if (diamonds.length > 0) {
-      // Player must play their highest diamond
       const highestDiamond = diamonds.reduce((max, current) => (current.value > max.value ? current : max))
       return card.suit === "diamonds" && card.value === highestDiamond.value
     } else {
-      // Player must play one of their highest cards of any suit
       const highestValue = Math.max(...playerHand.map((c) => c.value))
       return card.value === highestValue
     }
@@ -92,13 +99,15 @@ function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[]): bool
   const hasSuit = playerHand.some((c) => c.suit === leadingSuit && !(c.suit === "spades" && c.value === 7))
 
   if (hasSuit) {
-    return card.suit === leadingSuit // Must follow suit if possible (except for 7 of spades which is handled above)
+    return card.suit === leadingSuit
   }
 
-  // If player doesn't have the leading suit, check if they have trumps
-  const hasTrumps = playerHand.some((c) => c.suit === "diamonds")
-  if (hasTrumps) {
-    return card.suit === "diamonds" // Must play a trump if they have one and can't follow suit (except for 7 of spades)
+  // In no-trumps rounds there are no trumps to follow
+  if (!noTrumps) {
+    const hasTrumps = playerHand.some((c) => c.suit === "diamonds")
+    if (hasTrumps) {
+      return card.suit === "diamonds"
+    }
   }
 
   // If player has neither the leading suit nor trumps, they can play any card
@@ -111,7 +120,7 @@ function isGoldenRound(roundName: string): boolean {
 }
 
 // NEW FUNCTION: Get the total number of rounds based on game length
-function getTotalRounds(gameLength: GameLength, hasGoldenRound: boolean): number {
+function getTotalRounds(gameLength: GameLength, hasGoldenRound: boolean, hasNoTrumps: boolean = false): number {
   let baseRounds = 0
 
   switch (gameLength) {
@@ -128,11 +137,12 @@ function getTotalRounds(gameLength: GameLength, hasGoldenRound: boolean): number
       baseRounds = 18
   }
 
+  if (hasNoTrumps) baseRounds += 6
   return hasGoldenRound ? baseRounds + 1 : baseRounds
 }
 
 // NEW FUNCTION: Get the round names based on game length
-function getRoundNames(gameLength: GameLength, hasGoldenRound: boolean): string[] {
+function getRoundNames(gameLength: GameLength, hasGoldenRound: boolean, hasNoTrumps: boolean = false): string[] {
   let rounds: string[] = []
 
   switch (gameLength) {
@@ -201,7 +211,12 @@ function getRoundNames(gameLength: GameLength, hasGoldenRound: boolean): string[
       rounds = ["1", "2", "3", "4", "5", "6", "B", "B", "B", "B", "B", "B", "6", "5", "4", "3", "2", "1"]
   }
 
-  // Add golden round if enabled
+  // Add no-trumps rounds if enabled (6 rounds of "NT")
+  if (hasNoTrumps) {
+    rounds.push("NT", "NT", "NT", "NT", "NT", "NT")
+  }
+
+  // Add golden round if enabled (always last)
   if (hasGoldenRound) {
     rounds.push("G")
   }
@@ -209,14 +224,15 @@ function getRoundNames(gameLength: GameLength, hasGoldenRound: boolean): string[
   return rounds
 }
 
-// UPDATED FUNCTION: Handle different game lengths and golden round
-function cardsPerRound(round: number, gameLength: GameLength, hasGoldenRound: boolean): number {
-  const roundNames = getRoundNames(gameLength, hasGoldenRound)
+// UPDATED FUNCTION: Handle different game lengths, no-trumps, and golden round
+function cardsPerRound(round: number, gameLength: GameLength, hasGoldenRound: boolean, hasNoTrumps: boolean = false): number {
+  const roundNames = getRoundNames(gameLength, hasGoldenRound, hasNoTrumps)
   if (round <= 0 || round > roundNames.length) return 0
 
   const roundName = roundNames[round - 1]
   if (roundName === "B") return 6
-  if (roundName === "G") return 1 // Golden round has 1 card
+  if (roundName === "NT") return 6
+  if (roundName === "G") return 1
   return Number.parseInt(roundName, 10)
 }
 
@@ -286,13 +302,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Determine if we're in a no-trumps round
+    const isNoTrumpsRound = scoreTable[currentRound - 1]?.roundName === "NT"
+
     // Check if the play is valid
-    if (!isValidPlay(card, players[playerIndex].hand, cardsOnTable)) {
+    if (!isValidPlay(card, players[playerIndex].hand, cardsOnTable, isNoTrumpsRound)) {
       if (
         cardsOnTable[0]?.suit === "spades" &&
         cardsOnTable[0]?.value === 7 &&
         cardsOnTable[0]?.pokerOption === "Trumps"
       ) {
+        if (isNoTrumpsRound) {
+          return NextResponse.json({ error: "You must play your highest card (no trumps round)." }, { status: 400 })
+        }
         const diamonds = players[playerIndex].hand.filter((c) => c.suit === "diamonds")
         if (diamonds.length > 0) {
           return NextResponse.json({ error: "You must play your highest diamond card." }, { status: 400 })
@@ -328,7 +350,7 @@ export async function POST(req: NextRequest) {
     cardsOnTable.push({ ...card, playerName })
 
     // Determine the highest card
-    const highestCard = determineHighestCard(cardsOnTable)
+    const highestCard = determineHighestCard(cardsOnTable, isNoTrumpsRound)
 
     // Update the database with the new game state
     await sql`
@@ -372,7 +394,8 @@ export async function POST(req: NextRequest) {
       currentPlay++
       const gameLength = game.game_length || "short"
       const hasGoldenRound = game.has_golden_round || false
-      const cardsPerRoundValue = cardsPerRound(currentRound, gameLength, hasGoldenRound)
+      const hasNoTrumpsFlag = game.has_no_trumps || false
+      const cardsPerRoundValue = cardsPerRound(currentRound, gameLength, hasGoldenRound, hasNoTrumpsFlag)
       if (currentPlay > cardsPerRoundValue) {
         // End of round
         // Update scores in the score table
@@ -432,7 +455,8 @@ export async function POST(req: NextRequest) {
         // UPDATED: Check if the game is over using the total rounds calculation
         const gameLength = game.game_length || "basic"
         const hasGoldenRound = game.has_golden_round || false
-        const totalRounds = getTotalRounds(gameLength, hasGoldenRound)
+        const hasNoTrumps = game.has_no_trumps || false
+        const totalRounds = getTotalRounds(gameLength, hasGoldenRound, hasNoTrumps)
 
         // Update the code that checks if the round is over
         if (currentRound < totalRounds) {
@@ -452,7 +476,7 @@ export async function POST(req: NextRequest) {
             `
           }
 
-          const newCardsPerRound = cardsPerRound(currentRound, gameLength, hasGoldenRound)
+          const newCardsPerRound = cardsPerRound(currentRound, gameLength, hasGoldenRound, hasNoTrumps)
           if (deck.length < newCardsPerRound * players.length) {
             deck = createDeck() // Create a new deck if needed
           }

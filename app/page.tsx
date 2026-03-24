@@ -15,7 +15,7 @@ export default function Home() {
             <Button>{t("createTable")}</Button>
           </Link>
           <Link href="/join-game">
-            <Button variant="outline" className="text-primary hover:text-primary-foreground">
+            <Button variant="outline">
               {t("joinTable")}
             </Button>
           </Link>
