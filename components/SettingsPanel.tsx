@@ -24,6 +24,7 @@ const TABLE_SKINS = [
   { id: "tatarstan", label: "Tatarstan", type: "image", value: "/table-skins/tatarstan.png" },
   { id: "vovan", label: "Vovan", type: "image", value: "/table-skins/vovan.png" },
   { id: "kichigin", label: "Kichigin", type: "image", value: "/table-skins/kichigin.jpg" },
+  { id: "wbb", label: "WBB", type: "image", value: "/table-skins/wbb.jpg" },
 ] as const
 
 const SEAT_SKINS = [
@@ -63,6 +64,7 @@ const CARD_BACK_SKINS = [
   { id: "mucuraev", label: "Mucuraev", type: "image", value: "/table-skins/mucuraev.png" },
   { id: "lavazza", label: "Lavazza", type: "image", value: "/table-skins/lavazza.png" },
   { id: "echpochmak", label: "Echpochmak", type: "image", value: "/table-skins/echpochmak.png" },
+  { id: "wbbr", label: "WBBR", type: "image", value: "/table-skins/wbbr.png" },
 ] as const
 
 export type TableSkin = typeof TABLE_SKINS[number]["id"]
