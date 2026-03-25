@@ -17,7 +17,7 @@ import ConfigureGameDialog, { type GameLength } from "./ConfigureGameDialog"
 // Add this import at the top with other imports
 import { useSound } from "@/hooks/use-sound"
 import { Settings, ChevronLeft, ChevronRight } from "lucide-react"
-import { TABLE_SKINS, SEAT_SKINS } from "./SettingsPanel"
+import { TABLE_SKINS, SEAT_SKINS, CARD_BACK_SKINS } from "./SettingsPanel"
 import { useSession } from "next-auth/react"
 import { useViewport } from "@/hooks/use-viewport"
 import { useLocale } from "@/lib/locale-context"
@@ -133,6 +133,8 @@ export default function GameTable({
   const pokerHandsRef = useRef(0) // count rounds where 7♠ was in current player's hand
   const [tableSkin, setTableSkin] = useState("blue")
   const [seatSkin, setSeatSkin] = useState("gray")
+  const [cardBackSkin, setCardBackSkin] = useState("black")
+  const [cardsOnSeats, setCardsOnSeats] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const lastReactionTimestampRef = useRef<Map<string, number>>(new Map())
   const [betNotifications, setBetNotifications] = useState<Set<string>>(new Set())
@@ -151,6 +153,10 @@ export default function GameTable({
       if (skin) setTableSkin(skin)
       const seat = localStorage.getItem("seatSkin")
       if (seat) setSeatSkin(seat)
+      const cardBack = localStorage.getItem("cardBackSkin")
+      if (cardBack) setCardBackSkin(cardBack)
+      const cos = localStorage.getItem("cardsOnSeats")
+      if (cos !== null) setCardsOnSeats(cos === "true")
     } catch {}
   }, [])
 
@@ -161,6 +167,8 @@ export default function GameTable({
       if ("betBlinkEnabled" in detail) setBetBlinkEnabled(detail.betBlinkEnabled)
       if ("tableSkin" in detail) setTableSkin(detail.tableSkin)
       if ("seatSkin" in detail) setSeatSkin(detail.seatSkin)
+      if ("cardBackSkin" in detail) setCardBackSkin(detail.cardBackSkin)
+      if ("cardsOnSeats" in detail) setCardsOnSeats(detail.cardsOnSeats)
     }
     window.addEventListener("settingsChanged", handleSettingsChanged)
     return () => window.removeEventListener("settingsChanged", handleSettingsChanged)
@@ -1534,6 +1542,27 @@ export default function GameTable({
                   {reaction.emoji}
                 </div>
               )}
+              {/* Cards on seat — top seats: above the seat card */}
+              {cardsOnSeats && gameStarted && player.hand.length > 0 && top < 200 && (() => {
+                const cardCount = player.hand.length
+                const gap = 2
+                const cardW = Math.min(Math.floor((150 - gap * (cardCount - 1)) / cardCount), 32)
+                const cardH = Math.round(cardW * 1.5)
+                const skin = CARD_BACK_SKINS.find(s => s.id === cardBackSkin) ?? CARD_BACK_SKINS[0]
+                return (
+                  <div className="pointer-events-none mb-1 flex justify-center" style={{ gap: `${gap}px` }}>
+                    {Array.from({ length: cardCount }).map((_, i) => (
+                      <div key={i} className="rounded overflow-hidden border border-white/20 flex-shrink-0" style={{ width: `${cardW}px`, height: `${cardH}px` }}>
+                        {skin.type === "image"
+                          // eslint-disable-next-line @next/next/no-img-element
+                          ? <img src={skin.value} alt="" className="w-full h-full object-cover" />
+                          : <div className="w-full h-full" style={{ backgroundColor: skin.value }} />}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+
               {/* Bet placed notification */}
               {betNotifications.has(player.name) && (
                 <div className="absolute left-1/2 -translate-x-1/2 pointer-events-none z-20 -top-8">
@@ -1583,6 +1612,27 @@ export default function GameTable({
                   </div>
                 </div>
               </div>
+
+              {/* Cards on seat — bottom seats: below the seat card */}
+              {cardsOnSeats && gameStarted && player.hand.length > 0 && top >= 200 && (() => {
+                const cardCount = player.hand.length
+                const gap = 2
+                const cardW = Math.min(Math.floor((150 - gap * (cardCount - 1)) / cardCount), 32)
+                const cardH = Math.round(cardW * 1.5)
+                const skin = CARD_BACK_SKINS.find(s => s.id === cardBackSkin) ?? CARD_BACK_SKINS[0]
+                return (
+                  <div className="pointer-events-none mt-1 flex justify-center" style={{ gap: `${gap}px` }}>
+                    {Array.from({ length: cardCount }).map((_, i) => (
+                      <div key={i} className="rounded overflow-hidden border border-white/20 flex-shrink-0" style={{ width: `${cardW}px`, height: `${cardH}px` }}>
+                        {skin.type === "image"
+                          // eslint-disable-next-line @next/next/no-img-element
+                          ? <img src={skin.value} alt="" className="w-full h-full object-cover" />
+                          : <div className="w-full h-full" style={{ backgroundColor: skin.value }} />}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
             </div>
           )
         })}

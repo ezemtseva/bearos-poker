@@ -76,6 +76,10 @@ function readBetBlink(): boolean {
   try { const v = localStorage.getItem("betBlinkEnabled"); return v === null ? false : v === "true" } catch { return false }
 }
 
+function readCardsOnSeats(): boolean {
+  try { const v = localStorage.getItem("cardsOnSeats"); return v === "true" } catch { return false }
+}
+
 function readTableSkin(): string {
   try { return localStorage.getItem("tableSkin") || "blue" } catch { return "blue" }
 }
@@ -106,6 +110,7 @@ export default function SettingsPanel() {
   const { locale, setLocale, t } = useLocale()
   const [open, setOpen] = useState(false)
   const [betBlink, setBetBlink] = useState(false)
+  const [cardsOnSeats, setCardsOnSeats] = useState(false)
   const [tableSkin, setTableSkin] = useState("blue")
   const [cardBackSkin, setCardBackSkin] = useState("black")
   const [roomSkin, setRoomSkin] = useState("classic_blue")
@@ -114,6 +119,7 @@ export default function SettingsPanel() {
 
   useEffect(() => {
     setBetBlink(readBetBlink())
+    setCardsOnSeats(readCardsOnSeats())
     setTableSkin(readTableSkin())
     setCardBackSkin(readCardBackSkin())
     setRoomSkin(readRoomSkin())
@@ -135,6 +141,12 @@ export default function SettingsPanel() {
     try { localStorage.setItem("betBlinkEnabled", String(val)) } catch {}
     window.dispatchEvent(new CustomEvent("settingsChanged", { detail: { betBlinkEnabled: val } }))
     if (loggedIn) saveSettingsToDB({ bet_blink_enabled: val })
+  }
+
+  function toggleCardsOnSeats(val: boolean) {
+    setCardsOnSeats(val)
+    try { localStorage.setItem("cardsOnSeats", String(val)) } catch {}
+    window.dispatchEvent(new CustomEvent("settingsChanged", { detail: { cardsOnSeats: val } }))
   }
 
   function selectSkin(id: string) {
@@ -219,6 +231,20 @@ export default function SettingsPanel() {
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${betBlink ? "bg-green-500" : "bg-gray-600"}`}
             >
               <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${betBlink ? "translate-x-6" : "translate-x-1"}`} />
+            </button>
+          </div>
+
+          {/* Cards on seats toggle */}
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <div className="text-sm text-white">{t("cardsOnSeats")}</div>
+              <div className="text-xs text-gray-400">{t("cardsOnSeatsDesc")}</div>
+            </div>
+            <button
+              onClick={() => toggleCardsOnSeats(!cardsOnSeats)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${cardsOnSeats ? "bg-green-500" : "bg-gray-600"}`}
+            >
+              <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${cardsOnSeats ? "translate-x-6" : "translate-x-1"}`} />
             </button>
           </div>
 
