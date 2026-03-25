@@ -135,6 +135,9 @@ export default function GameTable({
   const [seatSkin, setSeatSkin] = useState("gray")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const lastReactionTimestampRef = useRef<Map<string, number>>(new Map())
+  const [betNotifications, setBetNotifications] = useState<Set<string>>(new Set())
+  const prevBetsRef = useRef<Map<string, number | null>>(new Map())
+  const betNotifFirstRender = useRef(true)
   const { toast } = useToast()
   // Add this inside the GameTable component, near the top with other hooks
   const { playSound } = useSound()
@@ -162,6 +165,33 @@ export default function GameTable({
     window.addEventListener("settingsChanged", handleSettingsChanged)
     return () => window.removeEventListener("settingsChanged", handleSettingsChanged)
   }, [])
+
+  // Show floating bet notification above seat when a player places a bet
+  useEffect(() => {
+    if (betNotifFirstRender.current) {
+      betNotifFirstRender.current = false
+      prevBetsRef.current = new Map(players.map(p => [p.name, p.bet ?? null]))
+      return
+    }
+    const newNames: string[] = []
+    players.forEach(player => {
+      const prev = prevBetsRef.current.get(player.name)
+      if ((prev === null || prev === undefined) && player.bet !== null && player.bet !== undefined) {
+        newNames.push(player.name)
+      }
+    })
+    prevBetsRef.current = new Map(players.map(p => [p.name, p.bet ?? null]))
+    if (newNames.length > 0) {
+      setBetNotifications(prev => new Set(Array.from(prev).concat(newNames)))
+      setTimeout(() => {
+        setBetNotifications(prev => {
+          const next = new Set(prev)
+          newNames.forEach(name => next.delete(name))
+          return next
+        })
+      }, 2000)
+    }
+  }, [players])
 
   // Persist score table settings to localStorage
   useEffect(() => { try { localStorage.setItem("scoreTableExpanded", String(scoreTableExpanded)) } catch {} }, [scoreTableExpanded])
@@ -568,11 +598,6 @@ export default function GameTable({
     }
 
     if (!safeGameData.allBetsPlaced && !allPlayersHaveBet) {
-        toast({
-        title: t("cannotPlayCard"),
-        description: t("waitForBets"),
-        variant: "destructive",
-      })
       return
     }
 
@@ -591,15 +616,6 @@ export default function GameTable({
     }
 
     // Remove the playSound("playCard") call here since it will be played for all players in the Game component
-
-    if (!safeGameData.allBetsPlaced && !allPlayersHaveBet) {
-      toast({
-        title: t("cannotPlayCard"),
-        description: t("waitForBets"),
-        variant: "destructive",
-      })
-      return
-    }
 
     // For 7 of spades, show the dialog
     if (card.suit === "spades" && card.value === 7) {
@@ -622,20 +638,10 @@ export default function GameTable({
     if (sevenOfSpadesWithTrumps) {
       const validCards = getValidCardsAfterTrumps(currentPlayer?.hand || [])
       if (!validCards.some((c) => c.suit === card.suit && c.value === card.value)) {
-        toast({
-          title: t("invalidPlay"),
-          description: t("mustPlayHighestTrump"),
-          variant: "destructive",
-        })
         return
       }
     } else if (!isValidPlay(card)) {
       setErrorMessage(t("mustFollowSuit"))
-      toast({
-        title: t("invalidPlay"),
-        description: t("mustFollowSuit"),
-        variant: "destructive",
-      })
       return
     }
 
@@ -723,17 +729,6 @@ export default function GameTable({
       console.log("Card played. Received data:", data)
       // The game state will be updated through the SSE connection
 
-      if (data.message === "Game over") {
-        toast({
-          title: t("gameOverTitle"),
-          description: t("gameOverDesc"),
-        })
-      } else {
-        toast({
-          title: t("gameOver"),
-          description: "",
-        })
-      }
     } catch (error) {
       console.error("Error playing card:", error)
       toast({
@@ -792,9 +787,8 @@ export default function GameTable({
   // Modify the handlePlaceBet function to remove the local sound playing
   const handlePlaceBet = () => {
     if (betAmount === null || betAmount < 0 || betAmount > cardsThisRound) {
-        toast({
+      toast({
         title: t("invalidBet"),
-        description: `${t("betRange")} ${cardsThisRound}.`,
         variant: "destructive",
       })
       return
@@ -802,9 +796,8 @@ export default function GameTable({
 
     const forbiddenBet = calculateForbiddenBet()
     if (forbiddenBet !== null && betAmount === forbiddenBet) {
-        toast({
+      toast({
         title: t("invalidBet"),
-        description: `${t("betForbidden")} ${forbiddenBet} ${t("betForbiddenSuffix")} (${cardsThisRound}).`,
         variant: "destructive",
       })
       return
@@ -1309,7 +1302,7 @@ export default function GameTable({
         {/* Your hand */}
         <div className="px-4">
           <h2 className="text-sm font-bold mb-2 text-center">{t("yourHand")}</h2>
-          <div className="flex overflow-x-auto gap-2 pb-2 justify-center flex-wrap">
+          <div className="flex overflow-x-auto gap-2 pb-2 justify-center flex-wrap min-h-[84px] items-center">
             {currentPlayer?.hand?.length
               ? currentPlayer.hand.map((card, index) => (
                 <PlayingCard
@@ -1541,6 +1534,14 @@ export default function GameTable({
                   {reaction.emoji}
                 </div>
               )}
+              {/* Bet placed notification */}
+              {betNotifications.has(player.name) && (
+                <div className="absolute left-1/2 -translate-x-1/2 pointer-events-none z-20 -top-8">
+                  <div className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap">
+                    ✓ {t("betPlaced")}
+                  </div>
+                </div>
+              )}
               <div
                 className={`w-[150px] rounded-xl shadow-lg border-2 ${isActiveTurn ? seatBgTurn : seatBg} ${seatText} ${borderClass}`}
                 style={isActiveTurn ? undefined : { backgroundColor: seatBgColor }}
@@ -1699,7 +1700,7 @@ export default function GameTable({
         {/* Player's hand */}
         <div className="w-2/3">
           <h2 className="text-xl font-bold mb-2 text-center">{t("yourHand")}</h2>
-          <div className="flex justify-center space-x-2">
+          <div className="flex justify-center space-x-2 min-h-36 items-center">
             {currentPlayer && currentPlayer.hand && currentPlayer.hand.length > 0 ? (
               currentPlayer.hand.map((card, index) => (
                 <PlayingCard

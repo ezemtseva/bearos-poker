@@ -307,10 +307,6 @@ export default function Game() {
       // Fetch latest state after a short delay
       fetchLatestState()
 
-      toast({
-        title: "Game Started",
-        description: "The game has been started successfully!",
-      })
     } catch (error) {
       console.error("Error starting game:", error)
       toast({
@@ -327,11 +323,6 @@ export default function Game() {
     const currentPlayerIndex = gameData.players.findIndex((p) => p.name === currentPlayerName)
 
     if (currentPlayerIndex !== gameData.currentTurn) {
-      toast({
-        title: "Not your turn",
-        description: "Please wait for your turn to play a card.",
-        variant: "destructive",
-      })
       return
     }
 
@@ -356,17 +347,6 @@ export default function Game() {
       // Fetch latest state after a short delay
       fetchLatestState()
 
-      if (data.message === "Game over") {
-        toast({
-          title: "Game Over",
-          description: "The game has ended. Check the final scores!",
-        })
-      } else {
-        toast({
-          title: "Card Played",
-          description: "Your card has been played successfully.",
-        })
-      }
     } catch (error) {
       console.error("Error playing card:", error)
       toast({
@@ -402,10 +382,6 @@ export default function Game() {
       // Fetch latest state after a short delay
       fetchLatestState()
 
-      toast({
-        title: "Bet Placed",
-        description: `Your bet of ${betAmount} has been placed successfully.`,
-      })
     } catch (error) {
       console.error("Error placing bet:", error)
       toast({
@@ -466,7 +442,6 @@ export default function Game() {
 
       toast({
         title: "Game Configured",
-        description: `Game type set to ${gameLength}${hasGoldenRound ? " with Golden Round" : ""}.`,
       })
     } catch (error) {
       console.error("Error configuring game:", error)
