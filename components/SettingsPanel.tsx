@@ -21,6 +21,9 @@ const TABLE_SKINS = [
   { id: "chechnia", label: "Chechnia", type: "image", value: "/table-skins/chechnia.png" },
   { id: "verstalibin", label: "Verstalibin", type: "image", value: "/table-skins/verstalibin.jpeg" },
   { id: "bombardini", label: "Bombardini Ronaldini", type: "image", value: "/table-skins/bombardini.png" },
+  { id: "tatarstan", label: "Tatarstan", type: "image", value: "/table-skins/tatarstan.png" },
+  { id: "vovan", label: "Vovan", type: "image", value: "/table-skins/vovan.png" },
+  { id: "kichigin", label: "Kichigin", type: "image", value: "/table-skins/kichigin.jpg" },
 ] as const
 
 const SEAT_SKINS = [
@@ -56,6 +59,10 @@ const CARD_BACK_SKINS = [
   { id: "espresso", label: "Espresso", type: "color", value: "#2d1a0e" },
   { id: "slate_card", label: "Slate", type: "color", value: "#1e2a38" },
   { id: "modniy_luk_back", label: "Modniy Look", type: "image", value: "/table-skins/backside_modniy_luk.jpg" },
+  { id: "russel", label: "Russel", type: "image", value: "/table-skins/russel.jpeg" },
+  { id: "mucuraev", label: "Mucuraev", type: "image", value: "/table-skins/mucuraev.png" },
+  { id: "lavazza", label: "Lavazza", type: "image", value: "/table-skins/lavazza.png" },
+  { id: "echpochmak", label: "Echpochmak", type: "image", value: "/table-skins/echpochmak.png" },
 ] as const
 
 export type TableSkin = typeof TABLE_SKINS[number]["id"]
