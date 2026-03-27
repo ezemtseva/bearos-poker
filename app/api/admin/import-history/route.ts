@@ -107,7 +107,10 @@ export async function GET(req: NextRequest) {
     users.push({ id: res.rows[0].id, name: res.rows[0].name })
   }
 
-  // 2. Build all insert promises and run in parallel
+  // 2. Clear any previously imported rows (idempotent re-run)
+  await sql`DELETE FROM game_history WHERE table_id LIKE 'hist-%'`
+
+  // 3. Build all insert promises and run in parallel
   const stepMs = (END_DATE - START_DATE) / (ROWS.length - 1)
   const inserts: Promise<unknown>[] = []
 
