@@ -954,13 +954,8 @@ export default function GameTable({
 
   // Function to determine if we should show bet banners
   const shouldShowBetBanners = () => {
-    // Show bet banners if any player has placed a bet and we haven't started playing cards yet
-    return (
-      gameStarted &&
-      players.some((player) => player.bet !== null) &&
-      safeGameData.currentPlay === 1 &&
-      cardsOnTable.length === 0
-    )
+    // Show bet banners throughout the round until bets reset for the next round
+    return gameStarted && players.some((player) => player.bet !== null)
   }
 
   // Add this function inside the GameTable component

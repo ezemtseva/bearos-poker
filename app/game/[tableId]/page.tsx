@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { useParams, useSearchParams } from "next/navigation"
+import { useParams } from "next/navigation"
 import GameTable from "../../../components/GameTable"
 import { useToast } from "@/hooks/use-toast"
 import type { GameData, Card, GameLength } from "../../../types/game"
@@ -11,7 +11,6 @@ import { useLocale } from "@/lib/locale-context"
 export default function Game() {
   const params = useParams()
   const tableId = params?.tableId as string
-  const searchParams = useSearchParams()
   const [gameData, setGameData] = useState<GameData | null>(null)
   const [isOwner, setIsOwner] = useState(false)
   const [currentPlayerName, setCurrentPlayerName] = useState<string | null>(null)
@@ -61,7 +60,7 @@ export default function Game() {
   }
 
   useEffect(() => {
-    const urlPlayerName = searchParams?.get("playerName")
+    const urlPlayerName = new URLSearchParams(window.location.search).get("playerName")
     const storedPlayerName = urlPlayerName || localStorage.getItem("playerName")
     if (urlPlayerName) localStorage.setItem("playerName", urlPlayerName)
     setCurrentPlayerName(storedPlayerName)
