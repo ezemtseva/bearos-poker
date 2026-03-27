@@ -1,10 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
 
-// Hardcoded emails in fixed order: [0]=loguinov, [1]=mhamzin, [2]=vpolibin
+// Hardcoded emails in fixed order: [0]=mhamzin, [1]=loguinov, [2]=vpolibin
 const EMAILS = [
-  "loguinov.yury@gmail.com",
   "mhamzin@gmail.com",
+  "loguinov.yury@gmail.com",
   "vpolibin@gmail.com",
 ]
 
@@ -80,6 +80,36 @@ const ROWS: [number, number, number][] = [
   [203, 190, 149],
   [123, 164, 166],
   [226, -42, 158],
+  [116, 261, 277],
+  [211, 261, 52],
+  [152, 160, 203],
+  [110, 203, 178],
+  [123, 172, 131],
+  [190, 40, 92],
+  [150, 133, 108],
+  [-25, 184, 194],
+  [227, -107, 174],
+  [188, 58, 230],
+  [-27, 156, 100],
+  [157, 206, 247],
+  [254, 184, 122],
+  [178, 222, -19],
+  [-20, 200, 182],
+  [56, 171, 138],
+  [50, -25, 298],
+  [87, 194, 191],
+  [266, -31, 125],
+  [209, 183, 263],
+  [84, 162, 201],
+  [196, 69, 168],
+  [244, 192, 165],
+  [248, 153, 207],
+  [143, 169, 209],
+  [223, 175, 165],
+  [176, 212, 66],
+  [12, -16, 173],
+  [171, 149, 107],
+  [163, -58, 234],
 ]
 
 // Spread games evenly from 2023-10-01 to 2026-03-01
