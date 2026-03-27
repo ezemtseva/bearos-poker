@@ -1292,7 +1292,7 @@ export default function GameTable({
                 <div key={index} className="relative">
                   <PlayingCard
                     suit={card.suit} value={card.value} disabled size="small"
-                    className={safeGameData.highestCard?.suit === card.suit && safeGameData.highestCard?.value === card.value ? "bg-yellow-100" : card.suit === "diamonds" ? "bg-red-100" : "bg-white"}
+                    className={safeGameData.highestCard?.suit === card.suit && safeGameData.highestCard?.value === card.value ? "bg-yellow-100" : (!isCurrentRoundNoTrumps && card.suit === "diamonds") ? "bg-red-100" : "bg-white"}
                   />
                   {card.suit === "spades" && card.value === 7 && card.pokerOption && (
                     <div className={`absolute bottom-0 left-0 right-0 text-white text-[9px] py-0.5 text-center ${card.pokerOption === "Trumps" ? "bg-red-300" : card.pokerOption === "Poker" ? "bg-yellow-300" : "bg-blue-300"}`}>
@@ -1659,7 +1659,7 @@ export default function GameTable({
                   card.suit === safeGameData.highestCard.suit &&
                   card.value === safeGameData.highestCard.value
                     ? "bg-yellow-100"
-                    : card.suit === "diamonds"
+                    : (!isCurrentRoundNoTrumps && card.suit === "diamonds")
                       ? "bg-red-100"
                       : "bg-white"
                 }
@@ -1689,7 +1689,7 @@ export default function GameTable({
         {(!gameStarted || (currentPlayer && currentPlayer.bet === null && isCurrentPlayerBettingTurn)) && <>
           <h2 className="text-xl font-bold mb-2 text-center">{!gameStarted ? t("bet") : t("makeYourBet")}</h2>
           {!gameStarted ? (
-            <div className="flex flex-col items-center mt-1">
+            <div className="flex flex-col items-center justify-center min-h-36">
               <p className="text-center italic">{t("youWillBetHere")}</p>
             </div>
           ) : currentPlayer && currentPlayer.bet === null ? (

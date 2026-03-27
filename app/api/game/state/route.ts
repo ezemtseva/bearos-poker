@@ -48,6 +48,7 @@ export async function GET(req: NextRequest) {
       gameLength: game.game_length || "basic",
       hasGoldenRound: game.has_golden_round || false,
       isGoldenRound: game.is_golden_round || false,
+      hasNoTrumps: game.has_no_trumps || false,
     }
 
     console.log(`[GAME-STATE] State fetched successfully for table: ${tableId}`)
