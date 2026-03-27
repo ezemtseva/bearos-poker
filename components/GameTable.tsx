@@ -74,10 +74,13 @@ export default function GameTable({
   const { data: session } = useSession()
   const { t, locale } = useLocale()
 
-  // Sync session name → localStorage so the rest of the component works unchanged
+  // Sync session name → localStorage only if no custom name was set during create/join
   useEffect(() => {
     if (session?.user?.name) {
-      try { localStorage.setItem("playerName", session.user.name) } catch {}
+      const sessionName = sessionStorage.getItem("playerName")
+      if (!sessionName) {
+        try { localStorage.setItem("playerName", session.user.name) } catch {}
+      }
     }
   }, [session?.user?.name])
 
@@ -291,8 +294,8 @@ export default function GameTable({
     hasGoldenRound: false,
   }
 
-  // Get current player information early
-  const currentPlayerName = localStorage.getItem("playerName")
+  // Get current player information early — sessionStorage takes priority (set during create/join)
+  const currentPlayerName = sessionStorage.getItem("playerName") || localStorage.getItem("playerName")
   const currentPlayer = players.find((p) => p.name === currentPlayerName)
 
   // Track poker hands (7♠ in current player's hand each round)
