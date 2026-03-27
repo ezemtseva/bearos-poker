@@ -8,6 +8,7 @@ const EMAILS = [
   "vpolibin@gmail.com",
 ]
 
+// [mhamzin, loguinov, vpolibin]
 const ROWS: [number, number, number][] = [
   [56, 163, 83],
   [151, 168, 154],

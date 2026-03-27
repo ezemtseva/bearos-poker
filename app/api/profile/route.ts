@@ -11,7 +11,7 @@ export async function GET() {
   const [profileRes, settingsRes, historyRes] = await Promise.all([
     sql`SELECT nickname, avatar_url FROM user_profiles WHERE user_id = ${userId}`,
     sql`SELECT * FROM user_settings WHERE user_id = ${userId}`,
-    sql`SELECT * FROM game_history WHERE user_id = ${userId} ORDER BY played_at DESC LIMIT 50`,
+    sql`SELECT * FROM game_history WHERE user_id = ${userId} ORDER BY played_at DESC LIMIT 200`,
   ])
 
   return NextResponse.json({
