@@ -45,7 +45,7 @@ export default function CreateGame() {
       const data = await response.json()
       if (data.error) throw new Error(data.error)
 
-      router.push(`/game/${data.tableId}`)
+      router.push(`/game/${data.tableId}?playerName=${encodeURIComponent(playerName)}`)
     } catch (error: unknown) {
       toast({
         title: "Error",

@@ -59,7 +59,7 @@ export default function JoinGameClient() {
 
       console.log("Joining game with player name:", playerName)
 
-      router.push(`/game/${tableId}`)
+      router.push(`/game/${tableId}?playerName=${encodeURIComponent(playerName)}`)
     } catch (error: unknown) {
       toast({
         title: "Error",
