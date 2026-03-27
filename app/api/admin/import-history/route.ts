@@ -107,16 +107,15 @@ export async function GET(req: NextRequest) {
     users.push({ id: res.rows[0].id, name: res.rows[0].name })
   }
 
-  // 2. Insert history rows
+  // 2. Build all insert promises and run in parallel
   const stepMs = (END_DATE - START_DATE) / (ROWS.length - 1)
-  let inserted = 0
+  const inserts: Promise<unknown>[] = []
 
   for (let i = 0; i < ROWS.length; i++) {
     const scores = ROWS[i]
     const playedAt = new Date(START_DATE + stepMs * i).toISOString()
     const tableId = `hist-${String(i + 1).padStart(3, "0")}`
 
-    // Compute places: rank by score descending, handle ties
     const sorted = [...scores].map((s, idx) => ({ s, idx })).sort((a, b) => b.s - a.s)
     const places = [0, 0, 0]
     sorted.forEach((item, rank) => { places[item.idx] = rank + 1 })
@@ -128,7 +127,7 @@ export async function GET(req: NextRequest) {
     }))
 
     for (let j = 0; j < 3; j++) {
-      await sql`
+      inserts.push(sql`
         INSERT INTO game_history
           (user_id, table_id, player_name, total_rounds, final_score,
            players_count, game_length, is_winner, poker_hands,
@@ -137,10 +136,12 @@ export async function GET(req: NextRequest) {
           (${users[j].id}, ${tableId}, ${users[j].name}, ${22}, ${scores[j]},
            ${3}, ${"basic"}, ${places[j] === 1}, ${0},
            ${JSON.stringify(playersData)}::jsonb, ${places[j]}, ${playedAt})
-      `
-      inserted++
+      `)
     }
   }
+
+  await Promise.all(inserts)
+  const inserted = inserts.length
 
   return NextResponse.json({ ok: true, inserted, users: users.map(u => u.name) })
 }
