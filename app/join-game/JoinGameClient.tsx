@@ -38,6 +38,7 @@ export default function JoinGameClient() {
     }
 
     localStorage.setItem("playerName", playerName)
+    sessionStorage.setItem("playerName", playerName)
 
     const avatar = session?.user?.image ?? undefined
 

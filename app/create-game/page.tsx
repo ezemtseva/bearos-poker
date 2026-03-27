@@ -30,6 +30,7 @@ export default function CreateGame() {
     }
 
     localStorage.setItem("playerName", playerName)
+    sessionStorage.setItem("playerName", playerName)
 
     // Pass profile avatar if logged in
     const avatar = session?.user?.image ?? undefined

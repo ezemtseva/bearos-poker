@@ -60,9 +60,13 @@ export default function Game() {
   }
 
   useEffect(() => {
+    const sessionPlayerName = sessionStorage.getItem("playerName")
     const urlPlayerName = new URLSearchParams(window.location.search).get("playerName")
-    const storedPlayerName = urlPlayerName || localStorage.getItem("playerName")
-    if (urlPlayerName) localStorage.setItem("playerName", urlPlayerName)
+    const storedPlayerName = sessionPlayerName || urlPlayerName || localStorage.getItem("playerName")
+    if (storedPlayerName) {
+      localStorage.setItem("playerName", storedPlayerName)
+      sessionStorage.setItem("playerName", storedPlayerName)
+    }
     setCurrentPlayerName(storedPlayerName)
 
     if (!tableId) {
@@ -154,7 +158,7 @@ export default function Game() {
     }
 
     // Check if new cards were dealt by comparing the current player's hand
-    const storedPlayerName = localStorage.getItem("playerName")
+    const storedPlayerName = sessionStorage.getItem("playerName") || localStorage.getItem("playerName")
     const previousPlayer = gameData?.players.find((p) => p.name === storedPlayerName)
     const currentPlayer = data.players.find((p) => p.name === storedPlayerName)
 
