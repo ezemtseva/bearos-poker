@@ -627,22 +627,6 @@ export default function GameTable({
       return
     }
 
-    // Remove the playSound("playCard") call here since it will be played for all players in the Game component
-
-    // For 7 of spades, show the dialog
-    if (card.suit === "spades" && card.value === 7) {
-      let availableOptions = ["Poker", "Simple"]
-
-      // If it's the first card, Trumps is also available
-      if (cardsOnTable.length === 0) {
-        availableOptions = ["Trumps", "Poker", "Simple"]
-      }
-
-      setPokerCardOption(null)
-      setShowPokerCardDialog(true)
-      return
-    }
-
     // Check if 7 of spades with 'Trumps' option is on the table
     const sevenOfSpadesWithTrumps = cardsOnTable.find(
       (c) => c.suit === "spades" && c.value === 7 && c.pokerOption === "Trumps",

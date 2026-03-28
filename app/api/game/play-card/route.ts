@@ -12,7 +12,7 @@ function getNextTurn(currentTurn: number, playerCount: number): number {
 function dealCards(players: Player[], deck: Card[], cardsPerPlayer: number): [Player[], Card[]] {
   const updatedPlayers = players.map((player) => ({
     ...player,
-    hand: [...player.hand, ...deck.splice(0, cardsPerPlayer)],
+    hand: deck.splice(0, cardsPerPlayer),
   }))
   return [updatedPlayers, deck]
 }
@@ -483,8 +483,6 @@ export async function POST(req: NextRequest) {
             deck = createDeck() // Create a new deck if needed
           }
 
-          // Add a flag to indicate cards were dealt
-          const cardsWereDealt = true
           ;[players, deck] = dealCards(players, deck, newCardsPerRound) // Deal the correct number of cards for the new round
 
           // Set the starting player for the new round
