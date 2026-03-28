@@ -471,7 +471,9 @@ export async function POST(req: NextRequest) {
           if (isEnteringGoldenRound) {
             await sql`
               UPDATE poker_games
-              SET is_golden_round = true
+              SET is_golden_round = true,
+                  all_bets_placed = true,
+                  current_betting_turn = NULL
               WHERE table_id = ${tableId}
             `
           }
@@ -591,8 +593,12 @@ export async function POST(req: NextRequest) {
       highestCard,
       roundStartPlayerIndex,
       allBetsPlaced,
-      gameOver: currentRound > 18,
+      gameOver: currentRound > getTotalRounds(game.game_length || "basic", game.has_golden_round || false, game.has_no_trumps || false),
       currentBettingTurn: allBetsPlaced ? undefined : roundStartPlayerIndex,
+      isGoldenRound: (game.has_golden_round || false) && currentRound === getTotalRounds(game.game_length || "basic", game.has_golden_round || false, game.has_no_trumps || false),
+      gameLength: game.game_length || "basic",
+      hasGoldenRound: game.has_golden_round || false,
+      hasNoTrumps: game.has_no_trumps || false,
     }
 
     console.log("Final game state:", finalGameData)
