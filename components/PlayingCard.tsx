@@ -7,7 +7,7 @@ interface PlayingCardProps {
   disabled?: boolean
   className?: string
   showBack?: boolean
-  size?: "normal" | "small"
+  size?: "normal" | "small" | "medium"
 }
 
 const SuitSymbol = ({ suit, className = "" }: { suit: string; className?: string }) => {
@@ -65,6 +65,7 @@ export default function PlayingCard({
   size = "normal",
 }: PlayingCardProps) {
   const isSmall = size === "small"
+  const isMedium = size === "medium"
 
   if (showBack) {
     return <CardBack className={className} size={size} />
@@ -75,12 +76,12 @@ export default function PlayingCard({
   const cardColor = isPokerCard ? "bg-blue-100" : suit === "diamonds" ? "bg-red-100" : "bg-white"
   const displayValue = valueToDisplay(value)
 
-  const sizeClass = isSmall ? "w-14 h-[84px] rounded-xl" : "w-24 h-36 rounded-2xl"
-  const valueClass = isSmall ? "text-sm" : "text-xl"
-  const cornerIconClass = isSmall ? "w-3 h-3" : "w-4 h-4"
-  const centerIconClass = isSmall ? "w-10 h-10" : "w-16 h-16"
-  const cornerPad = isSmall ? "top-1 left-1" : "top-2 left-2"
-  const cornerPadBR = isSmall ? "bottom-1 right-1" : "bottom-2 right-2"
+  const sizeClass = isMedium ? "w-[62px] h-[93px] rounded-xl" : isSmall ? "w-14 h-[84px] rounded-xl" : "w-24 h-36 rounded-2xl"
+  const valueClass = isMedium ? "text-sm" : isSmall ? "text-sm" : "text-xl"
+  const cornerIconClass = isMedium ? "w-3.5 h-3.5" : isSmall ? "w-3 h-3" : "w-4 h-4"
+  const centerIconClass = isMedium ? "w-11 h-11" : isSmall ? "w-10 h-10" : "w-16 h-16"
+  const cornerPad = isMedium ? "top-1 left-1" : isSmall ? "top-1 left-1" : "top-2 left-2"
+  const cornerPadBR = isMedium ? "bottom-1 right-1" : isSmall ? "bottom-1 right-1" : "bottom-2 right-2"
 
   return (
     <button

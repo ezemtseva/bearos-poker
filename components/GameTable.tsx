@@ -130,6 +130,7 @@ export default function GameTable({
     try { const v = localStorage.getItem("scoreTablePosition"); return (v as "left" | "right" | "bottom") || "left" } catch { return "left" }
   })
   const [showAvatarPicker, setShowAvatarPicker] = useState(false)
+  const [showMobileEmojiPanel, setShowMobileEmojiPanel] = useState(false)
   const [avatarPickerTab, setAvatarPickerTab] = useState<"image" | "emoji">("emoji")
   const [activeReactions, setActiveReactions] = useState<Map<string, { emoji: string; key: number }>>(new Map())
   const [betBlinkEnabled, setBetBlinkEnabled] = useState(false)
@@ -1200,17 +1201,52 @@ export default function GameTable({
   )
 
   // ─── Mobile layout ───────────────────────────────────────────────────────────
+  const mobileTopOpponents = players.slice(0, 3)
+  const mobileBottomOpponents = players.slice(3)
+  const mobileSeatBgColor = SEAT_SKINS.find(s => s.id === seatSkin)?.value ?? "#374151"
+
+  const renderMobileSeat = (player: typeof players[0], i: number) => {
+    const isActiveTurnM = safeGameData.players?.[currentTurn]?.name === player.name
+    const betValueM = shouldShowBetBanners() && player.bet !== null ? player.bet : "—"
+    const isLeaderM = player.score === highestScore && highestScore > 0
+    return (
+      <div
+        key={i}
+        className={`flex-shrink-0 rounded-xl border-2 p-2 w-[106px] ${isActiveTurnM ? "border-yellow-400" : isLeaderM ? "border-yellow-400/50" : "border-gray-600/30"}`}
+        style={{ backgroundColor: isActiveTurnM ? "#fefce8" : mobileSeatBgColor }}
+      >
+        <div className="flex items-center gap-1 mb-1">
+          <div className="w-5 h-5 rounded-full bg-gray-500 flex items-center justify-center text-[10px] overflow-hidden flex-shrink-0">
+            {player.avatar ? (player.avatar.startsWith("data:") || player.avatar.startsWith("http") ? <img src={player.avatar} alt="" className="w-full h-full object-cover" /> : <span>{player.avatar}</span>) : player.name[0]}
+          </div>
+          <span className={`text-[11px] font-medium truncate ${isActiveTurnM ? "text-gray-800" : "text-gray-100"}`}>{player.name}</span>
+        </div>
+        <div className="grid grid-cols-3 text-[11px] text-center">
+          <div><div className="text-gray-400">{t("pts")}</div><div className={`font-bold ${player.score > 0 ? "text-green-400" : player.score < 0 ? "text-red-400" : ""}`}>{player.score}</div></div>
+          <div><div className="text-gray-400">{t("seatBetLabel")}</div><div className="font-bold text-purple-400">{betValueM}</div></div>
+          <div><div className="text-gray-400">{t("seatWinsLabel")}</div><div className="font-bold text-blue-400">{player.roundWins}</div></div>
+        </div>
+        {activeReactions.get(player.name) && (
+          <div className="text-center text-lg mt-1">{activeReactions.get(player.name)!.emoji}</div>
+        )}
+      </div>
+    )
+  }
+
   if (isMobile) return (
     <div className="flex flex-col text-white pb-6">
       {/* Header */}
       {gameStarted ? (
-        <div className="flex justify-between items-center px-4 py-2 text-sm bg-black/20 rounded-lg mx-4 mt-2">
+        <div className="flex justify-between items-center px-4 py-2 text-sm bg-black/20 rounded-lg mx-4 mt-1">
           <span className="text-gray-300">{t("round")} <strong>{currentRound}</strong></span>
           <span className="text-yellow-400 font-semibold text-xs">{players[currentTurn]?.name || "?"}&apos;s turn</span>
           <span className="text-gray-300">{t("playLabel")} <strong>{currentPlay}</strong></span>
         </div>
       ) : (
-        <div className="px-4 py-2 text-sm text-center text-gray-400 mt-2">{t("tableIdLabel")} {tableId}</div>
+        <div className="px-4 py-2 text-sm text-center text-gray-400 mt-1">
+          <div>{t("tableIdLabel")} {tableId}</div>
+          {players.length < 2 && <p className="text-yellow-600 italic mt-1">{t("waitingMorePlayers")}</p>}
+        </div>
       )}
 
       {/* Pre-game */}
@@ -1226,59 +1262,38 @@ export default function GameTable({
               </div>
             ))}
           </div>
+
+          {/* Table preview — same style as community cards area */}
+          <div
+            className="flex justify-center items-center min-h-[150px] rounded-xl p-3 my-3"
+            style={(() => {
+              const skin = TABLE_SKINS.find(s => s.id === tableSkin)
+              if (!skin) return { backgroundColor: "#0f4c81" }
+              if (skin.type === "image") return { backgroundImage: `url(${skin.value})`, backgroundSize: "cover", backgroundPosition: "center" }
+              return { backgroundColor: skin.value }
+            })()}
+          />
+
           <div className="flex gap-2 flex-wrap">
             <Button size="sm" onClick={onShare}>{t("shareLink")}</Button>
             {isOwner && players.length >= 2 && <Button size="sm" onClick={() => setShowConfigureDialog(true)}>{t("configure")}</Button>}
             {canStartGame && <Button size="sm" onClick={onStartGame}>{ t("startGame") }</Button>}
           </div>
-          {players.length < 2 && <p className="text-yellow-600 italic text-sm mt-2">{t("waitingMorePlayers")}</p>}
         </div>
       )}
 
       {gameStarted && <>
-        {/* Opponents strip */}
+        {/* Top opponents (max 3) */}
         <div className="px-4 pt-3">
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {players.filter(p => p.name !== currentPlayerName).map((player, i) => {
-              const isActiveTurnM = safeGameData.players?.[currentTurn]?.name === player.name
-              const betValueM = shouldShowBetBanners() && player.bet !== null ? player.bet : "—"
-              const isLeaderM = player.score === highestScore && highestScore > 0
-              const seatBgColor = SEAT_SKINS.find(s => s.id === seatSkin)?.value ?? "#374151"
-              return (
-                <div
-                  key={i}
-                  className={`flex-shrink-0 rounded-xl border-2 p-2 w-24 ${isActiveTurnM ? "border-yellow-400" : isLeaderM ? "border-yellow-400/50" : "border-gray-600/30"}`}
-                  style={{ backgroundColor: isActiveTurnM ? "#fefce8" : seatBgColor }}
-                >
-                  <div className="flex items-center gap-1 mb-1">
-                    <div className="w-5 h-5 rounded-full bg-gray-500 flex items-center justify-center text-[10px] overflow-hidden flex-shrink-0">
-                      {player.avatar ? (player.avatar.startsWith("data:") || player.avatar.startsWith("http") ? <img src={player.avatar} alt="" className="w-full h-full object-cover" /> : <span>{player.avatar}</span>) : player.name[0]}
-                    </div>
-                    <span className={`text-[11px] font-medium truncate ${isActiveTurnM ? "text-gray-800" : "text-gray-100"}`}>{player.name}</span>
-                  </div>
-                  <div className="flex gap-0.5 justify-center mb-1">
-                    {Array.from({ length: Math.min(player.hand?.length || 0, 7) }).map((_, ci) => (
-                      <div key={ci} className="w-2.5 h-[15px] rounded-sm bg-gray-800 border border-gray-600" />
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-3 text-[9px] text-center">
-                    <div><div className="text-gray-400">{t("pts")}</div><div className="font-bold">{player.score}</div></div>
-                    <div><div className="text-gray-400">{t("seatBetLabel")}</div><div className="font-bold text-purple-400">{betValueM}</div></div>
-                    <div><div className="text-gray-400">{t("seatWinsLabel")}</div><div className="font-bold text-blue-400">{player.roundWins}</div></div>
-                  </div>
-                  {activeReactions.get(player.name) && (
-                    <div className="text-center text-lg mt-1">{activeReactions.get(player.name)!.emoji}</div>
-                  )}
-                </div>
-              )
-            })}
+          <div className="flex justify-center gap-2">
+            {mobileTopOpponents.map((player, i) => renderMobileSeat(player, i))}
           </div>
         </div>
 
-        {/* Community cards */}
+        {/* Community cards + betting overlay */}
         <div className="px-4 py-3">
           <div
-            className="flex justify-center gap-2 min-h-[96px] items-center rounded-xl p-3"
+            className="relative flex justify-center gap-2 min-h-[150px] items-center rounded-xl p-3"
             style={(() => {
               const skin = TABLE_SKINS.find(s => s.id === tableSkin)
               if (!skin) return { backgroundColor: "#0f4c81" }
@@ -1287,7 +1302,7 @@ export default function GameTable({
             })()}
           >
             {cardsOnTable.length === 0
-              ? <span className="text-white/50 text-sm italic">{t("noCardsYet")}</span>
+              ? null
               : cardsOnTable.map((card, index) => (
                 <div key={index} className="relative">
                   <PlayingCard
@@ -1302,17 +1317,58 @@ export default function GameTable({
                 </div>
               ))
             }
+
+            {/* Betting overlay — shown only when it's player's turn to bet */}
+            {currentPlayer?.bet === null && isCurrentPlayerBettingTurn && (
+              <div className={`absolute inset-0 rounded-xl flex flex-col items-center justify-center gap-2 bg-black/70 ${betBlinkEnabled ? "animate-bet-border" : ""}`}>
+                <h2 className="text-sm font-bold text-white">{t("makeYourBet")}</h2>
+                <div className="flex items-center gap-4">
+                  <button onClick={() => setBetAmount(v => Math.max(0, (v ?? 0) - 1))} className="w-10 h-10 rounded-xl bg-gray-700 hover:bg-gray-600 text-white border border-gray-500 text-2xl font-bold">−</button>
+                  <span className="text-4xl font-bold w-10 text-center select-none text-white">{betAmount ?? 0}</span>
+                  <button onClick={() => setBetAmount(v => Math.min(cardsThisRound, (v ?? 0) + 1))} className="w-10 h-10 rounded-xl bg-gray-700 hover:bg-gray-600 text-white border border-gray-500 text-2xl font-bold">+</button>
+                </div>
+                {(() => { const fb = calculateForbiddenBet(); return fb !== null ? <p className="text-red-400 text-xs italic text-center">{t("youCannotBet")} {fb}</p> : null })()}
+                <Button onClick={handlePlaceBet}>{t("confirm")}</Button>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Your hand */}
-        <div className="px-4">
-          <h2 className="text-sm font-bold mb-2 text-center">{t("yourHand")}</h2>
-          <div className="flex overflow-x-auto gap-2 pb-2 justify-center flex-wrap min-h-[84px] items-center">
+        {/* Bottom opponents (4th–6th), centered under table */}
+        {mobileBottomOpponents.length > 0 && (
+          <div className="px-4 pb-2">
+            <div className="flex justify-center gap-2">
+              {mobileBottomOpponents.map((player, i) => renderMobileSeat(player, i + 3))}
+            </div>
+          </div>
+        )}
+
+        {/* Your hand + emoji button */}
+        <div className="px-4 mt-1">
+          <div className="relative flex items-center justify-center mb-2">
+            <h2 className="text-sm font-bold">{t("yourHand")}</h2>
+            <div className="absolute right-0">
+              <button
+                onClick={() => setShowMobileEmojiPanel(v => !v)}
+                className="text-xl px-2 py-0.5 rounded-lg bg-gray-700/60 hover:bg-gray-600/60 active:scale-110 transition-transform"
+              >😊</button>
+              {showMobileEmojiPanel && (
+                <div className="absolute bottom-full right-0 mb-2 z-20 bg-gray-900 border border-white/10 rounded-xl p-2 shadow-xl w-52">
+                  <div className="grid grid-cols-6 gap-1">
+                    {EMOJI_LIST.map(emoji => (
+                      <button key={emoji} onClick={() => { onSendReaction(emoji); setShowMobileEmojiPanel(false) }} className="text-xl hover:scale-125 active:scale-125 transition-transform text-center">{emoji}</button>
+                    ))}
+                    <button onClick={() => { setShowMobileEmojiPanel(false); setShowAvatarPicker(true); setAvatarPickerTab("emoji") }} className="text-xl text-center">😶</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex gap-1.5 pb-2 justify-center flex-wrap min-h-[84px] items-center">
             {currentPlayer?.hand?.length
               ? currentPlayer.hand.map((card, index) => (
                 <PlayingCard
-                  key={index} suit={card.suit} value={card.value} size="small"
+                  key={index} suit={card.suit} value={card.value} size="medium"
                   onClick={() => handlePlayCard(card)}
                   disabled={!isCurrentPlayerTurn || isClearing || !isValidCardToPlay(card) || !safeGameData.allBetsPlaced || isPlayingCard}
                   showBack={shouldShowCardBacks}
@@ -1330,37 +1386,68 @@ export default function GameTable({
           {errorMessage && <p className="text-red-500 mt-1">{errorMessage}</p>}
         </div>
 
-        {/* Betting */}
-        {currentPlayer?.bet === null && (
-          <div className={`mx-4 mt-3 rounded-xl p-4 border-2 ${isCurrentPlayerBettingTurn && betBlinkEnabled ? "border-green-400 animate-bet-border" : isCurrentPlayerBettingTurn ? "border-green-400" : "border-gray-600/30"}`}>
-            <h2 className="text-base font-bold mb-3 text-center">{t("makeYourBet")}</h2>
-            {isCurrentPlayerBettingTurn ? (
-              <>
-                <div className="flex items-center justify-center gap-6">
-                  <button onClick={() => setBetAmount(v => Math.max(0, (v ?? 0) - 1))} className="w-14 h-14 rounded-xl bg-gray-700 hover:bg-gray-600 text-white border border-gray-500 text-3xl font-bold">−</button>
-                  <span className="text-5xl font-bold w-16 text-center select-none">{betAmount ?? 0}</span>
-                  <button onClick={() => setBetAmount(v => Math.min(cardsThisRound, (v ?? 0) + 1))} className="w-14 h-14 rounded-xl bg-gray-700 hover:bg-gray-600 text-white border border-gray-500 text-3xl font-bold">+</button>
-                </div>
-                {(() => { const fb = calculateForbiddenBet(); return fb !== null ? <p className="text-red-500 text-sm italic text-center mt-2">{t("youCannotBet")} {fb}</p> : null })()}
-                <div className="flex justify-center mt-3"><Button onClick={handlePlaceBet}>{t("confirm")}</Button></div>
-              </>
-            ) : (
-              <p className="text-center text-yellow-600 italic text-sm">
-                {waitingForBetDelay ? t("preparingRound") : `${t("waitingFor")} ${currentBettingPlayerName.startsWith("Waiting") ? "..." : currentBettingPlayerName} ${t("toPlaceBet")}`}
-              </p>
+        {/* Score table (mobile) */}
+        {safeGameData.scoreTable && safeGameData.scoreTable.length > 0 && (
+          <div className="mx-4 mt-4 mb-4 bg-gray-800/60 rounded-xl overflow-hidden">
+            <button
+              onClick={() => setScoreTableExpanded(v => !v)}
+              className="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold text-gray-300 hover:text-white"
+            >
+              <span>{t("scoreTable")}</span>
+              <span className="text-xs">{scoreTableExpanded ? "▲" : "▼"}</span>
+            </button>
+            {scoreTableExpanded && (
+              <div className="overflow-x-auto">
+                <table className="text-[11px]">
+                  <thead>
+                    <tr className="border-t border-white/10">
+                      <th className="px-2 py-1 text-left text-gray-400 font-medium border-r border-white/10 min-w-[28px]">{t("roundLabel")}</th>
+                      {players.map(p => (
+                        <th key={p.name} colSpan={4} className="px-2 py-1 text-center text-gray-200 font-semibold border-r border-white/10 whitespace-nowrap min-w-[104px]">{p.name}</th>
+                      ))}
+                    </tr>
+                    <tr className="border-t border-white/5">
+                      <th className="px-2 py-1 border-r border-white/10" />
+                      {players.map(p => (
+                        <React.Fragment key={p.name}>
+                          <th className="px-1 py-1 text-center text-gray-500 font-normal min-w-[26px]">{t("betLabel")}</th>
+                          <th className="px-1 py-1 text-center text-gray-500 font-normal min-w-[26px]">{t("winsLabel")}</th>
+                          <th className="px-1 py-1 text-center text-gray-500 font-normal min-w-[26px]">{t("pointsLabel")}</th>
+                          <th className="px-1 py-1 text-center text-gray-500 font-normal border-r border-white/10 min-w-[26px]">{t("roundIncrLabel")}</th>
+                        </React.Fragment>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {safeGameData.scoreTable.map((round: ScoreTableRow) => (
+                      <tr key={round.roundId} className={`border-t border-white/5 ${round.roundId === currentRound ? "bg-blue-400/20" : round.roundId < currentRound ? "bg-gray-600/20" : ""}`}>
+                        <td className="px-2 py-1 text-center text-gray-400 border-r border-white/10">{
+                          round.roundName === "NT" ? (locale === "ru" ? "Б" : "NT") :
+                          round.roundName === "B" && locale === "ru" ? "Т" :
+                          round.roundName === "G" && locale === "ru" ? "З" :
+                          round.roundName
+                        }</td>
+                        {players.map(player => {
+                          const s: PlayerScore = round.scores[player.name] || { bet: null, wins: 0, cumulativePoints: 0, roundPoints: 0 }
+                          return (
+                            <React.Fragment key={player.name}>
+                              <td className="px-1 py-1 text-center text-gray-300">{s.bet ?? "—"}</td>
+                              <td className="px-1 py-1 text-center text-gray-300">{s.wins ?? "—"}</td>
+                              <td className="px-1 py-1 text-center font-semibold">{s.cumulativePoints}</td>
+                              <td className="px-1 py-1 text-center border-r border-white/10">
+                                {s.roundPoints === null ? "—" : s.roundPoints === 0 ? "-" : <span className={s.roundPoints > 0 ? "text-green-400" : "text-red-400"}>{s.roundPoints > 0 ? `+${s.roundPoints}` : s.roundPoints}</span>}
+                              </td>
+                            </React.Fragment>
+                          )
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         )}
-
-        {/* Emoji reactions */}
-        <div className="px-4 pt-4 pb-2">
-          <div className="flex flex-wrap gap-2 justify-center">
-            {EMOJI_LIST.slice(0, 15).map(emoji => (
-              <button key={emoji} onClick={() => onSendReaction(emoji)} className="text-2xl active:scale-125 transition-transform">{emoji}</button>
-            ))}
-            <button onClick={() => { setShowAvatarPicker(true); setAvatarPickerTab("emoji") }} className="text-2xl">😶</button>
-          </div>
-        </div>
       </>}
 
       {/* Shared dialogs */}

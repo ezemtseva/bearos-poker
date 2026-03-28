@@ -3,7 +3,7 @@
 import { useSession, signOut } from "next-auth/react"
 import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
-import { LogIn, LogOut, User, ChevronDown } from "lucide-react"
+import { LogIn, LogOut, User, ChevronDown, BookOpen } from "lucide-react"
 import { useLocale } from "@/lib/locale-context"
 
 export default function UserMenu() {
@@ -71,6 +71,14 @@ export default function UserMenu() {
           >
             <User size={15} />
             {t("myProfile")}
+          </Link>
+          <Link
+            href="/how-to-play"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            <BookOpen size={15} />
+            {t("howToPlay")}
           </Link>
           <button
             onClick={() => signOut({ callbackUrl: "/" })}

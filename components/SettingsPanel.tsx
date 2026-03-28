@@ -109,6 +109,8 @@ export default function SettingsPanel() {
   const loggedIn = status === "authenticated"
   const { locale, setLocale, t } = useLocale()
   const [open, setOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => { setIsMobile(window.innerWidth < 768) }, [])
   const [betBlink, setBetBlink] = useState(false)
   const [cardsOnSeats, setCardsOnSeats] = useState(false)
   const [tableSkin, setTableSkin] = useState("blue")
@@ -193,7 +195,7 @@ export default function SettingsPanel() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-12 w-80 bg-gray-800 border border-white/10 rounded-xl shadow-2xl z-50 p-4 max-h-[calc(100vh-80px)] overflow-y-auto">
+        <div className="absolute right-0 top-12 w-80 bg-gray-800 border border-white/10 rounded-xl shadow-2xl z-50 p-4 max-h-[calc(100vh-120px)] overflow-y-auto pb-6">
           <div className="flex justify-between items-center mb-4">
             <span className="font-semibold text-white text-sm">{t("settings")}</span>
             <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-white">
@@ -221,28 +223,28 @@ export default function SettingsPanel() {
           <div className="border-t border-white/10 mb-4" />
 
           {/* Bet blink toggle */}
-          <div className="flex items-center justify-between mb-5">
-            <div>
+          <div className="flex items-center justify-between gap-3 mb-5">
+            <div className="min-w-0">
               <div className="text-sm text-white">{t("bettingAlarm")}</div>
               <div className="text-xs text-gray-400">{t("bettingAlarmDesc")}</div>
             </div>
             <button
               onClick={() => toggleBetBlink(!betBlink)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${betBlink ? "bg-green-500" : "bg-gray-600"}`}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${betBlink ? "bg-green-500" : "bg-gray-600"}`}
             >
               <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${betBlink ? "translate-x-6" : "translate-x-1"}`} />
             </button>
           </div>
 
-          {/* Cards on seats toggle */}
-          <div className="flex items-center justify-between mb-5">
-            <div>
+          {/* Cards on seats toggle — hidden on mobile */}
+          <div className={`flex items-center justify-between gap-3 mb-5 ${isMobile ? "hidden" : ""}`}>
+            <div className="min-w-0">
               <div className="text-sm text-white">{t("cardsOnSeats")}</div>
               <div className="text-xs text-gray-400">{t("cardsOnSeatsDesc")}</div>
             </div>
             <button
               onClick={() => toggleCardsOnSeats(!cardsOnSeats)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${cardsOnSeats ? "bg-green-500" : "bg-gray-600"}`}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${cardsOnSeats ? "bg-green-500" : "bg-gray-600"}`}
             >
               <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${cardsOnSeats ? "translate-x-6" : "translate-x-1"}`} />
             </button>

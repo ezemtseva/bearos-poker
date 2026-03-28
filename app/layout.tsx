@@ -30,7 +30,7 @@ export default function RootLayout({
             <RoomSkinApplier />
             <Navigation />
             <div className="content-wrapper">
-              <div className="pt-16">{children}</div>
+              <div className="pt-14 md:pt-16">{children}</div>
             </div>
           <Toaster />
           </LocaleProvider>

@@ -143,10 +143,10 @@ export default function ProfilePage() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors flex-shrink-0"
               >
                 <Save size={14} />
-                {saved ? t("saved") : saving ? t("saving") : t("save")}
+                <span className="hidden sm:inline">{saved ? t("saved") : saving ? t("saving") : t("save")}</span>
               </button>
             </div>
             <p className="text-xs text-gray-500 mt-1">{session?.user?.email}</p>

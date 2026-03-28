@@ -250,7 +250,7 @@ export const translations = {
     bettingAlarm: "Сигнал ставки",
     bettingAlarmDesc: "Подсвечивает рамку секции ставок, когда подошла ваша очередь",
     cardsOnSeats: "Карты на местах",
-    cardsOnSeatsDesc: "Показывать рубашки карт на кресле каждого игрока",
+    cardsOnSeatsDesc: "Показывает рубашки карт на кресле каждого игрока",
     roomColor: "Цвет комнаты",
     tableSkin: "Сукно стола",
     cardBack: "Рубашка карт",

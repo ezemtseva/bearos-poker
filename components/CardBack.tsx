@@ -5,7 +5,7 @@ import { CARD_BACK_SKINS } from "./SettingsPanel"
 
 interface CardBackProps {
   className?: string
-  size?: "normal" | "small"
+  size?: "normal" | "small" | "medium"
 }
 
 function readCardBackSkin(): string {
@@ -13,7 +13,7 @@ function readCardBackSkin(): string {
 }
 
 export default function CardBack({ className = "", size = "normal" }: CardBackProps) {
-  const sizeClass = size === "small" ? "w-14 h-[84px] rounded-xl" : "w-24 h-36 rounded-2xl"
+  const sizeClass = size === "medium" ? "w-[62px] h-[93px] rounded-xl" : size === "small" ? "w-14 h-[84px] rounded-xl" : "w-24 h-36 rounded-2xl"
   const patternId = useId()
   const [skinId, setSkinId] = useState("black")
 
