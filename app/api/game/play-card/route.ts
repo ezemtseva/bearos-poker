@@ -366,6 +366,7 @@ export async function POST(req: NextRequest) {
 
     allCardsPlayed = cardsOnTable.length === players.length
     allCardsPlayedTimestamp = allCardsPlayed ? Date.now() : null
+    const wasAllCardsPlayed = allCardsPlayed
 
     console.log(`[PLAY-CARD] All cards played: ${allCardsPlayed}`)
 
@@ -573,6 +574,16 @@ export async function POST(req: NextRequest) {
       currentTurn = getNextTurn(currentTurn, players.length)
     }
 
+    // Re-fetch DB state after all intermediate updates when a play was completed,
+    // so currentBettingTurn and is_golden_round reflect the latest writes.
+    let freshBettingTurn: number | null | undefined = undefined
+    if (wasAllCardsPlayed) {
+      const { rows: freshRows } = await sql`SELECT current_betting_turn, is_golden_round FROM poker_games WHERE table_id = ${tableId}`
+      if (freshRows.length > 0) {
+        freshBettingTurn = freshRows[0].current_betting_turn ?? undefined
+      }
+    }
+
     // Create final gameData object
     const finalGameData: GameData = {
       tableId: game.table_id,
@@ -592,7 +603,7 @@ export async function POST(req: NextRequest) {
       roundStartPlayerIndex,
       allBetsPlaced,
       gameOver: currentRound > getTotalRounds(game.game_length || "basic", game.has_golden_round || false, game.has_no_trumps || false),
-      currentBettingTurn: allBetsPlaced ? undefined : roundStartPlayerIndex,
+      currentBettingTurn: wasAllCardsPlayed ? freshBettingTurn : (allBetsPlaced ? undefined : roundStartPlayerIndex),
       isGoldenRound: (game.has_golden_round || false) && currentRound === getTotalRounds(game.game_length || "basic", game.has_golden_round || false, game.has_no_trumps || false),
       gameLength: game.game_length || "basic",
       hasGoldenRound: game.has_golden_round || false,
