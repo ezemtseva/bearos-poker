@@ -197,7 +197,7 @@ export default function SettingsPanel() {
       {open && (
         <div className="absolute right-0 top-12 w-80 bg-gray-800 border border-white/10 rounded-xl shadow-2xl z-50 p-4 max-h-[calc(100vh-120px)] overflow-y-auto pb-6">
           <div className="flex justify-between items-center mb-4">
-            <span className="font-semibold text-white text-sm">{t("settings")}</span>
+            <span className="font-semibold text-white text-[16px]">{t("settings")}</span>
             <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-white">
               <X size={16} />
             </button>

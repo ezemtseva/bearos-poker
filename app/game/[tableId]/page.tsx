@@ -223,6 +223,12 @@ export default function Game() {
     }
 
     setGameData((prevData) => {
+      // Ignore stale poll responses that are behind the current known state
+      if (prevData) {
+        if (data.currentRound < prevData.currentRound) return prevData
+        if (data.currentRound === prevData.currentRound && data.currentPlay < prevData.currentPlay) return prevData
+      }
+
       // If it's a new round, ALWAYS clear the table and play sound
       if (prevData && data.currentRound > prevData.currentRound) {
         console.log("NEW ROUND DETECTED - Clearing table")

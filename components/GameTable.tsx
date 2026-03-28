@@ -1031,53 +1031,51 @@ export default function GameTable({
 
   const scoreTablePanel = (
     <div
-      className={`flex-shrink-0 transition-all duration-300 mx-auto ${
+      className={`flex-shrink-0 transition-all duration-300 mx-auto bg-gray-800/60 rounded-xl overflow-hidden ${
         isBottomPosition
-          ? scoreTableExpanded ? "" : "h-10 overflow-hidden"
+          ? scoreTableExpanded ? "" : "h-10"
           : scoreTableExpanded ? "" : "w-auto"
       }`}
       style={scoreTableExpanded ? { width: visibleWidth } : undefined}
     >
       {/* Header row: toggle + title + gear */}
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center justify-between px-4 py-2.5 gap-2">
+        <span className="text-[16px] font-semibold text-gray-300 flex-1 whitespace-nowrap">{t("scoreTable")}</span>
+        {scoreTableExpanded && (
+          <button
+            onClick={() => setShowScoreSettings((v) => !v)}
+            className="text-gray-400 hover:text-white"
+            title="Score table settings"
+          >
+            <Settings size={15} />
+          </button>
+        )}
         <button
           onClick={() => setScoreTableExpanded((v) => !v)}
-          className="text-sm font-semibold text-gray-300 hover:text-white"
+          className="text-xs text-gray-300 hover:text-white"
         >
           {collapseIcon}
         </button>
-        <span className="text-sm font-semibold text-gray-300 flex-1 whitespace-nowrap">{t("scoreTable")}</span>
-        {scoreTableExpanded && (
-          <>
-            <button
-              onClick={() => setShowScoreSettings((v) => !v)}
-              className="text-gray-400 hover:text-white"
-              title="Score table settings"
-            >
-              <Settings size={15} />
-            </button>
-          </>
-        )}
       </div>
 
       {/* Settings panel */}
       {scoreTableExpanded && showScoreSettings && (
-        <div className="mb-3 p-3 bg-gray-800 rounded-lg flex flex-wrap items-center gap-3">
-          <span className="text-xs text-gray-300 whitespace-nowrap">{t("playersShown")}</span>
+        <div className="px-4 pb-3 flex flex-wrap items-center gap-3">
+          <span className="text-sm text-white whitespace-nowrap">{t("playersShown")}</span>
           <select
             value={scoreTablePlayerCount}
             onChange={(e) => setScoreTablePlayerCount(Number(e.target.value))}
-            className="text-xs bg-gray-700 text-white border border-gray-600 rounded px-2 py-1"
+            className="text-sm bg-gray-700 text-white border border-gray-600 rounded px-2 py-1"
           >
             {Array.from({ length: Math.max(0, players.length - 1) }, (_, i) => i + 2).map((n) => (
               <option key={n} value={n}>{n}</option>
             ))}
           </select>
-          <span className="text-xs text-gray-300 whitespace-nowrap">{t("position")}</span>
+          <span className="text-sm text-white whitespace-nowrap">{t("position")}</span>
           <select
             value={scoreTablePosition}
             onChange={(e) => setScoreTablePosition(e.target.value as "left" | "right" | "bottom")}
-            className="text-xs bg-gray-700 text-white border border-gray-600 rounded px-2 py-1"
+            className="text-sm bg-gray-700 text-white border border-gray-600 rounded px-2 py-1"
           >
             <option value="left">{t("posLeft")}</option>
             <option value="right">{t("posRight")}</option>
@@ -1126,7 +1124,9 @@ export default function GameTable({
                       round.roundName === "G" && locale === "ru" ? "З" :
                       round.roundName
                     }</TableCell>
-                    {orderedPlayers.map((player) => {
+                    {(() => {
+                      const roundMaxPoints = Math.max(...orderedPlayers.map(p => round.scores[p.name]?.cumulativePoints ?? -Infinity))
+                      return orderedPlayers.map((player) => {
                       const scoreData = round.scores[player.name]
                       const playerScore: PlayerScore = scoreData || {
                         cumulativePoints: 0,
@@ -1136,6 +1136,7 @@ export default function GameTable({
                       const hasScore = !!scoreData && round.roundId <= currentRound
                       const wins =
                         round.roundId === currentRound ? player.roundWins || 0 : round.scores[player.name]?.wins || 0
+                      const isRoundLeader = hasScore && playerScore.cumulativePoints === roundMaxPoints && roundMaxPoints > 0
                       return (
                         <React.Fragment key={player.name}>
                           <TableCell className="text-center">
@@ -1148,15 +1149,15 @@ export default function GameTable({
                                 ? (playerScore.wins !== undefined ? playerScore.wins : "-")
                                 : "-"}
                           </TableCell>
-                          <TableCell className="text-center">
+                          <TableCell className={`text-center font-bold ${isRoundLeader ? "bg-yellow-400/20 rounded" : ""} ${hasScore && playerScore.cumulativePoints > 0 ? "text-green-400" : hasScore && playerScore.cumulativePoints < 0 ? "text-red-400" : ""}`}>
                             {hasScore ? playerScore.cumulativePoints : "-"}
                           </TableCell>
                           <TableCell
-                            className={`text-center border-r border-gray-600 ${
+                            className={`text-center italic border-r border-gray-600 ${
                               hasScore && playerScore.roundPoints < 0
-                                ? "text-red-600"
+                                ? "text-pink-400"
                                 : hasScore && playerScore.roundPoints > 0
-                                  ? "text-green-600"
+                                  ? "text-blue-400"
                                   : ""
                             }`}
                           >
@@ -1168,7 +1169,7 @@ export default function GameTable({
                           </TableCell>
                         </React.Fragment>
                       )
-                    })}
+                    })})()}
                   </TableRow>
                 ))
               ) : (
@@ -1334,12 +1335,13 @@ export default function GameTable({
 
         {/* Your hand + emoji button */}
         <div className="px-4 mt-1">
+          <div className="bg-black/20 rounded-lg px-3 pt-2 pb-3">
           <div className="relative flex items-center justify-center mb-2">
             <h2 className="text-sm font-bold">{t("yourHand")}</h2>
             <div className="absolute right-0">
               <button
                 onClick={() => setShowMobileEmojiPanel(v => !v)}
-                className="text-xl px-2 py-0.5 rounded-lg bg-gray-700/60 hover:bg-gray-600/60 active:scale-110 transition-transform"
+                className="text-xl active:scale-110 transition-transform"
               >😊</button>
               {showMobileEmojiPanel && (
                 <div className="absolute bottom-full right-0 mb-2 z-20 bg-gray-900 border border-white/10 rounded-xl p-2 shadow-xl w-52">
@@ -1353,11 +1355,11 @@ export default function GameTable({
               )}
             </div>
           </div>
-          <div className="flex gap-1.5 pb-2 justify-center flex-wrap min-h-[84px] items-center">
+          <div className="flex gap-1 pb-2 justify-center min-h-[84px] items-center">
             {currentPlayer?.hand?.length
               ? currentPlayer.hand.map((card, index) => (
                 <PlayingCard
-                  key={index} suit={card.suit} value={card.value} size="medium"
+                  key={index} suit={card.suit} value={card.value} size={(currentPlayer.hand.length >= 6) ? "small" : "medium"}
                   onClick={() => handlePlayCard(card)}
                   disabled={!isCurrentPlayerTurn || isClearing || !isValidCardToPlay(card) || !safeGameData.allBetsPlaced || isPlayingCard}
                   showBack={shouldShowCardBacks}
@@ -1366,6 +1368,7 @@ export default function GameTable({
               ))
               : <p className="italic text-gray-400 text-sm">{gameStarted ? t("allCardsPlayed") : t("cardsHereHint")}</p>
             }
+          </div>
           </div>
         </div>
 
@@ -1416,19 +1419,23 @@ export default function GameTable({
                           round.roundName === "G" && locale === "ru" ? "З" :
                           round.roundName
                         }</td>
-                        {players.map(player => {
+                        {(() => {
+                          const roundMaxPoints = Math.max(...players.map(p => round.scores[p.name]?.cumulativePoints ?? -Infinity))
+                          return players.map(player => {
                           const s: PlayerScore = round.scores[player.name] || { bet: null, wins: 0, cumulativePoints: 0, roundPoints: 0 }
+                          const hasScore = !!round.scores[player.name] && round.roundId <= currentRound
+                          const isRoundLeader = hasScore && s.cumulativePoints === roundMaxPoints && roundMaxPoints > 0
                           return (
                             <React.Fragment key={player.name}>
                               <td className="px-1 py-1 text-center text-gray-300">{s.bet ?? "—"}</td>
                               <td className="px-1 py-1 text-center text-gray-300">{s.wins ?? "—"}</td>
-                              <td className="px-1 py-1 text-center font-semibold">{s.cumulativePoints}</td>
-                              <td className="px-1 py-1 text-center border-r border-white/10">
-                                {s.roundPoints === null ? "—" : s.roundPoints === 0 ? "-" : <span className={s.roundPoints > 0 ? "text-green-400" : "text-red-400"}>{s.roundPoints > 0 ? `+${s.roundPoints}` : s.roundPoints}</span>}
+                              <td className={`px-1 py-1 text-center font-bold ${isRoundLeader ? "bg-yellow-400/20" : ""} ${s.cumulativePoints > 0 ? "text-green-400" : s.cumulativePoints < 0 ? "text-red-400" : ""}`}>{s.cumulativePoints}</td>
+                              <td className="px-1 py-1 text-center italic border-r border-white/10">
+                                {s.roundPoints === null ? "—" : s.roundPoints === 0 ? "-" : <span className={s.roundPoints > 0 ? "text-blue-400" : "text-pink-400"}>{s.roundPoints > 0 ? `+${s.roundPoints}` : s.roundPoints}</span>}
                               </td>
                             </React.Fragment>
                           )
-                        })}
+                        })})()}
                       </tr>
                     ))}
                   </tbody>
@@ -1496,22 +1503,11 @@ export default function GameTable({
       {/* Game Info */}
       <div className="text-center relative">
         {gameStarted ? (
-          <div className="flex justify-center items-center space-x-6">
-            <p>
-              <span className="font-semibold">{t("tableIdLabel")}</span> {tableId}
-            </p>
-            <p>
-              <span className="font-semibold">{t("round")}:</span> {currentRound}
-            </p>
-            <p>
-              <span className="font-semibold">{t("playLabel")}:</span> {currentPlay}
-            </p>
-            <p>
-              <span className="font-semibold">{t("currentTurnLabel")}:</span> {players[currentTurn]?.name || "..."}
-            </p>
-            <p>
-              <span className="font-semibold">{t("cardsThisRoundLabel")}:</span> {cardsThisRound}
-            </p>
+          <div className="inline-flex justify-center items-center space-x-6 px-4 py-2 bg-black/20 rounded-lg">
+            <span className="text-gray-400">{t("tableIdLabel")} <strong className="text-white">{tableId}</strong></span>
+            <span className="text-gray-400">{t("round")}: <strong className="text-white">{currentRound}</strong></span>
+            <span className="text-gray-400">{t("playLabel")}: <strong className="text-white">{currentPlay}</strong></span>
+            <span className="text-gray-400">{t("currentTurnLabel")}: <strong className="text-white">{players[currentTurn]?.name || "..."}</strong></span>
           </div>
         ) : (
           <>
@@ -1762,7 +1758,7 @@ export default function GameTable({
         {/* Your Bet/Win section — container always present to keep hand position stable */}
         <div className={`w-1/3 mr-8 flex flex-col rounded-xl p-3 border-2 ${isCurrentPlayerBettingTurn && betBlinkEnabled ? "border-green-400 animate-bet-border" : "border-transparent"}`}>
         {(!gameStarted || (currentPlayer && currentPlayer.bet === null && isCurrentPlayerBettingTurn)) && <>
-          <h2 className="text-xl font-bold mb-2 text-center">{!gameStarted ? t("bet") : t("makeYourBet")}</h2>
+          <h2 className="text-xl font-bold mb-2 text-center px-4 py-1 bg-black/20 rounded-lg w-fit mx-auto">{!gameStarted ? t("bet") : t("makeYourBet")}</h2>
           {!gameStarted ? (
             <div className="flex flex-col items-center justify-center min-h-36">
               <p className="text-center italic">{t("youWillBetHere")}</p>
@@ -1822,7 +1818,7 @@ export default function GameTable({
 
         {/* Player's hand */}
         <div className="w-2/3">
-          <h2 className="text-xl font-bold mb-2 text-center">{t("yourHand")}</h2>
+          <h2 className="text-xl font-bold mb-2 text-center px-4 py-1 bg-black/20 rounded-lg w-fit mx-auto">{t("yourHand")}</h2>
           <div className="flex justify-center space-x-2 min-h-36 items-center">
             {currentPlayer && currentPlayer.hand && currentPlayer.hand.length > 0 ? (
               currentPlayer.hand.map((card, index) => (
