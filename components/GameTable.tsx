@@ -1109,7 +1109,7 @@ export default function GameTable({
               <TableRow>
                 <TableHead className="text-white font-bold text-left border-r border-gray-600 border-b-0"></TableHead>
                 {orderedPlayers.map((player) => (
-                  <TableHead key={player.name} colSpan={4} className="text-left text-white font-bold border-r border-gray-600">
+                  <TableHead key={player.name} colSpan={4} className="text-center text-white font-bold border-r border-gray-600">
                     {player.name}
                   </TableHead>
                 ))}
@@ -1212,9 +1212,12 @@ export default function GameTable({
     return (
       <div
         key={i}
-        className={`flex-shrink-0 rounded-xl border-2 p-2 w-[106px] ${isActiveTurnM ? "border-yellow-400" : isLeaderM ? "border-yellow-400/50" : "border-gray-600/30"}`}
+        className={`relative flex-shrink-0 rounded-xl border-2 p-2 w-[106px] ${isActiveTurnM ? "border-yellow-400" : "border-gray-600/30"}`}
         style={{ backgroundColor: isActiveTurnM ? "#fefce8" : mobileSeatBgColor }}
       >
+        {isLeaderM && (
+          <span className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 text-sm leading-none">⭐</span>
+        )}
         <div className="flex items-center gap-1 mb-1">
           <div className="w-5 h-5 rounded-full bg-gray-500 flex items-center justify-center text-[10px] overflow-hidden flex-shrink-0">
             {player.avatar ? (player.avatar.startsWith("data:") || player.avatar.startsWith("http") ? <img src={player.avatar} alt="" className="w-full h-full object-cover" /> : <span>{player.avatar}</span>) : player.name[0]}
@@ -1602,11 +1605,7 @@ export default function GameTable({
           const labelColor     = "text-gray-400"         // stat labels (pts / bet / wins)
           // ─────────────────────────────────────────────────────────────────
 
-          const borderClass = isLeader
-            ? seatBorderLead
-            : isActiveTurn
-            ? seatBorderTurn
-            : seatBorder
+          const borderClass = isActiveTurn ? seatBorderTurn : seatBorder
 
           const isCurrentPlayerSeat = player.name === currentPlayerName
           const reaction = activeReactions.get(player.name)
@@ -1657,9 +1656,12 @@ export default function GameTable({
                 </div>
               )}
               <div
-                className={`w-[150px] rounded-xl shadow-lg border-2 ${isActiveTurn ? seatBgTurn : seatBg} ${seatText} ${borderClass}`}
+                className={`relative w-[150px] rounded-xl shadow-lg border-2 ${isActiveTurn ? seatBgTurn : seatBg} ${seatText} ${borderClass}`}
                 style={isActiveTurn ? undefined : { backgroundColor: seatBgColor }}
               >
+                {isLeader && (
+                  <span className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 text-xl leading-none">⭐</span>
+                )}
                 {/* Top row: avatar + name */}
                 <div className="flex items-center gap-2 px-3 py-2">
                   <div
