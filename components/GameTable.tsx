@@ -1110,7 +1110,7 @@ export default function GameTable({
                 <TableHead className="text-white font-bold text-left border-r border-gray-600 border-b-0"></TableHead>
                 {orderedPlayers.map((player) => (
                   <TableHead key={player.name} colSpan={4} className="text-center text-white font-bold border-r border-gray-600">
-                    {player.name}
+                    {player.score === highestScore && highestScore > 0 ? "⭐ " : ""}{player.name}
                   </TableHead>
                 ))}
               </TableRow>
@@ -1206,14 +1206,16 @@ export default function GameTable({
   const mobileSeatBgColor = SEAT_SKINS.find(s => s.id === seatSkin)?.value ?? "#374151"
 
   const renderMobileSeat = (player: typeof players[0], i: number) => {
-    const isActiveTurnM = safeGameData.players?.[currentTurn]?.name === player.name
+    const isCardTurnM = safeGameData.allBetsPlaced && players[currentTurn]?.name === player.name
+    const isBettingTurnM = !safeGameData.allBetsPlaced && typeof safeGameData.currentBettingTurn === "number" && players[safeGameData.currentBettingTurn]?.name === player.name
+    const isActiveTurnM = isCardTurnM || isBettingTurnM
     const betValueM = shouldShowBetBanners() && player.bet !== null ? player.bet : "—"
     const isLeaderM = player.score === highestScore && highestScore > 0
     return (
       <div
         key={i}
-        className={`relative flex-shrink-0 rounded-xl border-2 p-2 w-[106px] ${isActiveTurnM ? "border-yellow-400" : "border-gray-600/30"}`}
-        style={{ backgroundColor: isActiveTurnM ? "#fefce8" : mobileSeatBgColor }}
+        className={`relative flex-shrink-0 rounded-xl border-2 p-2 w-[106px] ${isActiveTurnM ? "border-green-400 animate-bet-border" : "border-gray-600/30"}`}
+        style={{ backgroundColor: mobileSeatBgColor }}
       >
         {isLeaderM && (
           <span className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 text-sm leading-none">⭐</span>
@@ -1222,7 +1224,7 @@ export default function GameTable({
           <div className="w-5 h-5 rounded-full bg-gray-500 flex items-center justify-center text-[10px] overflow-hidden flex-shrink-0">
             {player.avatar ? (player.avatar.startsWith("data:") || player.avatar.startsWith("http") ? <img src={player.avatar} alt="" className="w-full h-full object-cover" /> : <span>{player.avatar}</span>) : player.name[0]}
           </div>
-          <span className={`text-[11px] font-medium truncate ${isActiveTurnM ? "text-gray-800" : "text-gray-100"}`}>{player.name}</span>
+          <span className="text-[11px] font-medium truncate text-gray-100">{player.name}</span>
         </div>
         <div className="grid grid-cols-3 text-[11px] text-center">
           <div><div className="text-gray-400">{t("pts")}</div><div className={`font-bold ${player.score > 0 ? "text-green-400" : player.score < 0 ? "text-red-400" : ""}`}>{player.score}</div></div>
@@ -1241,9 +1243,9 @@ export default function GameTable({
       {/* Header */}
       {gameStarted ? (
         <div className="flex justify-between items-center px-4 py-2 text-sm bg-black/20 rounded-lg mx-4 mt-1">
-          <span className="text-gray-300">{t("round")} <strong>{currentRound}</strong></span>
-          <span className="text-yellow-400 font-semibold text-xs">{players[currentTurn]?.name || "?"}&apos;s turn</span>
-          <span className="text-gray-300">{t("playLabel")} <strong>{currentPlay}</strong></span>
+          <span className="text-gray-400">{t("tableIdLabel")} <strong className="text-white">{tableId}</strong></span>
+          <span className="text-gray-400">{t("round")} <strong className="text-white">{currentRound}</strong></span>
+          <span className="text-gray-400">{t("playLabel")} <strong className="text-white">{currentPlay}</strong></span>
         </div>
       ) : (
         <div className="px-4 py-2 text-sm text-center text-gray-400 mt-1">
@@ -1406,7 +1408,7 @@ export default function GameTable({
                     <tr className="border-t border-white/10">
                       <th className="px-2 py-1 text-left text-gray-400 font-medium border-r border-white/10 min-w-[28px]">{t("roundLabel")}</th>
                       {players.map(p => (
-                        <th key={p.name} colSpan={4} className="px-2 py-1 text-center text-gray-200 font-semibold border-r border-white/10 whitespace-nowrap min-w-[104px]">{p.name}</th>
+                        <th key={p.name} colSpan={4} className="px-2 py-1 text-center text-gray-200 font-semibold border-r border-white/10 whitespace-nowrap min-w-[104px]">{p.score === highestScore && highestScore > 0 ? "⭐ " : ""}{p.name}</th>
                       ))}
                     </tr>
                     <tr className="border-t border-white/5">
@@ -1561,8 +1563,8 @@ export default function GameTable({
           <div className="absolute inset-[30px] rounded-[150px/75px] border-2 border-[#0a3d6a] opacity-50"></div>
         </div>
 
-        {/* Player seats */}
-        {players.map((player, index) => {
+        {/* Player seats — current player always at index 0 (bottom center) */}
+        {[...players.filter(p => p.name === currentPlayerName), ...players.filter(p => p.name !== currentPlayerName)].map((player, index) => {
           // Seat positions centered on each border segment of the rounded-rect table.
           // Flat edge centers: bottom (400,400), top (400,0), left (0,200), right (800,200)
           // Corner arc midpoints (border-radius 200px/100px): TL(59,29) TR(741,29) BL(59,371) BR(741,371)
@@ -1596,10 +1598,10 @@ export default function GameTable({
           // ─── Seat appearance — edit these to restyle seats ───────────────
           const seatBgColor    = SEAT_SKINS.find((s) => s.id === seatSkin)?.value ?? "#374151"
           const seatBg         = ""                      // color applied via inline style
-          const seatBgTurn     = "bg-yellow-100"           // background when it's this player's turn
+
           const seatText       = "text-gray-100"         // default text color
           const seatBorder     = "border-gray-500"       // default border
-          const seatBorderTurn = "border-transparent"     // border when it's this player's turn
+          const seatBorderTurn = "border-green-400 animate-bet-border"  // border when it's this player's turn
           const seatBorderLead = "border-yellow-400 ring-1 ring-yellow-400"              // leader highlight
           const dividerColor   = "border-gray-600"       // divider between name and stats rows
           const labelColor     = "text-gray-400"         // stat labels (pts / bet / wins)
@@ -1656,8 +1658,8 @@ export default function GameTable({
                 </div>
               )}
               <div
-                className={`relative w-[150px] rounded-xl shadow-lg border-2 ${isActiveTurn ? seatBgTurn : seatBg} ${seatText} ${borderClass}`}
-                style={isActiveTurn ? undefined : { backgroundColor: seatBgColor }}
+                className={`relative w-[150px] rounded-xl shadow-lg border-2 ${seatBg} ${seatText} ${borderClass}`}
+                style={{ backgroundColor: seatBgColor }}
               >
                 {isLeader && (
                   <span className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 text-xl leading-none">⭐</span>
@@ -1681,7 +1683,7 @@ export default function GameTable({
                       </div>
                     )}
                   </div>
-                  <span className={`text-sm font-bold ${isActiveTurn ? "text-gray-500" : ""}`}>{player.name}</span>
+                  <span className="text-sm font-bold">{player.name}</span>
                 </div>
                 {/* Stats row: pts | bet | wins */}
                 <div className={`grid grid-cols-3 border-t ${dividerColor} px-1 py-1.5`}>
