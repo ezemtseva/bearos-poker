@@ -117,6 +117,7 @@ export default function GameTable({
   const [showResultsDialog, setShowResultsDialog] = useState(false)
   const [showPokerCardDialog, setShowPokerCardDialog] = useState(false)
   const [pokerCardOption, setPokerCardOption] = useState<"Trumps" | "Poker" | "Simple" | null>(null)
+  const [showSuitPickerDialog, setShowSuitPickerDialog] = useState(false)
   const [lastKnownBettingPlayer, setLastKnownBettingPlayer] = useState<string>("Waiting for players...")
   const [stableBettingUI, setStableBettingUI] = useState<boolean>(false)
   const [scoreTableExpanded, setScoreTableExpanded] = useState(() => {
@@ -418,9 +419,17 @@ export default function GameTable({
 
   const isCurrentRoundNoTrumps = safeGameData.scoreTable?.[currentRound - 1]?.roundName === "NT"
 
-  const getValidCardsAfterTrumps = (hand: Card[]): Card[] => {
-    // In no-trumps rounds: only highest rank matters, player chooses suit
+  const getValidCardsAfterTrumps = (hand: Card[], requestedSuit?: string): Card[] => {
+    // In no-trumps rounds: player must play highest card of requestedSuit, or any card if they don't have it
     if (isCurrentRoundNoTrumps) {
+      if (requestedSuit) {
+        const suitCards = hand.filter((c) => c.suit === requestedSuit)
+        if (suitCards.length > 0) {
+          const highest = suitCards.reduce((max, c) => (c.value > max.value ? c : max))
+          return [highest]
+        }
+        return hand // no cards of requested suit — any card allowed
+      }
       const highestValue = Math.max(...hand.map((c) => c.value))
       return hand.filter((c) => c.value === highestValue)
     }
@@ -632,7 +641,7 @@ export default function GameTable({
       (c) => c.suit === "spades" && c.value === 7 && c.pokerOption === "Trumps",
     )
     if (sevenOfSpadesWithTrumps) {
-      const validCards = getValidCardsAfterTrumps(currentPlayer?.hand || [])
+      const validCards = getValidCardsAfterTrumps(currentPlayer?.hand || [], sevenOfSpadesWithTrumps.requestedSuit)
       if (!validCards.some((c) => c.suit === card.suit && c.value === card.value)) {
         return
       }
@@ -676,7 +685,7 @@ export default function GameTable({
   }
 
   // Modify the playCard function to reset the isPlayingCard state
-  const playCard = async (card: Card, pokerOption?: "Trumps" | "Poker" | "Simple") => {
+  const playCard = async (card: Card, pokerOption?: "Trumps" | "Poker" | "Simple", requestedSuit?: "spades" | "hearts" | "diamonds" | "clubs") => {
     setErrorMessage(null)
 
     // For 7 of spades with poker option, show it immediately
@@ -686,6 +695,7 @@ export default function GameTable({
         ...card,
         playerName: currentPlayerName,
         pokerOption,
+        ...(requestedSuit ? { requestedSuit } : {}),
       }
 
       // Update the displayed cards immediately for the current player
@@ -713,7 +723,7 @@ export default function GameTable({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ tableId, playerName: currentPlayerName, card, pokerOption }),
+        body: JSON.stringify({ tableId, playerName: currentPlayerName, card, pokerOption, requestedSuit }),
       })
 
       if (!response.ok) {
@@ -808,9 +818,21 @@ export default function GameTable({
   const handlePokerCardOptionSelect = (option: "Trumps" | "Poker" | "Simple") => {
     setPokerCardOption(option)
     setShowPokerCardDialog(false)
-    setIsPlayingCard(true) // Set the flag before playing the card
+    // In no-trumps round with Trumps option: ask player to choose a suit first
+    if (option === "Trumps" && isCurrentRoundNoTrumps) {
+      setShowSuitPickerDialog(true)
+      return
+    }
+    setIsPlayingCard(true)
     playSound("playCard")
     playCard({ suit: "spades", value: 7 }, option)
+  }
+
+  const handleSuitSelected = (suit: "spades" | "hearts" | "diamonds" | "clubs") => {
+    setShowSuitPickerDialog(false)
+    setIsPlayingCard(true)
+    playSound("playCard")
+    playCard({ suit: "spades", value: 7 }, "Trumps", suit)
   }
 
   const isValidSimplePlay = () => {
@@ -824,7 +846,7 @@ export default function GameTable({
       (c) => c.suit === "spades" && c.value === 7 && c.pokerOption === "Trumps",
     )
     if (sevenOfSpadesWithTrumps) {
-      const validCards = getValidCardsAfterTrumps(currentPlayer?.hand || [])
+      const validCards = getValidCardsAfterTrumps(currentPlayer?.hand || [], sevenOfSpadesWithTrumps.requestedSuit)
       return validCards.some((c) => c.suit === card.suit && c.value === card.value)
     }
 
@@ -1149,15 +1171,15 @@ export default function GameTable({
                                 ? (playerScore.wins !== undefined ? playerScore.wins : "-")
                                 : "-"}
                           </TableCell>
-                          <TableCell className={`text-center font-bold ${isRoundLeader ? "bg-yellow-400/20 rounded" : ""} ${hasScore && playerScore.cumulativePoints > 0 ? "text-green-400" : hasScore && playerScore.cumulativePoints < 0 ? "text-red-400" : ""}`}>
+                          <TableCell className={`text-center font-bold ${isRoundLeader ? "bg-gray-200/20" : ""} ${hasScore && playerScore.cumulativePoints > 0 ? "text-green-400" : hasScore && playerScore.cumulativePoints < 0 ? "text-red-400" : ""}`}>
                             {hasScore ? playerScore.cumulativePoints : "-"}
                           </TableCell>
                           <TableCell
                             className={`text-center italic border-r border-gray-600 ${
                               hasScore && playerScore.roundPoints < 0
-                                ? "text-pink-400"
+                                ? "text-red-400/50"
                                 : hasScore && playerScore.roundPoints > 0
-                                  ? "text-blue-400"
+                                  ? "text-green-400/50"
                                   : ""
                             }`}
                           >
@@ -1429,9 +1451,9 @@ export default function GameTable({
                             <React.Fragment key={player.name}>
                               <td className="px-1 py-1 text-center text-gray-300">{s.bet ?? "—"}</td>
                               <td className="px-1 py-1 text-center text-gray-300">{s.wins ?? "—"}</td>
-                              <td className={`px-1 py-1 text-center font-bold ${isRoundLeader ? "bg-yellow-400/20" : ""} ${s.cumulativePoints > 0 ? "text-green-400" : s.cumulativePoints < 0 ? "text-red-400" : ""}`}>{s.cumulativePoints}</td>
+                              <td className={`px-1 py-1 text-center font-bold ${isRoundLeader ? "bg-gray-200/20" : ""} ${s.cumulativePoints > 0 ? "text-green-400" : s.cumulativePoints < 0 ? "text-red-400" : ""}`}>{s.cumulativePoints}</td>
                               <td className="px-1 py-1 text-center italic border-r border-white/10">
-                                {s.roundPoints === null ? "—" : s.roundPoints === 0 ? "-" : <span className={s.roundPoints > 0 ? "text-blue-400" : "text-pink-400"}>{s.roundPoints > 0 ? `+${s.roundPoints}` : s.roundPoints}</span>}
+                                {s.roundPoints === null ? "—" : s.roundPoints === 0 ? "-" : <span className={s.roundPoints > 0 ? "text-green-400/50" : "text-red-400/50"}>{s.roundPoints > 0 ? `+${s.roundPoints}` : s.roundPoints}</span>}
                               </td>
                             </React.Fragment>
                           )
@@ -1450,6 +1472,21 @@ export default function GameTable({
       <GameResultsDialog isOpen={showResultsDialog} onClose={() => setShowResultsDialog(false)} players={players} />
       <PokerCardDialog isOpen={showPokerCardDialog} onClose={() => setShowPokerCardDialog(false)} onOptionSelect={handlePokerCardOptionSelect} isFirstCard={cardsOnTable.length === 0} isValidSimple={isValidSimplePlay()} availableOptions={cardsOnTable.length === 0 ? ["Trumps", "Poker", "Simple"] : ["Poker", "Simple"]} />
       <ConfigureGameDialog isOpen={showConfigureDialog} onClose={() => setShowConfigureDialog(false)} onSave={handleSaveGameConfig} currentGameLength={safeGameData.gameLength || "short"} currentHasGoldenRound={safeGameData.hasGoldenRound || false} currentHasNoTrumps={safeGameData.hasNoTrumps || false} />
+      {showSuitPickerDialog && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowSuitPickerDialog(false)}>
+          <div className="bg-gray-800 rounded-xl p-5 w-72 shadow-xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-white font-semibold text-base mb-4 text-center">{t("selectSuitTitle")}</h3>
+            <div className="flex flex-col gap-2">
+              {(["spades", "hearts", "diamonds", "clubs"] as const).map(suit => (
+                <button key={suit} onClick={() => handleSuitSelected(suit)}
+                  className="w-full py-2.5 rounded-lg text-white font-medium text-sm bg-gray-700 hover:bg-gray-600 transition-colors">
+                  {t(`suit${suit.charAt(0).toUpperCase() + suit.slice(1)}` as "suitSpades" | "suitHearts" | "suitDiamonds" | "suitClubs")}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
       {showAvatarPicker && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowAvatarPicker(false)}>
           <div className="bg-gray-800 rounded-xl p-4 w-80 shadow-xl" onClick={e => e.stopPropagation()}>
@@ -1879,6 +1916,21 @@ export default function GameTable({
         currentHasGoldenRound={safeGameData.hasGoldenRound || false}
         currentHasNoTrumps={safeGameData.hasNoTrumps || false}
       />
+      {showSuitPickerDialog && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowSuitPickerDialog(false)}>
+          <div className="bg-gray-800 rounded-xl p-5 w-72 shadow-xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-white font-semibold text-base mb-4 text-center">{t("selectSuitTitle")}</h3>
+            <div className="flex flex-col gap-2">
+              {(["spades", "hearts", "diamonds", "clubs"] as const).map(suit => (
+                <button key={suit} onClick={() => handleSuitSelected(suit)}
+                  className="w-full py-2.5 rounded-lg text-white font-medium text-sm bg-gray-700 hover:bg-gray-600 transition-colors">
+                  {t(`suit${suit.charAt(0).toUpperCase() + suit.slice(1)}` as "suitSpades" | "suitHearts" | "suitDiamonds" | "suitClubs")}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Avatar / Reaction Picker Modal */}
       {showAvatarPicker && (

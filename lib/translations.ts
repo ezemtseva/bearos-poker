@@ -134,6 +134,11 @@ export const translations = {
     // PokerCardDialog
     howToPlay7: "How would you like to play?",
     pokerOption: "Poker",
+    selectSuitTitle: "Choose the leading suit",
+    suitSpades: "Spades ♠",
+    suitHearts: "Hearts ♥",
+    suitDiamonds: "Diamonds ♦",
+    suitClubs: "Clubs ♣",
 
     // Score table
     scoreTable: "Score Table",
@@ -306,7 +311,7 @@ export const translations = {
     waitingForPlayers: "Ожидание игроков...",
     makeYourBet: "Сделайте ставку",
     youCannotBet: "Нельзя ставить",
-    trumps: "По главным козырям",
+    trumps: "По главной масти",
     poker: "Покер",
     simple: "Простая",
     round: "Раунд",
@@ -368,6 +373,11 @@ export const translations = {
     // PokerCardDialog
     howToPlay7: "Как сыграть эту карту?",
     pokerOption: "Покер",
+    selectSuitTitle: "Выберите главную масть",
+    suitSpades: "Пики ♠",
+    suitHearts: "Червы ♥",
+    suitDiamonds: "Бубны ♦",
+    suitClubs: "Трефы ♣",
 
     // Score table
     scoreTable: "Таблица результатов",

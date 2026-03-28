@@ -71,10 +71,19 @@ function isValidPlay(card: Card, playerHand: Card[], cardsOnTable: Card[], noTru
     (c) => c.suit === "spades" && c.value === 7 && c.pokerOption === "Trumps",
   )
   if (sevenOfSpadesWithTrumps) {
-    // In no-trumps rounds: player must play their highest-rank card (any suit)
+    // In no-trumps rounds: player must play highest card of requestedSuit, or any card if they don't have it
     if (noTrumps) {
-      const highestValue = Math.max(...playerHand.map((c) => c.value))
-      return card.value === highestValue
+      const requestedSuit = sevenOfSpadesWithTrumps.requestedSuit
+      if (requestedSuit) {
+        const suitCards = playerHand.filter((c) => c.suit === requestedSuit)
+        if (suitCards.length > 0) {
+          const highest = suitCards.reduce((max, c) => (c.value > max.value ? c : max))
+          return card.suit === requestedSuit && card.value === highest.value
+        }
+        return true // no cards of requested suit — any card allowed
+      }
+      // fallback: no requestedSuit stored — any card allowed
+      return true
     }
     // Normal: player must play highest diamond, or highest card if no diamonds
     const diamonds = playerHand.filter((c) => c.suit === "diamonds")
@@ -237,7 +246,7 @@ function cardsPerRound(round: number, gameLength: GameLength, hasGoldenRound: bo
 }
 
 export async function POST(req: NextRequest) {
-  const { tableId, playerName, card, pokerOption } = await req.json()
+  const { tableId, playerName, card, pokerOption, requestedSuit } = await req.json()
 
   try {
     console.log(
@@ -313,7 +322,11 @@ export async function POST(req: NextRequest) {
         cardsOnTable[0]?.pokerOption === "Trumps"
       ) {
         if (isNoTrumpsRound) {
-          return NextResponse.json({ error: "You must play your highest card (no trumps round)." }, { status: 400 })
+          const rs = cardsOnTable[0]?.requestedSuit
+          const msg = rs
+            ? `You must play your highest ${rs} card, or any card if you have no ${rs}.`
+            : "You must play your highest card (no trumps round)."
+          return NextResponse.json({ error: msg }, { status: 400 })
         }
         const diamonds = players[playerIndex].hand.filter((c) => c.suit === "diamonds")
         if (diamonds.length > 0) {
@@ -346,6 +359,7 @@ export async function POST(req: NextRequest) {
     // Add the card to the table
     if (card.suit === "spades" && card.value === 7 && pokerOption) {
       card.pokerOption = pokerOption
+      if (requestedSuit) card.requestedSuit = requestedSuit
     }
     cardsOnTable.push({ ...card, playerName })
 
