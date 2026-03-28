@@ -1183,10 +1183,10 @@ export default function GameTable({
                                   : ""
                             }`}
                           >
-                            {!hasScore ? "-" : playerScore.roundPoints > 0
+                            {!hasScore ? "—" : playerScore.roundPoints > 0
                               ? `+${playerScore.roundPoints}`
                               : playerScore.roundPoints === 0
-                                ? "-"
+                                ? "—"
                                 : playerScore.roundPoints}
                           </TableCell>
                         </React.Fragment>
@@ -1212,16 +1212,17 @@ export default function GameTable({
   const mobileBottomOpponents = players.slice(3)
   const mobileSeatBgColor = SEAT_SKINS.find(s => s.id === seatSkin)?.value ?? "#374151"
 
-  const renderMobileSeat = (player: typeof players[0], i: number) => {
+  const renderMobileSeat = (player: typeof players[0], i: number, rowSize?: number) => {
     const isCardTurnM = safeGameData.allBetsPlaced && players[currentTurn]?.name === player.name
     const isBettingTurnM = !safeGameData.allBetsPlaced && typeof safeGameData.currentBettingTurn === "number" && players[safeGameData.currentBettingTurn]?.name === player.name
     const isActiveTurnM = isCardTurnM || isBettingTurnM
     const betValueM = shouldShowBetBanners() && player.bet !== null ? player.bet : "—"
     const isLeaderM = player.score === highestScore && highestScore > 0
+    const seatWidth = rowSize === 3 ? "flex-1" : "w-[106px] flex-shrink-0"
     return (
       <div
         key={i}
-        className={`relative flex-shrink-0 rounded-xl border-2 p-2 w-[106px] ${isActiveTurnM ? "border-green-400 animate-bet-border" : "border-gray-600/30"}`}
+        className={`relative rounded-xl border-2 p-2 ${seatWidth} ${isActiveTurnM ? "border-green-400 animate-bet-border" : "border-gray-600/30"}`}
         style={{ backgroundColor: mobileSeatBgColor }}
       >
         {isLeaderM && (
@@ -1297,8 +1298,8 @@ export default function GameTable({
       {gameStarted && <>
         {/* Top opponents (max 3) */}
         <div className="px-4 pt-3">
-          <div className="flex justify-center gap-2">
-            {mobileTopOpponents.map((player, i) => renderMobileSeat(player, i))}
+          <div className={`flex gap-2 ${mobileTopOpponents.length < 3 ? "justify-center" : ""}`}>
+            {mobileTopOpponents.map((player, i) => renderMobileSeat(player, i, mobileTopOpponents.length))}
           </div>
         </div>
 
@@ -1349,8 +1350,8 @@ export default function GameTable({
         {/* Bottom opponents (4th–6th), centered under table */}
         {mobileBottomOpponents.length > 0 && (
           <div className="px-4 pb-2">
-            <div className="flex justify-center gap-2">
-              {mobileBottomOpponents.map((player, i) => renderMobileSeat(player, i + 3))}
+            <div className={`flex gap-2 ${mobileBottomOpponents.length < 3 ? "justify-center" : ""}`}>
+              {mobileBottomOpponents.map((player, i) => renderMobileSeat(player, i + 3, mobileBottomOpponents.length))}
             </div>
           </div>
         )}
@@ -1415,18 +1416,18 @@ export default function GameTable({
                 <table className="text-[11px]">
                   <thead>
                     <tr className="border-t border-white/10">
-                      <th className="px-2 py-1 text-left text-gray-400 font-medium border-r border-white/10 min-w-[28px]">{t("roundLabel")}</th>
-                      {players.map(p => (
+                      <th className="px-2 py-1 border-r border-white/10 min-w-[28px]" />
+                      {orderedPlayers.map(p => (
                         <th key={p.name} colSpan={4} className="px-2 py-1 text-center text-gray-200 font-semibold border-r border-white/10 whitespace-nowrap min-w-[104px]">{p.score === highestScore && highestScore > 0 ? "⭐ " : ""}{p.name}</th>
                       ))}
                     </tr>
                     <tr className="border-t border-white/5">
-                      <th className="px-2 py-1 border-r border-white/10" />
-                      {players.map(p => (
+                      <th className="px-2 py-1 text-center text-gray-500 font-normal border-r border-white/10 min-w-[28px]">Rnd</th>
+                      {orderedPlayers.map(p => (
                         <React.Fragment key={p.name}>
                           <th className="px-1 py-1 text-center text-gray-500 font-normal min-w-[26px]">{t("betLabel")}</th>
                           <th className="px-1 py-1 text-center text-gray-500 font-normal min-w-[26px]">{t("winsLabel")}</th>
-                          <th className="px-1 py-1 text-center text-gray-500 font-normal min-w-[26px]">{t("pointsLabel")}</th>
+                          <th className="px-1 py-1 text-center text-gray-500 font-normal min-w-[26px]">Pnts</th>
                           <th className="px-1 py-1 text-center text-gray-500 font-normal border-r border-white/10 min-w-[26px]">{t("roundIncrLabel")}</th>
                         </React.Fragment>
                       ))}
@@ -1442,8 +1443,8 @@ export default function GameTable({
                           round.roundName
                         }</td>
                         {(() => {
-                          const roundMaxPoints = Math.max(...players.map(p => round.scores[p.name]?.cumulativePoints ?? -Infinity))
-                          return players.map(player => {
+                          const roundMaxPoints = Math.max(...orderedPlayers.map(p => round.scores[p.name]?.cumulativePoints ?? -Infinity))
+                          return orderedPlayers.map(player => {
                           const s: PlayerScore = round.scores[player.name] || { bet: null, wins: 0, cumulativePoints: 0, roundPoints: 0 }
                           const hasScore = !!round.scores[player.name] && round.roundId <= currentRound
                           const isRoundLeader = hasScore && s.cumulativePoints === roundMaxPoints && roundMaxPoints > 0
@@ -1453,7 +1454,7 @@ export default function GameTable({
                               <td className="px-1 py-1 text-center text-gray-300">{s.wins ?? "—"}</td>
                               <td className={`px-1 py-1 text-center font-bold ${isRoundLeader ? "bg-gray-200/20" : ""} ${s.cumulativePoints > 0 ? "text-green-400" : s.cumulativePoints < 0 ? "text-red-400" : ""}`}>{s.cumulativePoints}</td>
                               <td className="px-1 py-1 text-center italic border-r border-white/10">
-                                {s.roundPoints === null ? "—" : s.roundPoints === 0 ? "-" : <span className={s.roundPoints > 0 ? "text-green-400/50" : "text-red-400/50"}>{s.roundPoints > 0 ? `+${s.roundPoints}` : s.roundPoints}</span>}
+                                {s.roundPoints === null ? "—" : s.roundPoints === 0 ? "—" : <span className={s.roundPoints > 0 ? "text-green-400/50" : "text-red-400/50"}>{s.roundPoints > 0 ? `+${s.roundPoints}` : s.roundPoints}</span>}
                               </td>
                             </React.Fragment>
                           )
