@@ -111,11 +111,12 @@ const ROWS: [number, number, number][] = [
   [12, -16, 173],
   [171, 149, 107],
   [163, -58, 234],
+  [18, 149, 216],
 ]
 
-// Spread games evenly from 2023-10-01 to 2026-03-01
+// Spread games evenly from 2023-10-01 to 2026-03-29
 const START_DATE = new Date("2023-10-01").getTime()
-const END_DATE   = new Date("2026-03-01").getTime()
+const END_DATE   = new Date("2026-03-29").getTime()
 
 export async function GET(req: NextRequest) {
   const secret = req.nextUrl.searchParams.get("secret")
