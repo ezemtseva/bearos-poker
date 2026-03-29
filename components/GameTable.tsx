@@ -1174,7 +1174,7 @@ export default function GameTable({
                                 : "-"}
                           </TableCell>
                           <TableCell className={`text-center font-bold ${isRoundLeader ? "bg-gray-200/20" : ""} ${hasScore && playerScore.cumulativePoints > 0 ? "text-green-400" : hasScore && playerScore.cumulativePoints < 0 ? "text-red-400" : ""}`}>
-                            {hasScore ? playerScore.cumulativePoints : "-"}
+                            {!hasScore ? "-" : playerScore.cumulativePoints}
                           </TableCell>
                           <TableCell
                             className={`text-center italic border-r border-gray-600 ${
@@ -1185,10 +1185,10 @@ export default function GameTable({
                                   : ""
                             }`}
                           >
-                            {!hasScore ? "—" : playerScore.roundPoints > 0
+                            {!hasScore ? "-" : playerScore.roundPoints > 0
                               ? `+${playerScore.roundPoints}`
                               : playerScore.roundPoints === 0
-                                ? "—"
+                                ? "-"
                                 : playerScore.roundPoints}
                           </TableCell>
                         </React.Fragment>

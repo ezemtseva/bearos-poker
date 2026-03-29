@@ -224,7 +224,8 @@ export default function Game() {
 
     setGameData((prevData) => {
       // Ignore stale poll responses that are behind the current known state
-      if (prevData) {
+      // (but always allow game over updates through)
+      if (prevData && !data.gameOver) {
         if (data.currentRound < prevData.currentRound) return prevData
         if (data.currentRound === prevData.currentRound && data.currentPlay < prevData.currentPlay) return prevData
       }
