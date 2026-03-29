@@ -9,6 +9,7 @@ import { useLocale } from "@/lib/locale-context"
 import soundManager from "@/app/utils/sound"
 
 const SKIN_GAME_OVER: Record<string, string> = {
+  krug:        "/sounds/game-over (krug).mp3",
   modniy_luk:  "/sounds/game-over (shopping).mp3",
   chechnia:    "/sounds/game-over (mucuraev).mp3",
   verstalibin: "/sounds/game-over (mercedes).mp3",
