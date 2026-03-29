@@ -21,6 +21,8 @@ export const translations = {
     tableSkin: "Table Skin",
     cardBack: "Card Back",
     seatColor: "Seat Color",
+    uploadCustomSkin: "Upload custom skin",
+    uploading: "Uploading...",
     language: "Language",
 
     // Login
@@ -260,6 +262,8 @@ export const translations = {
     tableSkin: "Сукно стола",
     cardBack: "Рубашка карт",
     seatColor: "Цвет кресел",
+    uploadCustomSkin: "Загрузить свой скин",
+    uploading: "Загрузка...",
     language: "Язык",
 
     // Login

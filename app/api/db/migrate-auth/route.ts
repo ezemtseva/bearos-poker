@@ -71,8 +71,16 @@ export async function GET() {
         card_back_skin TEXT DEFAULT 'black',
         seat_skin TEXT DEFAULT 'gray',
         bet_blink_enabled BOOLEAN DEFAULT FALSE,
+        custom_table_skin TEXT,
+        custom_card_skin TEXT,
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
+    `
+
+    await sql`
+      ALTER TABLE user_settings
+        ADD COLUMN IF NOT EXISTS custom_table_skin TEXT,
+        ADD COLUMN IF NOT EXISTS custom_card_skin TEXT;
     `
 
     // Game history

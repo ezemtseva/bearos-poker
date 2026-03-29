@@ -106,6 +106,14 @@ function saveSettingsToDB(patch: Record<string, unknown>) {
   }).catch(() => {})
 }
 
+function readCustomTableSkinUrl(): string {
+  try { return localStorage.getItem("customTableSkinUrl") || "" } catch { return "" }
+}
+
+function readCustomCardSkinUrl(): string {
+  try { return localStorage.getItem("customCardSkinUrl") || "" } catch { return "" }
+}
+
 export default function SettingsPanel() {
   const { status } = useSession()
   const loggedIn = status === "authenticated"
@@ -119,7 +127,13 @@ export default function SettingsPanel() {
   const [cardBackSkin, setCardBackSkin] = useState("black")
   const [roomSkin, setRoomSkin] = useState("classic_blue")
   const [seatSkin, setSeatSkin] = useState("gray")
+  const [customTableSkinUrl, setCustomTableSkinUrl] = useState("")
+  const [customCardSkinUrl, setCustomCardSkinUrl] = useState("")
+  const [uploadingTable, setUploadingTable] = useState(false)
+  const [uploadingCard, setUploadingCard] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
+  const tableFileRef = useRef<HTMLInputElement>(null)
+  const cardFileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setBetBlink(readBetBlink())
@@ -128,6 +142,8 @@ export default function SettingsPanel() {
     setCardBackSkin(readCardBackSkin())
     setRoomSkin(readRoomSkin())
     setSeatSkin(readSeatSkin())
+    setCustomTableSkinUrl(readCustomTableSkinUrl())
+    setCustomCardSkinUrl(readCustomCardSkinUrl())
   }, [])
 
   useEffect(() => {
@@ -184,6 +200,48 @@ export default function SettingsPanel() {
   function selectLanguage(l: Locale) {
     setLocale(l)
     if (loggedIn) saveSettingsToDB({ language: l })
+  }
+
+  async function uploadCustomSkin(file: File, type: "table" | "card") {
+    const setUploading = type === "table" ? setUploadingTable : setUploadingCard
+    setUploading(true)
+    try {
+      const form = new FormData()
+      form.append("file", file)
+      form.append("type", type)
+      const res = await fetch("/api/user/skin", { method: "POST", body: form })
+      const data = await res.json()
+      if (!res.ok) { console.warn("Skin upload failed:", data.error); return }
+      const url = data.url as string
+      if (type === "table") {
+        try { localStorage.setItem("customTableSkinUrl", url); localStorage.setItem("tableSkin", "custom_table") } catch {}
+        setCustomTableSkinUrl(url)
+        setTableSkin("custom_table")
+        window.dispatchEvent(new CustomEvent("settingsChanged", { detail: { tableSkin: "custom_table", customTableSkinUrl: url } }))
+      } else {
+        try { localStorage.setItem("customCardSkinUrl", url); localStorage.setItem("cardBackSkin", "custom_card") } catch {}
+        setCustomCardSkinUrl(url)
+        setCardBackSkin("custom_card")
+        window.dispatchEvent(new CustomEvent("settingsChanged", { detail: { cardBackSkin: "custom_card", customCardSkinUrl: url } }))
+      }
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  async function removeCustomSkin(type: "table" | "card") {
+    await fetch("/api/user/skin", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type }) })
+    if (type === "table") {
+      try { localStorage.removeItem("customTableSkinUrl"); localStorage.setItem("tableSkin", "blue") } catch {}
+      setCustomTableSkinUrl("")
+      setTableSkin("blue")
+      window.dispatchEvent(new CustomEvent("settingsChanged", { detail: { tableSkin: "blue", customTableSkinUrl: "" } }))
+    } else {
+      try { localStorage.removeItem("customCardSkinUrl"); localStorage.setItem("cardBackSkin", "black") } catch {}
+      setCustomCardSkinUrl("")
+      setCardBackSkin("black")
+      window.dispatchEvent(new CustomEvent("settingsChanged", { detail: { cardBackSkin: "black", customCardSkinUrl: "" } }))
+    }
   }
 
   return (
@@ -282,8 +340,30 @@ export default function SettingsPanel() {
 
           {/* Table skin */}
           <div className="mb-4">
-            <div className="text-sm text-white mb-2">{t("tableSkin")}</div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-sm text-white">{t("tableSkin")}</div>
+              {loggedIn && (
+                <>
+                  <input ref={tableFileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadCustomSkin(f, "table"); e.target.value = "" }} />
+                  <button onClick={() => tableFileRef.current?.click()} disabled={uploadingTable} className="text-white text-lg leading-none hover:text-gray-300 disabled:opacity-50 transition-colors" title={t("uploadCustomSkin")}>+</button>
+                </>
+              )}
+            </div>
             <div className="grid grid-cols-4 gap-2">
+              {customTableSkinUrl && (
+                <div className="relative">
+                  <button
+                    onClick={() => selectSkin("custom_table")}
+                    title="My skin"
+                    className={`relative rounded-lg overflow-hidden h-12 w-full border-2 transition-all ${tableSkin === "custom_table" ? "border-white scale-105" : "border-transparent hover:border-white/40"}`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={customTableSkinUrl} alt="Custom" className="w-full h-full object-cover" />
+                    {tableSkin === "custom_table" && <div className="absolute inset-0 flex items-center justify-center"><div className="w-3 h-3 rounded-full bg-white shadow" /></div>}
+                  </button>
+                  <button onClick={() => removeCustomSkin("table")} className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center leading-none">×</button>
+                </div>
+              )}
               {TABLE_SKINS.map((skin) => (
                 <button
                   key={skin.id}
@@ -312,8 +392,31 @@ export default function SettingsPanel() {
 
           {/* Card back skin */}
           <div>
-            <div className="text-sm text-white mb-2">{t("cardBack")}</div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-sm text-white">{t("cardBack")}</div>
+              {loggedIn && (
+                <>
+                  <input ref={cardFileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadCustomSkin(f, "card"); e.target.value = "" }} />
+                  <button onClick={() => cardFileRef.current?.click()} disabled={uploadingCard} className="text-white text-lg leading-none hover:text-gray-300 disabled:opacity-50 transition-colors" title={t("uploadCustomSkin")}>+</button>
+                </>
+              )}
+            </div>
             <div className="grid grid-cols-4 gap-2">
+              {customCardSkinUrl && (
+                <div className="relative">
+                  <button
+                    onClick={() => selectCardBackSkin("custom_card")}
+                    title="My skin"
+                    className={`relative rounded-lg overflow-hidden w-full border-2 transition-all ${cardBackSkin === "custom_card" ? "border-white scale-105" : "border-transparent hover:border-white/40"}`}
+                    style={{ aspectRatio: "2/3", height: "48px" }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={customCardSkinUrl} alt="Custom" className="w-full h-full object-cover" />
+                    {cardBackSkin === "custom_card" && <div className="absolute inset-0 flex items-center justify-center"><div className="w-3 h-3 rounded-full bg-white shadow" /></div>}
+                  </button>
+                  <button onClick={() => removeCustomSkin("card")} className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center leading-none">×</button>
+                </div>
+              )}
               {CARD_BACK_SKINS.map((skin) => (
                 <button
                   key={skin.id}

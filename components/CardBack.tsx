@@ -17,15 +17,28 @@ export default function CardBack({ className = "", size = "normal" }: CardBackPr
   const patternId = useId()
   const [skinId, setSkinId] = useState("black")
 
+  const [customCardUrl, setCustomCardUrl] = useState("")
+
   useEffect(() => {
     setSkinId(readCardBackSkin())
+    try { setCustomCardUrl(localStorage.getItem("customCardSkinUrl") || "") } catch {}
     function handleSettingsChanged(e: Event) {
       const detail = (e as CustomEvent).detail
       if ("cardBackSkin" in detail) setSkinId(detail.cardBackSkin)
+      if ("customCardSkinUrl" in detail) setCustomCardUrl(detail.customCardSkinUrl as string)
     }
     window.addEventListener("settingsChanged", handleSettingsChanged)
     return () => window.removeEventListener("settingsChanged", handleSettingsChanged)
   }, [])
+
+  if (skinId === "custom_card" && customCardUrl) {
+    return (
+      <div className={`${sizeClass} overflow-hidden border border-white/20 ${className}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={customCardUrl} alt="card back" className="w-full h-full object-cover" />
+      </div>
+    )
+  }
 
   const skin = CARD_BACK_SKINS.find((s) => s.id === skinId) ?? CARD_BACK_SKINS[0]
 

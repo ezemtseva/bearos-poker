@@ -94,10 +94,12 @@ export default function GameTable({
         const s = data.settings
         try {
           const detail: Record<string, unknown> = {}
-          if (s.table_skin)    { localStorage.setItem("tableSkin", s.table_skin); setTableSkin(s.table_skin); detail.tableSkin = s.table_skin }
+          if (s.custom_table_skin) { localStorage.setItem("customTableSkinUrl", s.custom_table_skin) }
+          if (s.custom_card_skin)  { localStorage.setItem("customCardSkinUrl", s.custom_card_skin) }
+          if (s.table_skin)    { localStorage.setItem("tableSkin", s.table_skin); setTableSkin(s.table_skin); detail.tableSkin = s.table_skin; if (s.custom_table_skin) detail.customTableSkinUrl = s.custom_table_skin }
           if (s.seat_skin)     { localStorage.setItem("seatSkin", s.seat_skin); setSeatSkin(s.seat_skin); detail.seatSkin = s.seat_skin }
           if (s.room_skin)     { localStorage.setItem("roomSkin", s.room_skin); detail.roomSkin = s.room_skin }
-          if (s.card_back_skin){ localStorage.setItem("cardBackSkin", s.card_back_skin); detail.cardBackSkin = s.card_back_skin }
+          if (s.card_back_skin){ localStorage.setItem("cardBackSkin", s.card_back_skin); detail.cardBackSkin = s.card_back_skin; if (s.custom_card_skin) detail.customCardSkinUrl = s.custom_card_skin }
           if (s.bet_blink_enabled !== undefined) { localStorage.setItem("betBlinkEnabled", String(s.bet_blink_enabled)); setBetBlinkEnabled(s.bet_blink_enabled); detail.betBlinkEnabled = s.bet_blink_enabled }
           if (Object.keys(detail).length > 0)
             window.dispatchEvent(new CustomEvent("settingsChanged", { detail }))
@@ -1280,6 +1282,7 @@ export default function GameTable({
           <div
             className="flex justify-center items-center min-h-[150px] rounded-xl p-3 my-3"
             style={(() => {
+              if (tableSkin === "custom_table") { try { const u = localStorage.getItem("customTableSkinUrl"); if (u) return { backgroundImage: `url(${u})`, backgroundSize: "cover", backgroundPosition: "center" } } catch {} }
               const skin = TABLE_SKINS.find(s => s.id === tableSkin)
               if (!skin) return { backgroundColor: "#0f4c81" }
               if (skin.type === "image") return { backgroundImage: `url(${skin.value})`, backgroundSize: "cover", backgroundPosition: "center" }
@@ -1308,6 +1311,7 @@ export default function GameTable({
           <div
             className="relative flex justify-center gap-2 min-h-[150px] items-center rounded-xl p-3"
             style={(() => {
+              if (tableSkin === "custom_table") { try { const u = localStorage.getItem("customTableSkinUrl"); if (u) return { backgroundImage: `url(${u})`, backgroundSize: "cover", backgroundPosition: "center" } } catch {} }
               const skin = TABLE_SKINS.find(s => s.id === tableSkin)
               if (!skin) return { backgroundColor: "#0f4c81" }
               if (skin.type === "image") return { backgroundImage: `url(${skin.value})`, backgroundSize: "cover", backgroundPosition: "center" }
@@ -1571,6 +1575,7 @@ export default function GameTable({
         <div
           className="absolute inset-[20px] rounded-[180px/90px]"
           style={(() => {
+            if (tableSkin === "custom_table") { try { const u = localStorage.getItem("customTableSkinUrl"); if (u) return { backgroundImage: `url(${u})`, backgroundSize: "cover", backgroundPosition: "center" } } catch {} }
             const skin = TABLE_SKINS.find((s) => s.id === tableSkin)
             if (!skin) return { backgroundColor: "#0f4c81" }
             if (skin.type === "image") return { backgroundImage: `url(${skin.value})`, backgroundSize: "cover", backgroundPosition: "center" }
