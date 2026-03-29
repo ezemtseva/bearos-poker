@@ -112,6 +112,7 @@ const ROWS: [number, number, number][] = [
   [171, 149, 107],
   [163, -58, 234],
   [18, 149, 216],
+  [-312, -82, 144],
 ]
 
 // Spread games evenly from 2023-10-01 to 2026-03-29
