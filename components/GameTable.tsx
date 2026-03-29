@@ -420,6 +420,7 @@ export default function GameTable({
   ])
 
   const isCurrentRoundNoTrumps = safeGameData.scoreTable?.[currentRound - 1]?.roundName === "NT"
+  const isNoSuitRound = isCurrentRoundNoTrumps || safeGameData.scoreTable?.[currentRound - 1]?.roundName === "B"
 
   const getValidCardsAfterTrumps = (hand: Card[], requestedSuit?: string): Card[] => {
     // In no-trumps rounds: player must play highest card of requestedSuit, or any card if they don't have it
@@ -1324,7 +1325,7 @@ export default function GameTable({
                 <div key={index} className="relative">
                   <PlayingCard
                     suit={card.suit} value={card.value} disabled size="small"
-                    className={safeGameData.highestCard?.suit === card.suit && safeGameData.highestCard?.value === card.value ? "bg-yellow-100" : (!isCurrentRoundNoTrumps && card.suit === "diamonds") ? "bg-red-100" : "bg-white"}
+                    className={safeGameData.highestCard?.suit === card.suit && safeGameData.highestCard?.value === card.value ? "bg-yellow-100" : (isNoSuitRound && card.suit === "diamonds") ? "bg-white" : ""}
                   />
                   {card.suit === "spades" && card.value === 7 && card.pokerOption && (
                     <div className={`absolute bottom-0 left-0 right-0 text-white text-[9px] py-0.5 text-center ${card.pokerOption === "Trumps" ? "bg-red-300" : card.pokerOption === "Poker" ? "bg-yellow-300" : "bg-blue-300"}`}>
@@ -1390,7 +1391,7 @@ export default function GameTable({
                   onClick={() => handlePlayCard(card)}
                   disabled={!isCurrentPlayerTurn || isClearing || !isValidCardToPlay(card) || !safeGameData.allBetsPlaced || isPlayingCard}
                   showBack={shouldShowCardBacks}
-                  className={!isCurrentPlayerTurn || !isValidCardToPlay(card) || !safeGameData.allBetsPlaced || isPlayingCard ? "opacity-50" : ""}
+                  className={`${isNoSuitRound && card.suit === "diamonds" ? "bg-white" : ""} ${!isCurrentPlayerTurn || !isValidCardToPlay(card) || !safeGameData.allBetsPlaced || isPlayingCard ? "opacity-50" : ""}`}
                 />
               ))
               : <p className="italic text-gray-400 text-sm">{gameStarted ? t("allCardsPlayed") : t("cardsHereHint")}</p>
@@ -1773,9 +1774,9 @@ export default function GameTable({
                   card.suit === safeGameData.highestCard.suit &&
                   card.value === safeGameData.highestCard.value
                     ? "bg-yellow-100"
-                    : (!isCurrentRoundNoTrumps && card.suit === "diamonds")
-                      ? "bg-red-100"
-                      : "bg-white"
+                    : (isNoSuitRound && card.suit === "diamonds")
+                      ? "bg-white"
+                      : ""
                 }
               />
               {card.suit === "spades" && card.value === 7 && card.pokerOption && (
@@ -1878,7 +1879,7 @@ export default function GameTable({
                     isPlayingCard
                   }
                   showBack={shouldShowCardBacks}
-                  className={`${
+                  className={`${isNoSuitRound && card.suit === "diamonds" ? "bg-white" : ""} ${
                     !isCurrentPlayerTurn || !isValidCardToPlay(card) || !safeGameData.allBetsPlaced || isPlayingCard
                       ? "opacity-50"
                       : ""
