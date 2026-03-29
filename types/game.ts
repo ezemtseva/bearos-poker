@@ -8,6 +8,7 @@ export interface Player {
   bet: number | null
   avatar?: string
   reaction?: { emoji: string; timestamp: number }
+  pokerHands?: number
 }
 
 export interface ScoreTableRow {

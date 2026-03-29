@@ -49,7 +49,7 @@ export default function GameResultsDialog({ isOpen, onClose, players }: GameResu
       <DialogContent className="sm:max-w-[425px] shadow-[0_0_15px_5px_rgba(255,215,0,0.7)]">
         <DialogHeader>
           <DialogDescription className="text-center text-lg font-bold text-white">
-            {t("congratsTo")} <span className="underline text-yellow-300">{winner.name}</span>!
+            {t("congratsTo")} <span className="text-yellow-300">{winner.name}</span>!
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">

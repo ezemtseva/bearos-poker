@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from "react"
 import type { Player, Card, GameData, ScoreTableRow, PlayerScore } from "../types/game"
 import { Table, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import PlayingCard from "./PlayingCard"
 import { useToast } from "@/hooks/use-toast"
 import GameResultsDialog from "./GameResultsDialog"
@@ -517,7 +518,7 @@ export default function GameTable({
             playersCount: players.length,
             gameLength: safeGameData.gameLength ?? "basic",
             isWinner,
-            pokerHands: pokerHandsRef.current,
+            pokerHands: players.find(p => p.name === currentPlayerName)?.pokerHands ?? 0,
             playersData,
             place,
           }),
@@ -1215,7 +1216,7 @@ export default function GameTable({
   const mobileBottomOpponents = players.slice(3)
   const mobileSeatBgColor = SEAT_SKINS.find(s => s.id === seatSkin)?.value ?? "#374151"
 
-  const renderMobileSeat = (player: typeof players[0], i: number, rowSize?: number) => {
+  const renderMobileSeat = (player: typeof players[0], i: number, rowSize?: number, emojiDown = false) => {
     const isCardTurnM = safeGameData.allBetsPlaced && players[currentTurn]?.name === player.name
     const isBettingTurnM = !safeGameData.allBetsPlaced && typeof safeGameData.currentBettingTurn === "number" && players[safeGameData.currentBettingTurn]?.name === player.name
     const isActiveTurnM = isCardTurnM || isBettingTurnM
@@ -1231,11 +1232,11 @@ export default function GameTable({
         {isLeaderM && (
           <span className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 text-sm leading-none">⭐</span>
         )}
-        <div className="flex items-center gap-1 mb-1">
+        <div className="flex items-center gap-1 mb-1 min-w-0">
           <div className="w-5 h-5 rounded-full bg-gray-500 flex items-center justify-center text-[10px] overflow-hidden flex-shrink-0">
             {player.avatar ? (player.avatar.startsWith("data:") || player.avatar.startsWith("http") ? <img src={player.avatar} alt="" className="w-full h-full object-cover" /> : <span>{player.avatar}</span>) : player.name[0]}
           </div>
-          <span className="text-[11px] font-medium truncate text-gray-100">{player.name}</span>
+          <span className="text-[11px] font-medium truncate text-gray-100 min-w-0" title={player.name}>{player.name}</span>
         </div>
         <div className="grid grid-cols-3 text-[11px] text-center">
           <div><div className="text-gray-400">{t("pts")}</div><div className={`font-bold ${player.score > 0 ? "text-green-400" : player.score < 0 ? "text-red-400" : ""}`}>{player.score}</div></div>
@@ -1243,7 +1244,13 @@ export default function GameTable({
           <div><div className="text-gray-400">{t("seatWinsLabel")}</div><div className="font-bold text-blue-400">{player.roundWins}</div></div>
         </div>
         {activeReactions.get(player.name) && (
-          <div className="text-center text-lg mt-1">{activeReactions.get(player.name)!.emoji}</div>
+          <div
+            key={activeReactions.get(player.name)!.key}
+            className={`absolute left-1/2 pointer-events-none text-2xl z-20 ${emojiDown ? "reaction-float-down" : "reaction-float"}`}
+            style={emojiDown ? { bottom: "-10px" } : { top: "-10px" }}
+          >
+            {activeReactions.get(player.name)!.emoji}
+          </div>
         )}
       </div>
     )
@@ -1303,7 +1310,7 @@ export default function GameTable({
         {/* Top opponents (max 3) */}
         <div className="px-4 pt-3">
           <div className={`flex gap-2 ${mobileTopOpponents.length < 3 ? "justify-center" : ""}`}>
-            {mobileTopOpponents.map((player, i) => renderMobileSeat(player, i, mobileTopOpponents.length))}
+            {mobileTopOpponents.map((player, i) => renderMobileSeat(player, i, mobileTopOpponents.length, true))}
           </div>
         </div>
 
@@ -1479,19 +1486,27 @@ export default function GameTable({
       <PokerCardDialog isOpen={showPokerCardDialog} onClose={() => setShowPokerCardDialog(false)} onOptionSelect={handlePokerCardOptionSelect} isFirstCard={cardsOnTable.length === 0} isValidSimple={isValidSimplePlay()} availableOptions={cardsOnTable.length === 0 ? ["Trumps", "Poker", "Simple"] : ["Poker", "Simple"]} />
       <ConfigureGameDialog isOpen={showConfigureDialog} onClose={() => setShowConfigureDialog(false)} onSave={handleSaveGameConfig} currentGameLength={safeGameData.gameLength || "short"} currentHasGoldenRound={safeGameData.hasGoldenRound || false} currentHasNoTrumps={safeGameData.hasNoTrumps || false} />
       {showSuitPickerDialog && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowSuitPickerDialog(false)}>
-          <div className="bg-gray-800 rounded-xl p-5 w-72 shadow-xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-white font-semibold text-base mb-4 text-center">{t("selectSuitTitle")}</h3>
-            <div className="flex flex-col gap-2">
-              {(["spades", "hearts", "diamonds", "clubs"] as const).map(suit => (
-                <button key={suit} onClick={() => handleSuitSelected(suit)}
-                  className="w-full py-2.5 rounded-lg text-white font-medium text-sm bg-gray-700 hover:bg-gray-600 transition-colors">
-                  {t(`suit${suit.charAt(0).toUpperCase() + suit.slice(1)}` as "suitSpades" | "suitHearts" | "suitDiamonds" | "suitClubs")}
-                </button>
-              ))}
+        <Dialog open={showSuitPickerDialog} onOpenChange={() => setShowSuitPickerDialog(false)}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>{t("selectSuitTitle")}</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <div className="space-y-2">
+                {(["spades", "clubs", "hearts", "diamonds"] as const).map(suit => {
+                  const isRed = suit === "hearts" || suit === "diamonds"
+                  return (
+                    <Button key={suit} onClick={() => handleSuitSelected(suit)}
+                      className={`w-full justify-start text-left font-medium ${isRed ? "bg-red-900/50 hover:bg-red-800/70 border-red-700/50" : "bg-gray-800/80 hover:bg-gray-700/80 border-gray-600/50"} text-white`}
+                      variant="outline">
+                      {t(`suit${suit.charAt(0).toUpperCase() + suit.slice(1)}` as "suitSpades" | "suitHearts" | "suitDiamonds" | "suitClubs")}
+                    </Button>
+                  )
+                })}
+              </div>
             </div>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
       {showAvatarPicker && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowAvatarPicker(false)}>
@@ -1525,6 +1540,8 @@ export default function GameTable({
         .animate-bet-border{animation:betBorder 1s ease-in-out infinite;}
         @keyframes reactionFloat{0%{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}40%{opacity:1;transform:translateX(-50%) translateY(-50px) scale(1.4);}100%{opacity:0;transform:translateX(-50%) translateY(-90px) scale(0.8);}}
         .reaction-float{animation:reactionFloat 3s ease-out forwards;}
+        @keyframes reactionFloatDown{0%{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}40%{opacity:1;transform:translateX(-50%) translateY(50px) scale(1.4);}100%{opacity:0;transform:translateX(-50%) translateY(90px) scale(0.8);}}
+        .reaction-float-down{animation:reactionFloatDown 3s ease-out forwards;}
       `}</style>
     </div>
   )
@@ -1707,7 +1724,7 @@ export default function GameTable({
                       </div>
                     )}
                   </div>
-                  <span className="text-sm font-bold">{player.name}</span>
+                  <span className="text-sm font-bold line-clamp-2 text-center break-words" title={player.name}>{player.name}</span>
                 </div>
                 {/* Stats row: pts | bet | wins */}
                 <div className={`grid grid-cols-3 border-t ${dividerColor} px-1 py-1.5`}>
@@ -1924,19 +1941,27 @@ export default function GameTable({
         currentHasNoTrumps={safeGameData.hasNoTrumps || false}
       />
       {showSuitPickerDialog && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowSuitPickerDialog(false)}>
-          <div className="bg-gray-800 rounded-xl p-5 w-72 shadow-xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-white font-semibold text-base mb-4 text-center">{t("selectSuitTitle")}</h3>
-            <div className="flex flex-col gap-2">
-              {(["spades", "hearts", "diamonds", "clubs"] as const).map(suit => (
-                <button key={suit} onClick={() => handleSuitSelected(suit)}
-                  className="w-full py-2.5 rounded-lg text-white font-medium text-sm bg-gray-700 hover:bg-gray-600 transition-colors">
-                  {t(`suit${suit.charAt(0).toUpperCase() + suit.slice(1)}` as "suitSpades" | "suitHearts" | "suitDiamonds" | "suitClubs")}
-                </button>
-              ))}
+        <Dialog open={showSuitPickerDialog} onOpenChange={() => setShowSuitPickerDialog(false)}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>{t("selectSuitTitle")}</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <div className="space-y-2">
+                {(["spades", "clubs", "hearts", "diamonds"] as const).map(suit => {
+                  const isRed = suit === "hearts" || suit === "diamonds"
+                  return (
+                    <Button key={suit} onClick={() => handleSuitSelected(suit)}
+                      className={`w-full justify-start text-left font-medium ${isRed ? "bg-red-900/50 hover:bg-red-800/70 border-red-700/50" : "bg-gray-800/80 hover:bg-gray-700/80 border-gray-600/50"} text-white`}
+                      variant="outline">
+                      {t(`suit${suit.charAt(0).toUpperCase() + suit.slice(1)}` as "suitSpades" | "suitHearts" | "suitDiamonds" | "suitClubs")}
+                    </Button>
+                  )
+                })}
+              </div>
             </div>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Avatar / Reaction Picker Modal */}

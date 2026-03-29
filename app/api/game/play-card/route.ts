@@ -10,10 +10,15 @@ function getNextTurn(currentTurn: number, playerCount: number): number {
 }
 
 function dealCards(players: Player[], deck: Card[], cardsPerPlayer: number): [Player[], Card[]] {
-  const updatedPlayers = players.map((player) => ({
-    ...player,
-    hand: deck.splice(0, cardsPerPlayer),
-  }))
+  const updatedPlayers = players.map((player) => {
+    const hand = deck.splice(0, cardsPerPlayer)
+    const hasSevenSpades = hand.some((c) => c.suit === "spades" && c.value === 7)
+    return {
+      ...player,
+      hand,
+      pokerHands: (player.pokerHands ?? 0) + (hasSevenSpades ? 1 : 0),
+    }
+  })
   return [updatedPlayers, deck]
 }
 
