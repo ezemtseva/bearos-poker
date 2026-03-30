@@ -1614,7 +1614,7 @@ export default function GameTable({
       </div>
 
       {/* Table with seats */}
-      <div className="relative w-[800px] h-[400px] mx-auto overflow-visible" style={{ marginTop: "80px" }}>
+      <div className="relative w-[800px] h-[400px] mx-auto overflow-visible" style={{ marginTop: cardsOnSeats && gameStarted ? "104px" : "80px" }}>
         {/* Table shadow */}
         <div className="absolute inset-0 rounded-[200px/100px] bg-black/20 transform translate-y-2 blur-md"></div>
 
@@ -1709,7 +1709,7 @@ export default function GameTable({
                 const cardH = Math.round(cardW * 1.5)
                 const skin = CARD_BACK_SKINS.find(s => s.id === cardBackSkin) ?? CARD_BACK_SKINS[0]
                 return (
-                  <div className="pointer-events-none mb-1 flex justify-center" style={{ gap: `${gap}px` }}>
+                  <div className="pointer-events-none absolute left-0 right-0 flex justify-center" style={{ gap: `${gap}px`, bottom: `calc(100% + 4px)` }}>
                     {Array.from({ length: cardCount }).map((_, i) => (
                       <div key={i} className="rounded overflow-hidden border border-white/20 flex-shrink-0" style={{ width: `${cardW}px`, height: `${cardH}px` }}>
                         {skin.type === "image"
@@ -1783,7 +1783,7 @@ export default function GameTable({
                 const cardH = Math.round(cardW * 1.5)
                 const skin = CARD_BACK_SKINS.find(s => s.id === cardBackSkin) ?? CARD_BACK_SKINS[0]
                 return (
-                  <div className="pointer-events-none mt-1 flex justify-center" style={{ gap: `${gap}px` }}>
+                  <div className="pointer-events-none absolute left-0 right-0 flex justify-center" style={{ gap: `${gap}px`, top: `calc(100% + 4px)` }}>
                     {Array.from({ length: cardCount }).map((_, i) => (
                       <div key={i} className="rounded overflow-hidden border border-white/20 flex-shrink-0" style={{ width: `${cardW}px`, height: `${cardH}px` }}>
                         {skin.type === "image"
@@ -1845,7 +1845,7 @@ export default function GameTable({
       <div className="h-2"></div>
 
       {/* Betting and Player's hand */}
-      <div className="flex mt-4">
+      <div className="flex mt-4" style={cardsOnSeats && gameStarted ? { marginTop: "40px" } : undefined}>
         {/* Spacer div */}
         <div className="w-1/6"></div>
         {/* Your Bet/Win section — container always present to keep hand position stable */}
