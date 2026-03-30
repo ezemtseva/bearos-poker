@@ -1,10 +1,9 @@
 "use client"
 
 import React from "react"
-import { TableHeader } from "@/components/ui/table"
 import { useState, useEffect, useRef } from "react"
 import type { Player, Card, GameData, ScoreTableRow, PlayerScore } from "../types/game"
-import { Table, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table"
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import PlayingCard from "./PlayingCard"
@@ -51,6 +50,14 @@ const EMOJI_LIST = [
   "💪","🫶","👍","👎","🖕","✌️","🤞","🫰","🤘","🫵",
   "🤌","🐻","🐼","🐻‍❄️","🐔","🦍","🍌","🍆","🍑",
 ]
+
+function StarIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="#FFE066" stroke="#FFD700" strokeWidth="1" strokeLinejoin="round"/>
+    </svg>
+  )
+}
 
 export default function GameTable({
   tableId,
@@ -127,6 +134,8 @@ export default function GameTable({
     try { const v = localStorage.getItem("scoreTableExpanded"); return v !== null ? v === "true" : true } catch { return true }
   })
   const [showScoreSettings, setShowScoreSettings] = useState(false)
+  const [mobileNamePopup, setMobileNamePopup] = useState<string | null>(null)
+  const [showWebEmojiPanel, setShowWebEmojiPanel] = useState(false)
   const [scoreTablePlayerCount, setScoreTablePlayerCount] = useState(() => {
     try { const v = localStorage.getItem("scoreTablePlayerCount"); return v !== null ? Number(v) : (players.length || 1) } catch { return players.length || 1 }
   })
@@ -1057,12 +1066,16 @@ export default function GameTable({
 
   const scoreTablePanel = (
     <div
-      className={`flex-shrink-0 transition-all duration-300 mx-auto bg-gray-800/60 rounded-xl overflow-hidden ${
+      className={`flex-shrink-0 transition-all duration-300 mx-auto bg-gray-800/60 rounded-xl overflow-hidden flex flex-col min-h-0 ${
         isBottomPosition
-          ? scoreTableExpanded ? "" : "h-10"
+          ? scoreTableExpanded ? "max-h-64" : "h-10"
           : scoreTableExpanded ? "" : "w-auto"
       }`}
-      style={scoreTableExpanded ? { width: visibleWidth } : undefined}
+      style={scoreTableExpanded
+        ? isBottomPosition
+          ? { width: visibleWidth }
+          : { width: visibleWidth, maxHeight: "calc(100vh - 32px)" }
+        : undefined}
     >
       {/* Header row: toggle + title + gear */}
       <div className="flex items-center justify-between px-4 py-2.5 gap-2">
@@ -1111,25 +1124,32 @@ export default function GameTable({
       )}
 
       {scoreTableExpanded && (
-        <div className="overflow-x-auto" style={{ maxWidth: visibleWidth }}>
-          <Table>
+        <div style={{ maxWidth: visibleWidth, overflowX: "auto" }}>
+          <div
+            style={{ maxHeight: "748px", overflowY: "auto", scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}
+            className="[&::-webkit-scrollbar]:hidden"
+          >
+          <table className="w-full caption-bottom text-sm">
             <TableHeader>
               <TableRow>
                 <TableHead className="text-white font-bold text-left border-r border-gray-600 border-b-0"></TableHead>
-                {orderedPlayers.map((player) => (
-                  <TableHead key={player.name} colSpan={4} className="text-center text-white font-bold border-r border-gray-600">
-                    {player.score === highestScore && highestScore > 0 ? "⭐ " : ""}{player.name}
+                {orderedPlayers.map((player, pi) => (
+                  <TableHead key={player.name} colSpan={4} className={`text-center text-white font-bold max-w-[200px] ${pi < orderedPlayers.length - 1 ? "border-r border-gray-600" : ""}`}>
+                    <div className="flex items-center justify-center gap-1 min-w-0">
+                      {player.score === highestScore && highestScore > 0 && <span className="flex-shrink-0"><StarIcon size={16} /></span>}
+                      <span className="truncate min-w-0" title={player.name}>{player.name}</span>
+                    </div>
                   </TableHead>
                 ))}
               </TableRow>
               <TableRow>
                 <TableHead className="border-r border-gray-600">{t("roundLabel")}</TableHead>
-                {orderedPlayers.map((player) => (
+                {orderedPlayers.map((player, pi) => (
                   <React.Fragment key={player.name}>
                     <TableHead className="text-center">{t("betLabel")}</TableHead>
                     <TableHead className="text-center">{t("winsLabel")}</TableHead>
                     <TableHead className="text-center">{t("pointsLabel")}</TableHead>
-                    <TableHead className="text-center border-r border-gray-600">{t("roundIncrLabel")}</TableHead>
+                    <TableHead className={`text-center ${pi < orderedPlayers.length - 1 ? "border-r border-gray-600" : ""}`}>{t("roundIncrLabel")}</TableHead>
                   </React.Fragment>
                 ))}
               </TableRow>
@@ -1152,7 +1172,7 @@ export default function GameTable({
                     }</TableCell>
                     {(() => {
                       const roundMaxPoints = Math.max(...orderedPlayers.map(p => round.scores[p.name]?.cumulativePoints ?? -Infinity))
-                      return orderedPlayers.map((player) => {
+                      return orderedPlayers.map((player, pi) => {
                       const scoreData = round.scores[player.name]
                       const playerScore: PlayerScore = scoreData || {
                         cumulativePoints: 0,
@@ -1179,7 +1199,7 @@ export default function GameTable({
                             {!hasScore ? "-" : playerScore.cumulativePoints}
                           </TableCell>
                           <TableCell
-                            className={`text-center italic border-r border-gray-600 ${
+                            className={`text-center italic ${pi < orderedPlayers.length - 1 ? "border-r border-gray-600" : ""} ${
                               hasScore && playerScore.roundPoints < 0
                                 ? "text-red-400/50"
                                 : hasScore && playerScore.roundPoints > 0
@@ -1205,7 +1225,8 @@ export default function GameTable({
                 </TableRow>
               )}
             </TableBody>
-          </Table>
+          </table>
+          </div>
         </div>
       )}
     </div>
@@ -1222,21 +1243,27 @@ export default function GameTable({
     const isActiveTurnM = isCardTurnM || isBettingTurnM
     const betValueM = shouldShowBetBanners() && player.bet !== null ? player.bet : "—"
     const isLeaderM = player.score === highestScore && highestScore > 0
-    const seatWidth = rowSize === 3 ? "flex-1" : "w-[106px] flex-shrink-0"
+    const seatWidth = "flex-1 min-w-0"
     return (
       <div
         key={i}
         className={`relative rounded-xl border-2 p-2 ${seatWidth} ${isActiveTurnM ? "border-green-400 animate-bet-border" : "border-gray-600/30"}`}
         style={{ backgroundColor: mobileSeatBgColor }}
+        onClick={() => { if (player.name.length > 8) { setMobileNamePopup(player.name); setTimeout(() => setMobileNamePopup(null), 2000) } }}
       >
         {isLeaderM && (
-          <span className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 text-sm leading-none">⭐</span>
+          <span className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 leading-none"><StarIcon size={16} /></span>
         )}
         <div className="flex items-center gap-1 mb-1 min-w-0">
           <div className="w-5 h-5 rounded-full bg-gray-500 flex items-center justify-center text-[10px] overflow-hidden flex-shrink-0">
             {player.avatar ? (player.avatar.startsWith("data:") || player.avatar.startsWith("http") ? <img src={player.avatar} alt="" className="w-full h-full object-cover" /> : <span>{player.avatar}</span>) : player.name[0]}
           </div>
-          <span className="text-[11px] font-medium truncate text-gray-100 min-w-0" title={player.name}>{player.name}</span>
+          <span className="text-[11px] font-medium truncate text-gray-100 min-w-0">{player.name}</span>
+          {mobileNamePopup === player.name && (
+            <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-50 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-xs font-semibold shadow-xl whitespace-nowrap" onClick={() => setMobileNamePopup(null)}>
+              {player.name}
+            </div>
+          )}
         </div>
         <div className="grid grid-cols-3 text-[11px] text-center">
           <div><div className="text-gray-400">{t("pts")}</div><div className={`font-bold ${player.score > 0 ? "text-green-400" : player.score < 0 ? "text-red-400" : ""}`}>{player.score}</div></div>
@@ -1379,14 +1406,16 @@ export default function GameTable({
                 className="text-xl active:scale-110 transition-transform"
               >😊</button>
               {showMobileEmojiPanel && (
+                <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowMobileEmojiPanel(false)} />
                 <div className="absolute bottom-full right-0 mb-2 z-20 bg-gray-900 border border-white/10 rounded-xl p-2 shadow-xl w-52">
                   <div className="grid grid-cols-6 gap-1">
                     {EMOJI_LIST.map(emoji => (
                       <button key={emoji} onClick={() => { onSendReaction(emoji); setShowMobileEmojiPanel(false) }} className="text-xl hover:scale-125 active:scale-125 transition-transform text-center">{emoji}</button>
                     ))}
-                    <button onClick={() => { setShowMobileEmojiPanel(false); setShowAvatarPicker(true); setAvatarPickerTab("emoji") }} className="text-xl text-center">😶</button>
                   </div>
                 </div>
+                </>
               )}
             </div>
           </div>
@@ -1425,12 +1454,12 @@ export default function GameTable({
             </button>
             {scoreTableExpanded && (
               <div className="overflow-x-auto">
-                <table className="text-[11px]">
+                <table className="text-[11px] w-full">
                   <thead>
                     <tr className="border-t border-white/10">
                       <th className="px-2 py-1 border-r border-white/10 min-w-[28px]" />
                       {orderedPlayers.map(p => (
-                        <th key={p.name} colSpan={4} className="px-2 py-1 text-center text-gray-200 font-semibold border-r border-white/10 whitespace-nowrap min-w-[104px]">{p.score === highestScore && highestScore > 0 ? "⭐ " : ""}{p.name}</th>
+                        <th key={p.name} colSpan={4} className="px-2 py-1 text-center text-gray-200 font-semibold border-r border-white/10 whitespace-nowrap min-w-[104px]"><span className="inline-flex items-center gap-1">{p.score === highestScore && highestScore > 0 && <StarIcon size={13} />}{p.name.length > 8 ? p.name.slice(0, 8) + "…" : p.name}</span></th>
                       ))}
                     </tr>
                     <tr className="border-t border-white/5">
@@ -1462,11 +1491,11 @@ export default function GameTable({
                           const isRoundLeader = hasScore && s.cumulativePoints === roundMaxPoints && roundMaxPoints > 0
                           return (
                             <React.Fragment key={player.name}>
-                              <td className="px-1 py-1 text-center text-gray-300">{s.bet ?? "—"}</td>
-                              <td className="px-1 py-1 text-center text-gray-300">{s.wins ?? "—"}</td>
-                              <td className={`px-1 py-1 text-center font-bold ${isRoundLeader ? "bg-gray-200/20" : ""} ${s.cumulativePoints > 0 ? "text-green-400" : s.cumulativePoints < 0 ? "text-red-400" : ""}`}>{s.cumulativePoints}</td>
+                              <td className="px-1 py-1 text-center text-gray-300">{hasScore ? (s.bet !== null ? s.bet : "-") : "-"}</td>
+                              <td className="px-1 py-1 text-center text-gray-300">{hasScore ? (s.wins !== undefined ? s.wins : "-") : "-"}</td>
+                              <td className={`px-1 py-1 text-center font-bold ${isRoundLeader ? "bg-gray-200/20" : ""} ${hasScore && s.cumulativePoints > 0 ? "text-green-400" : hasScore && s.cumulativePoints < 0 ? "text-red-400" : ""}`}>{hasScore ? s.cumulativePoints : "-"}</td>
                               <td className="px-1 py-1 text-center italic border-r border-white/10">
-                                {s.roundPoints === null ? "—" : s.roundPoints === 0 ? "—" : <span className={s.roundPoints > 0 ? "text-green-400/50" : "text-red-400/50"}>{s.roundPoints > 0 ? `+${s.roundPoints}` : s.roundPoints}</span>}
+                                {!hasScore ? "-" : s.roundPoints === 0 ? "-" : <span className={s.roundPoints > 0 ? "text-green-400/50" : "text-red-400/50"}>{s.roundPoints > 0 ? `+${s.roundPoints}` : s.roundPoints}</span>}
                               </td>
                             </React.Fragment>
                           )
@@ -1519,18 +1548,20 @@ export default function GameTable({
               <button className={`flex-1 py-1.5 rounded text-xs ${avatarPickerTab === "emoji" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`} onClick={() => setAvatarPickerTab("emoji")}>{t("emojiTab")}</button>
               <button className={`flex-1 py-1.5 rounded text-xs ${avatarPickerTab === "image" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`} onClick={() => setAvatarPickerTab("image")}>{t("avatarTab")}</button>
             </div>
-            {avatarPickerTab === "emoji" && (
-              <div className="grid grid-cols-6 gap-1">
-                {EMOJI_LIST.map(emoji => <button key={emoji} onClick={() => { onSendReaction(emoji); setShowAvatarPicker(false) }} className="text-2xl hover:scale-125 transition-transform text-center">{emoji}</button>)}
-              </div>
-            )}
-            {avatarPickerTab === "image" && (
-              <div className="flex flex-col items-center gap-2">
-                {players.find(p => p.name === currentPlayerName)?.avatar && <img src={players.find(p => p.name === currentPlayerName)!.avatar!} alt="Avatar" className="w-16 h-16 rounded-full object-cover" />}
-                <Button size="sm" onClick={() => fileInputRef.current?.click()}>{t("choosePhoto")}</Button>
-                {players.find(p => p.name === currentPlayerName)?.avatar && <Button size="sm" className="bg-red-600 hover:bg-red-500 text-white" onClick={() => { onSetAvatar(""); setShowAvatarPicker(false) }}>{t("removePhoto")}</Button>}
-              </div>
-            )}
+            <div className="h-[220px] overflow-y-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
+              {avatarPickerTab === "emoji" && (
+                <div className="grid grid-cols-6 gap-1">
+                  {EMOJI_LIST.map(emoji => <button key={emoji} onClick={() => { onSendReaction(emoji); setShowAvatarPicker(false) }} className="text-2xl hover:scale-125 transition-transform text-center">{emoji}</button>)}
+                </div>
+              )}
+              {avatarPickerTab === "image" && (
+                <div className="flex flex-col items-center gap-2 py-2">
+                  {players.find(p => p.name === currentPlayerName)?.avatar && <img src={players.find(p => p.name === currentPlayerName)!.avatar!} alt="Avatar" className="w-16 h-16 rounded-full object-cover" />}
+                  <Button size="sm" onClick={() => fileInputRef.current?.click()}>{t("choosePhoto")}</Button>
+                  {players.find(p => p.name === currentPlayerName)?.avatar && <Button size="sm" className="bg-white hover:bg-gray-100 text-gray-900" onClick={() => { onSetAvatar(""); setShowAvatarPicker(false) }}>{t("removePhoto")}</Button>}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -1543,6 +1574,7 @@ export default function GameTable({
         @keyframes reactionFloatDown{0%{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}40%{opacity:1;transform:translateX(-50%) translateY(50px) scale(1.4);}100%{opacity:0;transform:translateX(-50%) translateY(90px) scale(0.8);}}
         .reaction-float-down{animation:reactionFloatDown 3s ease-out forwards;}
       `}</style>
+
     </div>
   )
   // ─── End mobile layout ────────────────────────────────────────────────────────
@@ -1560,24 +1592,24 @@ export default function GameTable({
       {/* Main content */}
       <div className="flex-1 space-y-8">
 
-      {/* Game Info */}
-      <div className="text-center relative">
+      {/* Game Info — fixed in center of nav bar */}
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 h-[64px] flex items-center z-20 pointer-events-none">
         {gameStarted ? (
-          <div className="inline-flex justify-center items-center space-x-6 px-4 py-2 bg-black/20 rounded-lg">
+          <div className="inline-flex justify-center items-center space-x-6 px-4 py-2 bg-black/40 rounded-lg backdrop-blur-sm">
             <span className="text-gray-400">{t("tableIdLabel")} <strong className="text-white">{tableId}</strong></span>
             <span className="text-gray-400">{t("round")}: <strong className="text-white">{currentRound}</strong></span>
             <span className="text-gray-400">{t("playLabel")}: <strong className="text-white">{currentPlay}</strong></span>
             <span className="text-gray-400">{t("currentTurnLabel")}: <strong className="text-white">{players[currentTurn]?.name || "..."}</strong></span>
           </div>
         ) : (
-          <>
-            <p>{t("tableIdLabel")} {tableId}</p>
+          <div className="inline-flex justify-center items-center space-x-4 px-4 py-2">
+            <span className="text-gray-300">{t("tableIdLabel")} <strong className="text-white">{tableId}</strong></span>
             {players.length < 2 ? (
-              <p className="text-yellow-600 italic">{t("waitingMorePlayers")}</p>
+              <span className="text-yellow-500 italic">{t("waitingMorePlayers")}</span>
             ) : (
-              <p className="text-yellow-600 italic">{t("waitingStart")}</p>
+              <span className="text-yellow-500 italic">{t("waitingStart")}</span>
             )}
-          </>
+          </div>
         )}
       </div>
 
@@ -1703,7 +1735,7 @@ export default function GameTable({
                 style={{ backgroundColor: seatBgColor }}
               >
                 {isLeader && (
-                  <span className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 text-xl leading-none">⭐</span>
+                  <span className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 leading-none"><StarIcon size={22} /></span>
                 )}
                 {/* Top row: avatar + name */}
                 <div className="flex items-center gap-2 px-3 py-2">
@@ -1847,15 +1879,19 @@ export default function GameTable({
                     <ChevronRight size={20} />
                   </button>
                 </div>
-                {/* Confirm + forbidden bet — aligned with hand status messages */}
-                <div className="flex flex-col items-center gap-1 mt-2">
+                {/* Confirm + forbidden bet */}
+                <div className="flex flex-col items-center mt-2">
                   {(() => {
                     const forbiddenBet = calculateForbiddenBet()
-                    return forbiddenBet !== null
-                      ? <p className="text-red-500 text-sm italic">{t("youCannotBet")} {forbiddenBet}</p>
-                      : null
+                    return (
+                      <div className="flex flex-col items-center justify-center gap-3" style={{ minHeight: "56px" }}>
+                        <p className={`text-red-500 text-sm italic ${forbiddenBet !== null ? "visible" : "invisible"}`}>
+                          {t("youCannotBet")} {forbiddenBet ?? "–"}
+                        </p>
+                        <Button onClick={handlePlaceBet}>{t("confirm")}</Button>
+                      </div>
+                    )
                   })()}
-                  <Button onClick={handlePlaceBet}>{t("confirm")}</Button>
                 </div>
               </div>
             ) : (
@@ -1879,8 +1915,10 @@ export default function GameTable({
 
         {/* Player's hand */}
         <div className="w-2/3">
-          <h2 className="text-xl font-bold mb-2 text-center px-4 py-1 bg-black/20 rounded-lg w-fit mx-auto">{t("yourHand")}</h2>
-          <div className="flex justify-center space-x-2 min-h-36 items-center">
+          <div className="mb-2">
+            <h2 className="text-xl font-bold text-center px-4 py-1 bg-black/20 rounded-lg w-fit mx-auto">{t("yourHand")}</h2>
+          </div>
+          <div className="flex justify-center space-x-2 items-center min-h-36 w-[680px] mx-auto">
             {currentPlayer && currentPlayer.hand && currentPlayer.hand.length > 0 ? (
               currentPlayer.hand.map((card, index) => (
                 <PlayingCard
@@ -1909,9 +1947,9 @@ export default function GameTable({
           </div>
           {/* Replace the hardcoded check with the dynamic getTotalRounds function */}
           {gameStarted && currentRound <= getTotalRounds(safeGameData.gameLength || "basic", safeGameData.hasGoldenRound || false, safeGameData.hasNoTrumps || false) && (
-            <p className="text-center mt-2">{renderGameStatusMessage()}</p>
+            <p className="text-center mt-2 w-[680px] mx-auto">{renderGameStatusMessage()}</p>
           )}
-          {errorMessage && <p className="text-red-600 text-center mt-2">{errorMessage}</p>}
+          {errorMessage && <p className="text-red-600 text-center mt-2 w-[680px] mx-auto">{errorMessage}</p>}
         </div>
       </div>
 
@@ -1987,48 +2025,50 @@ export default function GameTable({
               >{t("avatarTab")}</button>
             </div>
 
+            <div className="h-[220px] overflow-y-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
             {avatarPickerTab === "emoji" && (
-              <div>
-                <div className="grid grid-cols-6 gap-1">
-                  {EMOJI_LIST.map((emoji) => (
-                    <button
-                      key={emoji}
-                      className="text-2xl hover:bg-gray-700 rounded p-1 transition-colors"
-                      onClick={() => { onSendReaction(emoji); setShowAvatarPicker(false) }}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
+              <div className="grid grid-cols-6 gap-1">
+                {EMOJI_LIST.map((emoji) => (
+                  <button
+                    key={emoji}
+                    className="text-2xl hover:bg-gray-700 rounded p-1 transition-colors"
+                    onClick={() => { onSendReaction(emoji); setShowAvatarPicker(false) }}
+                  >
+                    {emoji}
+                  </button>
+                ))}
               </div>
             )}
 
             {avatarPickerTab === "image" && (
-              <div className="flex flex-col items-center gap-3">
-                {players.find((p) => p.name === currentPlayerName)?.avatar && (
-                  <img
-                    src={players.find((p) => p.name === currentPlayerName)!.avatar}
-                    alt="avatar"
-                    className="w-16 h-16 rounded-full object-cover border-0 outline-none ring-0"
-                  />
-                )}
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => fileInputRef.current?.click()}>
-                    {t("choosePhoto")}
-                  </Button>
+              <div className="flex flex-col items-center justify-between h-full py-2">
+                <div className="flex-1 flex items-center justify-center">
+                  {players.find((p) => p.name === currentPlayerName)?.avatar ? (
+                    <img
+                      src={players.find((p) => p.name === currentPlayerName)!.avatar}
+                      alt="avatar"
+                      className="w-[140px] h-[140px] rounded-full object-cover border-0 outline-none ring-0"
+                    />
+                  ) : (
+                    <div className="w-[140px] h-[140px] rounded-full bg-gray-600 flex items-center justify-center text-4xl text-white font-bold">
+                      {currentPlayerName?.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2 mt-3 self-end">
                   {players.find((p) => p.name === currentPlayerName)?.avatar && (
-                    <Button
-                      size="sm"
-                      className="bg-red-600 hover:bg-red-500 text-white"
-                      onClick={() => { onSetAvatar(""); setShowAvatarPicker(false) }}
-                    >
+                    <Button size="sm" variant="outline" className="w-[100px]" onClick={() => { onSetAvatar(""); setShowAvatarPicker(false) }}>
                       {t("removePhoto")}
                     </Button>
                   )}
+                  <Button size="sm" className="w-[100px]" onClick={() => fileInputRef.current?.click()}>
+                    {t("choosePhoto")}
+                  </Button>
                 </div>
                 <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
               </div>
             )}
+            </div>
           </div>
         </div>
       )}
