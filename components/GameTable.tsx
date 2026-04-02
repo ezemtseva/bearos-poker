@@ -430,7 +430,7 @@ export default function GameTable({
   ])
 
   const isCurrentRoundNoTrumps = safeGameData.scoreTable?.[currentRound - 1]?.roundName === "NT"
-  const isNoSuitRound = isCurrentRoundNoTrumps || safeGameData.scoreTable?.[currentRound - 1]?.roundName === "B"
+  const isNoSuitRound = isCurrentRoundNoTrumps
 
   const getValidCardsAfterTrumps = (hand: Card[], requestedSuit?: string): Card[] => {
     // In no-trumps rounds: player must play highest card of requestedSuit, or any card if they don't have it
