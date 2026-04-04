@@ -97,6 +97,15 @@ class SoundManager {
     })
   }
 
+  stop(soundName: SoundName) {
+    const pool = this.sounds[soundName]
+    if (!pool) return
+    pool.forEach((audio) => {
+      audio.pause()
+      audio.currentTime = 0
+    })
+  }
+
   setMuted(muted: boolean) {
     this.muted = muted
     try {

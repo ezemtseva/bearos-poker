@@ -159,7 +159,7 @@ export default function GameTable({
   const betNotifFirstRender = useRef(true)
   const { toast } = useToast()
   // Add this inside the GameTable component, near the top with other hooks
-  const { playSound } = useSound()
+  const { playSound, stopSound } = useSound()
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -1511,7 +1511,7 @@ export default function GameTable({
       </>}
 
       {/* Shared dialogs */}
-      <GameResultsDialog isOpen={showResultsDialog} onClose={() => setShowResultsDialog(false)} players={players} />
+      <GameResultsDialog isOpen={showResultsDialog} onClose={() => { setShowResultsDialog(false); stopSound("gameOver") }} players={players} />
       <PokerCardDialog isOpen={showPokerCardDialog} onClose={() => setShowPokerCardDialog(false)} onOptionSelect={handlePokerCardOptionSelect} isFirstCard={cardsOnTable.length === 0} isValidSimple={isValidSimplePlay()} availableOptions={cardsOnTable.length === 0 ? ["Trumps", "Poker", "Simple"] : ["Poker", "Simple"]} />
       <ConfigureGameDialog isOpen={showConfigureDialog} onClose={() => setShowConfigureDialog(false)} onSave={handleSaveGameConfig} currentGameLength={safeGameData.gameLength || "short"} currentHasGoldenRound={safeGameData.hasGoldenRound || false} currentHasNoTrumps={safeGameData.hasNoTrumps || false} />
       {showSuitPickerDialog && (
@@ -1961,7 +1961,7 @@ export default function GameTable({
       {/* Score table: bottom position (rendered inside flex-col after main content) */}
       {scoreTablePosition === "bottom" && scoreTablePanel}
 
-      <GameResultsDialog isOpen={showResultsDialog} onClose={() => setShowResultsDialog(false)} players={players} />
+      <GameResultsDialog isOpen={showResultsDialog} onClose={() => { setShowResultsDialog(false); stopSound("gameOver") }} players={players} />
       <PokerCardDialog
         isOpen={showPokerCardDialog}
         onClose={() => setShowPokerCardDialog(false)}
