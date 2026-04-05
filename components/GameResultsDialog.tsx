@@ -3,7 +3,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import type { Player } from "../types/game"
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useSound } from "@/hooks/use-sound"
 import { useLocale } from "@/lib/locale-context"
 import soundManager from "@/app/utils/sound"
@@ -26,30 +26,42 @@ export default function GameResultsDialog({ isOpen, onClose, players }: GameResu
   const { t } = useLocale()
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score)
   const winner = sortedPlayers[0]
-  const { playSound } = useSound()
+  const { playSound, stopSound } = useSound()
+  const customAudioRef = useRef<HTMLAudioElement | null>(null)
 
-  // Play the game-over sound when the dialog opens
+  // Play the game-over sound when the dialog opens, stop when it closes
   useEffect(() => {
     if (isOpen) {
       const timer = setTimeout(() => {
         const skin = (() => { try { return localStorage.getItem("tableSkin") || "" } catch { return "" } })()
         const customPath = SKIN_GAME_OVER[skin]
         if (customPath) {
-          soundManager.playFile(customPath)
+          const audio = new Audio(customPath)
+          audio.volume = soundManager.getVolume()
+          audio.play().catch(() => {})
+          customAudioRef.current = audio
         } else {
           playSound("gameOver")
         }
       }, 100)
       return () => clearTimeout(timer)
+    } else {
+      // Stop all game-over sounds on close
+      if (customAudioRef.current) {
+        customAudioRef.current.pause()
+        customAudioRef.current.currentTime = 0
+        customAudioRef.current = null
+      }
+      stopSound("gameOver")
     }
-  }, [isOpen, playSound])
+  }, [isOpen, playSound, stopSound])
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px] shadow-[0_0_15px_5px_rgba(255,215,0,0.7)]">
         <DialogHeader>
           <DialogDescription className="text-center text-lg font-bold text-white">
-            {t("congratsTo")} <span className="text-yellow-300">{winner.name}</span>!
+            {t("congratsTo")} <span className="text-yellow-300">{winner.name}</span>
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
@@ -68,7 +80,7 @@ export default function GameResultsDialog({ isOpen, onClose, players }: GameResu
           </ul>
         </div>
         <DialogFooter className="sm:justify-center">
-          <Button onClick={onClose} className="w-[120px] h-[40px]">
+          <Button onClick={onClose} className="w-[120px] h-[40px] focus-visible:ring-0 focus-visible:ring-offset-0">
             {t("close")}
           </Button>
         </DialogFooter>

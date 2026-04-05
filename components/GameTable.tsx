@@ -136,6 +136,8 @@ export default function GameTable({
   const [showScoreSettings, setShowScoreSettings] = useState(false)
   const [mobileNamePopup, setMobileNamePopup] = useState<string | null>(null)
   const [showWebEmojiPanel, setShowWebEmojiPanel] = useState(false)
+  const [elapsedTime, setElapsedTime] = useState("0:00")
+  const gameStartTimeRef = useRef<number | null>(null)
   const [scoreTablePlayerCount, setScoreTablePlayerCount] = useState(() => {
     try { const v = localStorage.getItem("scoreTablePlayerCount"); return v !== null ? Number(v) : (players.length || 1) } catch { return players.length || 1 }
   })
@@ -159,7 +161,7 @@ export default function GameTable({
   const betNotifFirstRender = useRef(true)
   const { toast } = useToast()
   // Add this inside the GameTable component, near the top with other hooks
-  const { playSound, stopSound } = useSound()
+  const { playSound } = useSound()
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -217,6 +219,26 @@ export default function GameTable({
       }, 2000)
     }
   }, [players])
+
+  // Game timer
+  useEffect(() => {
+    if (gameStarted && gameStartTimeRef.current === null) {
+      gameStartTimeRef.current = Date.now()
+    }
+    if (!gameStarted) {
+      gameStartTimeRef.current = null
+      setElapsedTime("0:00")
+      return
+    }
+    const interval = setInterval(() => {
+      if (!gameStartTimeRef.current) return
+      const secs = Math.floor((Date.now() - gameStartTimeRef.current) / 1000)
+      const m = Math.floor(secs / 60)
+      const s = secs % 60
+      setElapsedTime(`${m}:${s.toString().padStart(2, "0")}`)
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [gameStarted])
 
   // Persist score table settings to localStorage
   useEffect(() => { try { localStorage.setItem("scoreTableExpanded", String(scoreTableExpanded)) } catch {} }, [scoreTableExpanded])
@@ -1291,6 +1313,7 @@ export default function GameTable({
           <span className="text-gray-400">{t("tableIdLabel")} <strong className="text-white">{tableId}</strong></span>
           <span className="text-gray-400">{t("round")} <strong className="text-white">{currentRound}</strong></span>
           <span className="text-gray-400">{t("playLabel")} <strong className="text-white">{currentPlay}</strong></span>
+          <span className="text-gray-400">{t("timeLabel")} <strong className="text-white">{elapsedTime}</strong></span>
         </div>
       ) : (
         <div className="px-4 py-2 text-sm text-center text-gray-400 mt-1">
@@ -1511,7 +1534,7 @@ export default function GameTable({
       </>}
 
       {/* Shared dialogs */}
-      <GameResultsDialog isOpen={showResultsDialog} onClose={() => { setShowResultsDialog(false); stopSound("gameOver") }} players={players} />
+      <GameResultsDialog isOpen={showResultsDialog} onClose={() => setShowResultsDialog(false)} players={players} />
       <PokerCardDialog isOpen={showPokerCardDialog} onClose={() => setShowPokerCardDialog(false)} onOptionSelect={handlePokerCardOptionSelect} isFirstCard={cardsOnTable.length === 0} isValidSimple={isValidSimplePlay()} availableOptions={cardsOnTable.length === 0 ? ["Trumps", "Poker", "Simple"] : ["Poker", "Simple"]} />
       <ConfigureGameDialog isOpen={showConfigureDialog} onClose={() => setShowConfigureDialog(false)} onSave={handleSaveGameConfig} currentGameLength={safeGameData.gameLength || "short"} currentHasGoldenRound={safeGameData.hasGoldenRound || false} currentHasNoTrumps={safeGameData.hasNoTrumps || false} />
       {showSuitPickerDialog && (
@@ -1600,6 +1623,7 @@ export default function GameTable({
             <span className="text-gray-400">{t("round")}: <strong className="text-white">{currentRound}</strong></span>
             <span className="text-gray-400">{t("playLabel")}: <strong className="text-white">{currentPlay}</strong></span>
             <span className="text-gray-400">{t("currentTurnLabel")}: <strong className="text-white">{players[currentTurn]?.name || "..."}</strong></span>
+            <span className="text-gray-400">{t("timeLabel")}: <strong className="text-white inline-block min-w-[3.5ch] tabular-nums">{elapsedTime}</strong></span>
           </div>
         ) : (
           <div className="inline-flex justify-center items-center space-x-4 px-4 py-2">
@@ -1961,7 +1985,7 @@ export default function GameTable({
       {/* Score table: bottom position (rendered inside flex-col after main content) */}
       {scoreTablePosition === "bottom" && scoreTablePanel}
 
-      <GameResultsDialog isOpen={showResultsDialog} onClose={() => { setShowResultsDialog(false); stopSound("gameOver") }} players={players} />
+      <GameResultsDialog isOpen={showResultsDialog} onClose={() => setShowResultsDialog(false)} players={players} />
       <PokerCardDialog
         isOpen={showPokerCardDialog}
         onClose={() => setShowPokerCardDialog(false)}
