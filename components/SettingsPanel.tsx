@@ -21,7 +21,6 @@ const TABLE_SKINS = [
   { id: "modniy_luk", label: "Shopping Modniy Look", type: "image", value: "/table-skins/modniy_luk.jpg" },
   { id: "chechnia", label: "Chechnia", type: "image", value: "/table-skins/chechnia.png" },
   { id: "verstalibin", label: "Verstalibin", type: "image", value: "/table-skins/verstalibin.jpeg" },
-  { id: "bombardini", label: "Bombardini Ronaldini", type: "image", value: "/table-skins/bombardini.png" },
   { id: "tatarstan", label: "Tatarstan", type: "image", value: "/table-skins/tatarstan.png" },
   { id: "vovan", label: "Vovan", type: "image", value: "/table-skins/vovan.png" },
   { id: "kichigin", label: "Kichigin", type: "image", value: "/table-skins/kichigin.jpg" },
