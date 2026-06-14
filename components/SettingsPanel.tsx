@@ -26,6 +26,8 @@ const TABLE_SKINS = [
   { id: "vovan", label: "Vovan", type: "image", value: "/table-skins/vovan.png" },
   { id: "kichigin", label: "Kichigin", type: "image", value: "/table-skins/kichigin.jpg" },
   { id: "wbb", label: "WBB", type: "image", value: "/table-skins/wbb.jpg" },
+  { id: "monaco", label: "Monaco", type: "image", value: "/table-skins/monaco.png" },
+  { id: "erekb", label: "Erekb", type: "image", value: "/table-skins/erekb.png" },
 ] as const
 
 const SEAT_SKINS = [
@@ -267,13 +269,13 @@ export default function SettingsPanel() {
           <div className="flex items-center justify-between mb-5">
             <div className="text-sm text-white">{t("language")}</div>
             <div className="flex gap-1">
-              {(["en", "ru"] as Locale[]).map((l) => (
+              {(["en", "ru", "fr"] as Locale[]).map((l) => (
                 <button
                   key={l}
                   onClick={() => selectLanguage(l)}
                   className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${locale === l ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
                 >
-                  {l === "ru" ? "РУ" : "EN"}
+                  {l === "ru" ? "РУ" : l === "fr" ? "FR" : "EN"}
                 </button>
               ))}
             </div>
