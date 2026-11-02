@@ -241,6 +241,12 @@ export const translations = {
     htpTip3: "Sometimes bidding 0 is the safest strategy",
     htpTip4: "The 7 of Spades can completely change the game — use it wisely!",
     htpTip5: "In blind rounds, be conservative with your bid until the trump is revealed",
+    // Redesign
+    footerPartOfClub: "Part of Bearos Club ↗",
+    footerClub: "Bearos Club ↗",
+    sound: "Sound",
+    soundHint: "Click the speaker to mute, hover to adjust.",
+    upload: "Upload",
   },
 
   ru: {
@@ -483,6 +489,12 @@ export const translations = {
     htpTip3: "Иногда ставка 0 — самая безопасная стратегия",
     htpTip4: "7 пик может полностью изменить игру — используй с умом!",
     htpTip5: "В тёмных раундах делай консервативную ставку до раскрытия козыря",
+    // Redesign
+    footerPartOfClub: "Часть Bearos Club ↗",
+    footerClub: "Bearos Club ↗",
+    sound: "Звук",
+    soundHint: "Нажмите на динамик, чтобы выключить звук, наведите — чтобы настроить.",
+    upload: "Загрузить",
   },
   fr: {
     // Navigation
@@ -724,6 +736,12 @@ export const translations = {
     htpTip3: "Parfois, miser 0 est la stratégie la plus sûre",
     htpTip4: "Le 7 de Pique peut complètement changer la partie — utilisez-le judicieusement !",
     htpTip5: "Dans les manches aveugles, misez prudemment jusqu'à ce que l'atout soit révélé",
+    // Redesign
+    footerPartOfClub: "Membre du Bearos Club ↗",
+    footerClub: "Bearos Club ↗",
+    sound: "Son",
+    soundHint: "Cliquez sur le haut-parleur pour couper le son, survolez pour régler.",
+    upload: "Importer",
   },
 } as const
 

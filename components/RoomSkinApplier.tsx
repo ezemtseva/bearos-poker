@@ -9,7 +9,7 @@ function getRoomSkinBackground(skinId: string): string {
 }
 
 function readRoomSkin(): string {
-  try { return localStorage.getItem("roomSkin") || "classic_blue" } catch { return "classic_blue" }
+  try { return localStorage.getItem("roomSkin") || "bearos" } catch { return "bearos" }
 }
 
 function applyRoomSkin(skinId: string) {

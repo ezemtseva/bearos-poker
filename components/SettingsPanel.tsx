@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useSession } from "next-auth/react"
-import { Settings, X } from "lucide-react"
+import { Settings, X, Plus } from "lucide-react"
+import { iconButtonClass } from "./SoundToggle"
 import { useLocale } from "@/lib/locale-context"
 import type { Locale } from "@/lib/translations"
 
@@ -42,6 +43,7 @@ const SEAT_SKINS = [
 
 // radial-gradient: lighter center, dark vignette edges — same style as the original background photo
 const ROOM_SKINS = [
+  { id: "bearos",        label: "Bearos",         value: "radial-gradient(ellipse at center, #1C1F27 0%, #0B0C0F 75%)" },
   { id: "classic_blue",  label: "Classic Blue",   value: "radial-gradient(ellipse at center, #2e6bb0 0%, #050d1a 100%)" },
   { id: "deep_green",    label: "Deep Green",      value: "radial-gradient(ellipse at center, #2e7d50 0%, #040e07 100%)" },
   { id: "crimson",       label: "Crimson",         value: "radial-gradient(ellipse at center, #8b2a2a 0%, #0e0404 100%)" },
@@ -92,7 +94,7 @@ function readCardBackSkin(): string {
 }
 
 function readRoomSkin(): string {
-  try { return localStorage.getItem("roomSkin") || "classic_blue" } catch { return "classic_blue" }
+  try { return localStorage.getItem("roomSkin") || "bearos" } catch { return "bearos" }
 }
 
 function readSeatSkin(): string {
@@ -115,6 +117,14 @@ function readCustomCardSkinUrl(): string {
   try { return localStorage.getItem("customCardSkinUrl") || "" } catch { return "" }
 }
 
+export function Switch({ on }: { on: boolean }) {
+  return (
+    <span className={`relative w-11 h-[26px] rounded-full flex-shrink-0 transition-colors ${on ? "bg-bp-accent" : "bg-bp-strong"}`}>
+      <span className={`absolute top-[3px] w-5 h-5 rounded-full transition-all ${on ? "left-[21px] bg-bp-bg" : "left-[3px] bg-bp-muted"}`} />
+    </span>
+  )
+}
+
 export default function SettingsPanel() {
   const { status } = useSession()
   const loggedIn = status === "authenticated"
@@ -126,7 +136,7 @@ export default function SettingsPanel() {
   const [cardsOnSeats, setCardsOnSeats] = useState(false)
   const [tableSkin, setTableSkin] = useState("blue")
   const [cardBackSkin, setCardBackSkin] = useState("black")
-  const [roomSkin, setRoomSkin] = useState("classic_blue")
+  const [roomSkin, setRoomSkin] = useState("bearos")
   const [seatSkin, setSeatSkin] = useState("gray")
   const [customTableSkinUrl, setCustomTableSkinUrl] = useState("")
   const [customCardSkinUrl, setCustomCardSkinUrl] = useState("")
@@ -245,34 +255,55 @@ export default function SettingsPanel() {
     }
   }
 
+  const swatchClass = (on: boolean, tall = false) =>
+    `relative w-full ${tall ? "h-[58px]" : "h-10"} rounded-[10px] overflow-hidden border-2 transition-colors ${on ? "border-bp-accent shadow-[inset_0_0_0_2px_#15171C]" : "border-transparent hover:border-bp-strong"}`
+  const groupClass = "flex flex-col gap-2.5 pt-4 border-t border-bp-border"
+  const groupTitleClass = "text-[15px] font-medium text-bp-text"
+  const uploadBtnClass = "h-[30px] px-3 rounded-full border border-bp-strong text-bp-text2 hover:text-bp-text text-[13px] flex items-center gap-1.5 disabled:opacity-50 transition-colors"
+  const removeBtnClass = "absolute -top-1 -right-1 w-4 h-4 rounded-full bg-bp-warning text-bp-bg text-[10px] font-bold flex items-center justify-center leading-none z-10"
+
   return (
     <div className="relative" ref={panelRef}>
       <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`rounded-full w-10 h-10 p-0 flex items-center justify-center transition-colors bg-gray-800/50 hover:bg-gray-700/70 ${open ? "text-white" : "text-gray-300"}`}
+        aria-expanded={open}
+        aria-label={t("settings")}
+        className={iconButtonClass(open)}
         title={t("settings")}
       >
-        <Settings size={20} />
+        <Settings size={18} />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-12 w-80 bg-gray-800 border border-white/10 rounded-xl shadow-2xl z-50 p-4 max-h-[calc(100vh-120px)] overflow-y-auto pb-6">
-          <div className="flex justify-between items-center mb-4">
-            <span className="font-semibold text-white text-[16px]">{t("settings")}</span>
-            <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-white">
-              <X size={16} />
+        <div
+          role="dialog"
+          aria-labelledby="settings-title"
+          className="absolute right-0 top-[54px] w-[380px] max-md:fixed max-md:left-4 max-md:right-4 max-md:top-[calc(var(--header-h)+8px)] max-md:w-auto bg-bp-surface2 border border-bp-strong rounded-[20px] shadow-[0_24px_60px_rgba(0,0,0,0.6)] z-50 p-5 max-h-[calc(100vh-var(--header-h)-24px)] overflow-y-auto flex flex-col gap-[18px] text-bp-text"
+        >
+          <div className="flex justify-between items-center">
+            <h2 id="settings-title" className="m-0 font-display font-bold text-lg">{t("settings")}</h2>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label={t("close")}
+              className="w-9 h-9 rounded-full border border-bp-strong flex items-center justify-center text-bp-text2 hover:text-bp-text"
+            >
+              <X size={14} />
             </button>
           </div>
 
           {/* Language */}
-          <div className="flex items-center justify-between mb-5">
-            <div className="text-sm text-white">{t("language")}</div>
-            <div className="flex gap-1">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[15px] font-medium">{t("language")}</span>
+            <div className="flex gap-1 p-[3px] rounded-full bg-bp-band border border-bp-border">
               {(["en", "ru", "fr"] as Locale[]).map((l) => (
                 <button
                   key={l}
+                  type="button"
+                  aria-pressed={locale === l}
                   onClick={() => selectLanguage(l)}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${locale === l ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+                  className={`h-[30px] min-w-[44px] px-2.5 rounded-full font-mono text-xs transition-colors ${locale === l ? "bg-bp-accent text-bp-bg" : "text-bp-text2 hover:text-bp-text"}`}
                 >
                   {l === "ru" ? "РУ" : l === "fr" ? "FR" : "EN"}
                 </button>
@@ -280,203 +311,185 @@ export default function SettingsPanel() {
             </div>
           </div>
 
-          {/* Divider */}
-          <div className="border-t border-white/10 mb-4" />
+          <div className="h-px bg-bp-border" />
 
           {/* Bet blink toggle */}
-          <div className="flex items-center justify-between gap-3 mb-5">
-            <div className="min-w-0">
-              <div className="text-sm text-white">{t("bettingAlarm")}</div>
-              <div className="text-xs text-gray-400">{t("bettingAlarmDesc")}</div>
-            </div>
-            <button
-              onClick={() => toggleBetBlink(!betBlink)}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${betBlink ? "bg-green-500" : "bg-gray-600"}`}
-            >
-              <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${betBlink ? "translate-x-6" : "translate-x-1"}`} />
-            </button>
-          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={betBlink}
+            onClick={() => toggleBetBlink(!betBlink)}
+            className="flex items-center gap-3.5 text-left"
+          >
+            <span className="flex-1 flex flex-col gap-[3px] min-w-0">
+              <span className="text-[15px] font-medium">{t("bettingAlarm")}</span>
+              <span className="text-[13px] text-bp-muted leading-snug">{t("bettingAlarmDesc")}</span>
+            </span>
+            <Switch on={betBlink} />
+          </button>
 
           {/* Cards on seats toggle — hidden on mobile */}
-          <div className={`flex items-center justify-between gap-3 mb-5 ${isMobile ? "hidden" : ""}`}>
-            <div className="min-w-0">
-              <div className="text-sm text-white">{t("cardsOnSeats")}</div>
-              <div className="text-xs text-gray-400">{t("cardsOnSeatsDesc")}</div>
-            </div>
-            <button
-              onClick={() => toggleCardsOnSeats(!cardsOnSeats)}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${cardsOnSeats ? "bg-green-500" : "bg-gray-600"}`}
-            >
-              <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${cardsOnSeats ? "translate-x-6" : "translate-x-1"}`} />
-            </button>
-          </div>
-
-          {/* Divider */}
-          <div className="border-t border-white/10 mb-4" />
+          <button
+            type="button"
+            role="switch"
+            aria-checked={cardsOnSeats}
+            onClick={() => toggleCardsOnSeats(!cardsOnSeats)}
+            className={`flex items-center gap-3.5 text-left ${isMobile ? "hidden" : ""}`}
+          >
+            <span className="flex-1 flex flex-col gap-[3px] min-w-0">
+              <span className="text-[15px] font-medium">{t("cardsOnSeats")}</span>
+              <span className="text-[13px] text-bp-muted leading-snug">{t("cardsOnSeatsDesc")}</span>
+            </span>
+            <Switch on={cardsOnSeats} />
+          </button>
 
           {/* Room color */}
-          <div className="mb-4">
-            <div className="text-sm text-white mb-2">{t("roomColor")}</div>
-            <div className="grid grid-cols-4 gap-2">
+          <div className={groupClass}>
+            <span className={groupTitleClass}>{t("roomColor")}</span>
+            <div className="grid grid-cols-5 gap-1.5">
               {ROOM_SKINS.map((skin) => (
                 <button
                   key={skin.id}
+                  type="button"
                   onClick={() => selectRoomSkin(skin.id)}
                   title={skin.label}
-                  className={`relative rounded-lg overflow-hidden h-12 border-2 transition-all ${roomSkin === skin.id ? "border-white scale-105" : "border-transparent hover:border-white/40"}`}
+                  aria-label={skin.label}
+                  aria-pressed={roomSkin === skin.id}
+                  className={swatchClass(roomSkin === skin.id)}
                   style={{ background: skin.value }}
-                >
-                  {roomSkin === skin.id && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-3 h-3 rounded-full bg-white shadow" />
-                    </div>
-                  )}
-                </button>
+                />
               ))}
             </div>
           </div>
 
-          {/* Divider */}
-          <div className="border-t border-white/10 mb-4" />
-
           {/* Table skin */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-sm text-white">{t("tableSkin")}</div>
+          <div className={groupClass}>
+            <div className="flex items-center justify-between">
+              <span className={groupTitleClass}>{t("tableSkin")}</span>
               {loggedIn && (
                 <>
                   <input ref={tableFileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadCustomSkin(f, "table"); e.target.value = "" }} />
-                  <button onClick={() => tableFileRef.current?.click()} disabled={uploadingTable} className="text-white text-lg leading-none hover:text-gray-300 disabled:opacity-50 transition-colors" title={t("uploadCustomSkin")}>+</button>
+                  <button type="button" onClick={() => tableFileRef.current?.click()} disabled={uploadingTable} className={uploadBtnClass} title={t("uploadCustomSkin")} aria-label={t("uploadCustomSkin")}>
+                    <Plus size={12} strokeWidth={2.4} />
+                    {uploadingTable ? t("uploading") : t("upload")}
+                  </button>
                 </>
               )}
             </div>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-5 gap-1.5">
               {customTableSkinUrl && (
                 <div className="relative">
                   <button
+                    type="button"
                     onClick={() => selectSkin("custom_table")}
                     title="My skin"
-                    className={`relative rounded-lg overflow-hidden h-12 w-full border-2 transition-all ${tableSkin === "custom_table" ? "border-white scale-105" : "border-transparent hover:border-white/40"}`}
+                    aria-pressed={tableSkin === "custom_table"}
+                    className={swatchClass(tableSkin === "custom_table")}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={customTableSkinUrl} alt="Custom" className="w-full h-full object-cover" />
-                    {tableSkin === "custom_table" && <div className="absolute inset-0 flex items-center justify-center"><div className="w-3 h-3 rounded-full bg-white shadow" /></div>}
                   </button>
-                  <button onClick={() => removeCustomSkin("table")} className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center leading-none">×</button>
+                  <button type="button" onClick={() => removeCustomSkin("table")} className={removeBtnClass}>×</button>
                 </div>
               )}
               {TABLE_SKINS.map((skin) => (
                 <button
                   key={skin.id}
+                  type="button"
                   onClick={() => selectSkin(skin.id)}
                   title={skin.label}
-                  className={`relative rounded-lg overflow-hidden h-12 border-2 transition-all ${tableSkin === skin.id ? "border-white scale-105" : "border-transparent hover:border-white/40"}`}
+                  aria-label={skin.label}
+                  aria-pressed={tableSkin === skin.id}
+                  className={swatchClass(tableSkin === skin.id)}
+                  style={skin.type === "color" ? { backgroundColor: skin.value } : undefined}
                 >
-                  {skin.type === "color" ? (
-                    <div className="w-full h-full" style={{ backgroundColor: skin.value }} />
-                  ) : (
+                  {skin.type === "image" && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={skin.value} alt={skin.label} className="w-full h-full object-cover" />
-                  )}
-                  {tableSkin === skin.id && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-3 h-3 rounded-full bg-white shadow" />
-                    </div>
                   )}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Divider */}
-          <div className="border-t border-white/10 mb-4" />
-
           {/* Card back skin */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-sm text-white">{t("cardBack")}</div>
+          <div className={groupClass}>
+            <div className="flex items-center justify-between">
+              <span className={groupTitleClass}>{t("cardBack")}</span>
               {loggedIn && (
                 <>
                   <input ref={cardFileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadCustomSkin(f, "card"); e.target.value = "" }} />
-                  <button onClick={() => cardFileRef.current?.click()} disabled={uploadingCard} className="text-white text-lg leading-none hover:text-gray-300 disabled:opacity-50 transition-colors" title={t("uploadCustomSkin")}>+</button>
+                  <button type="button" onClick={() => cardFileRef.current?.click()} disabled={uploadingCard} className={uploadBtnClass} title={t("uploadCustomSkin")} aria-label={t("uploadCustomSkin")}>
+                    <Plus size={12} strokeWidth={2.4} />
+                    {uploadingCard ? t("uploading") : t("upload")}
+                  </button>
                 </>
               )}
             </div>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-5 gap-1.5">
               {customCardSkinUrl && (
                 <div className="relative">
                   <button
+                    type="button"
                     onClick={() => selectCardBackSkin("custom_card")}
                     title="My skin"
-                    className={`relative rounded-lg overflow-hidden w-full border-2 transition-all ${cardBackSkin === "custom_card" ? "border-white scale-105" : "border-transparent hover:border-white/40"}`}
-                    style={{ aspectRatio: "2/3", height: "48px" }}
+                    aria-pressed={cardBackSkin === "custom_card"}
+                    className={swatchClass(cardBackSkin === "custom_card", true)}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={customCardSkinUrl} alt="Custom" className="w-full h-full object-cover" />
-                    {cardBackSkin === "custom_card" && <div className="absolute inset-0 flex items-center justify-center"><div className="w-3 h-3 rounded-full bg-white shadow" /></div>}
                   </button>
-                  <button onClick={() => removeCustomSkin("card")} className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center leading-none">×</button>
+                  <button type="button" onClick={() => removeCustomSkin("card")} className={removeBtnClass}>×</button>
                 </div>
               )}
               {CARD_BACK_SKINS.map((skin) => (
                 <button
                   key={skin.id}
+                  type="button"
                   onClick={() => selectCardBackSkin(skin.id)}
                   title={skin.label}
-                  className={`relative rounded-lg overflow-hidden border-2 transition-all ${cardBackSkin === skin.id ? "border-white scale-105" : "border-transparent hover:border-white/40"}`}
-                  style={{ aspectRatio: "2/3", height: "48px" }}
+                  aria-label={skin.label}
+                  aria-pressed={cardBackSkin === skin.id}
+                  className={swatchClass(cardBackSkin === skin.id, true)}
+                  style={skin.type === "color" ? { backgroundColor: skin.value } : undefined}
                 >
                   {skin.type === "color" ? (
-                    <div className="w-full h-full" style={{ backgroundColor: skin.value }}>
-                      {/* Mini diamond pattern preview */}
-                      <svg width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
-                        <defs>
-                          <pattern id={`preview-${skin.id}`} width="8" height="8" patternUnits="userSpaceOnUse">
-                            <path d="M0 4 L4 0 L8 4 L4 8 Z" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="0.5" />
-                          </pattern>
-                        </defs>
-                        <rect width="100%" height="100%" fill={`url(#preview-${skin.id})`} />
-                      </svg>
-                    </div>
+                    // Mini diamond pattern preview
+                    <svg width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
+                      <defs>
+                        <pattern id={`preview-${skin.id}`} width="8" height="8" patternUnits="userSpaceOnUse">
+                          <path d="M0 4 L4 0 L8 4 L4 8 Z" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="0.5" />
+                        </pattern>
+                      </defs>
+                      <rect width="100%" height="100%" fill={`url(#preview-${skin.id})`} />
+                    </svg>
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={skin.value} alt={skin.label} className="w-full h-full object-cover" />
                   )}
-                  {cardBackSkin === skin.id && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-3 h-3 rounded-full bg-white shadow" />
-                    </div>
-                  )}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Divider */}
-          <div className="border-t border-white/10 mb-4 mt-4" />
-
           {/* Seat color */}
-          <div>
-            <div className="text-sm text-white mb-2">{t("seatColor")}</div>
-            <div className="grid grid-cols-4 gap-2">
+          <div className={groupClass}>
+            <span className={groupTitleClass}>{t("seatColor")}</span>
+            <div className="grid grid-cols-5 gap-1.5">
               {SEAT_SKINS.map((skin) => (
                 <button
                   key={skin.id}
+                  type="button"
                   onClick={() => selectSeatSkin(skin.id)}
                   title={skin.label}
-                  className={`relative rounded-lg overflow-hidden h-12 border-2 transition-all ${seatSkin === skin.id ? "border-white scale-105" : "border-transparent hover:border-white/40"}`}
+                  aria-label={skin.label}
+                  aria-pressed={seatSkin === skin.id}
+                  className={swatchClass(seatSkin === skin.id)}
                   style={{ backgroundColor: skin.value }}
-                >
-                  {seatSkin === skin.id && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-3 h-3 rounded-full bg-white shadow" />
-                    </div>
-                  )}
-                </button>
+                />
               ))}
             </div>
           </div>
-
         </div>
       )}
     </div>

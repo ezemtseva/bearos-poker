@@ -4,10 +4,19 @@ import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
 import { Volume2, VolumeX, Volume1, Volume } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { useSound } from "@/hooks/use-sound"
+import { useLocale } from "@/lib/locale-context"
+
+export function iconButtonClass(active: boolean) {
+  return `w-11 h-11 rounded-full flex items-center justify-center border transition-colors flex-shrink-0 ${
+    active
+      ? "bg-bp-accent border-bp-accent text-bp-bg"
+      : "bg-transparent border-bp-strong text-bp-text2 hover:text-bp-text hover:border-bp-muted"
+  }`
+}
 
 export default function SoundToggle() {
+  const { t } = useLocale()
   const { muted, toggleMute, volume, setVolume } = useSound()
   const [showVolumeControls, setShowVolumeControls] = useState(false)
   const controlsRef = useRef<HTMLDivElement>(null)
@@ -51,11 +60,11 @@ export default function SoundToggle() {
 
   // Get the appropriate volume icon based on current volume
   const getVolumeIcon = () => {
-    if (muted) return <VolumeX size={20} />
-    if (volume === 0) return <VolumeX size={20} />
-    if (volume < 0.5) return <Volume size={20} />
-    if (volume < 0.8) return <Volume1 size={20} />
-    return <Volume2 size={20} />
+    if (muted) return <VolumeX size={18} />
+    if (volume === 0) return <VolumeX size={18} />
+    if (volume < 0.5) return <Volume size={18} />
+    if (volume < 0.8) return <Volume1 size={18} />
+    return <Volume2 size={18} />
   }
 
   const handleButtonClick = () => {
@@ -68,31 +77,46 @@ export default function SoundToggle() {
     setVolume(newVolume)
   }
 
+  const pct = muted ? 0 : Math.round(volume * 100)
+
   return (
     <div className="relative">
-      <Button
+      <button
+        type="button"
         ref={buttonRef}
-        variant="ghost"
-        size="sm"
         onClick={handleButtonClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className="rounded-full w-10 h-10 p-0 bg-gray-800/50 hover:bg-gray-700/70"
+        className={iconButtonClass(showVolumeControls)}
         aria-label={muted ? "Unmute sounds" : "Mute sounds"}
+        aria-expanded={showVolumeControls}
         title={muted ? "Unmute" : "Mute"}
       >
         {getVolumeIcon()}
-      </Button>
+      </button>
 
       {showVolumeControls && (
         <div
           ref={controlsRef}
-          className="absolute right-0 top-12 bg-gray-800 p-3 rounded-md shadow-lg z-50"
+          role="dialog"
+          aria-label={t("sound")}
+          className="absolute right-0 top-[54px] w-[280px] max-md:fixed max-md:left-4 max-md:right-4 max-md:top-[calc(var(--header-h)+8px)] max-md:w-auto bg-bp-surface2 border border-bp-strong rounded-2xl shadow-[0_24px_60px_rgba(0,0,0,0.6)] p-4 z-50 flex flex-col gap-3"
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
-          <div className="flex items-center space-x-2">
-            <VolumeX size={16} className="text-gray-400" />
+          <div className="flex justify-between items-center">
+            <span className="font-semibold text-[15px] text-bp-text">{t("sound")}</span>
+            <span className="font-mono text-[13px] text-bp-text2">{pct}%</span>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={toggleMute}
+              aria-label={muted ? "Unmute" : "Mute"}
+              className={`w-9 h-9 rounded-full border border-bp-strong flex items-center justify-center flex-shrink-0 ${muted ? "bg-bp-accent text-bp-bg" : "bg-bp-surface3 text-bp-text2"}`}
+            >
+              <VolumeX size={16} />
+            </button>
             <input
               type="range"
               min="0"
@@ -100,13 +124,13 @@ export default function SoundToggle() {
               step="0.1"
               value={volume}
               onChange={handleVolumeChange}
-              className="w-24 h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer"
+              aria-label={t("sound")}
+              className="flex-1 cursor-pointer"
             />
-            <Volume2 size={16} className="text-gray-400" />
           </div>
+          <span className="text-xs text-bp-dim">{t("soundHint")}</span>
         </div>
       )}
     </div>
   )
 }
-

@@ -2,6 +2,7 @@ import type React from "react"
 import "./globals.css"
 import { Inter } from "next/font/google"
 import Navigation from "./Navigation"
+import Footer from "./Footer"
 import dynamic from "next/dynamic"
 import SessionProviderWrapper from "@/components/SessionProviderWrapper"
 import { LocaleProvider } from "@/lib/locale-context"
@@ -9,7 +10,8 @@ import { Toaster } from "@/components/ui/toaster"
 
 const RoomSkinApplier = dynamic(() => import("@/components/RoomSkinApplier"), { ssr: false })
 
-const inter = Inter({ subsets: ["latin"] })
+// Playing cards keep the original Inter font
+const inter = Inter({ subsets: ["latin"], variable: "--font-card" })
 
 export const metadata = {
   title: "Bearos Poker",
@@ -24,13 +26,23 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className={`${inter.variable} font-sans`}>
         <SessionProviderWrapper>
           <LocaleProvider>
             <RoomSkinApplier />
             <Navigation />
             <div className="content-wrapper">
-              <div className="pt-14 md:pt-16">{children}</div>
+              <div className="pt-[var(--header-h)] flex-1 flex flex-col">{children}</div>
+              <Footer />
             </div>
           <Toaster />
           </LocaleProvider>
@@ -39,4 +51,3 @@ export default function RootLayout({
     </html>
   )
 }
-
