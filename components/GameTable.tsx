@@ -1943,8 +1943,9 @@ export default function GameTable({
           <section
             aria-label={t("tableChip")}
             className="relative w-[800px] h-[400px] mx-auto overflow-visible flex-shrink-0"
-            // Top margin = half a seat, so top seats (centered on the rail) start level with the score table
-            style={{ marginTop: seatsHaveCards ? 110 : 54, marginBottom: seatsHaveCards ? 100 : 52 }}
+            // Top margin = half a seat minus the highest seat's y, so top seats (centered on the rail)
+            // start level with the score table. With 3 or 5 players the top seats sit on the corners (y=29).
+            style={{ marginTop: (seatsHaveCards ? 110 : 54) - (players.length === 3 || players.length === 5 ? 29 : 0), marginBottom: seatsHaveCards ? 100 : 52 }}
           >
             {/* Rail */}
             <div className="absolute inset-0 rounded-[25%/25%] bg-bp-surface3 border border-bp-strong shadow-[0_30px_80px_rgba(0,0,0,0.55)]" />
