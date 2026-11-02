@@ -1181,7 +1181,7 @@ export default function GameTable({
   }
 
   // Cards in the player's hand. Highlights live on the wrapper, never inside the card.
-  const renderHand = (size: "normal" | "medium" | "small") => {
+  const renderHand = (size: "normal" | "medium" | "small", mobile = false) => {
     if (!currentPlayer?.hand?.length) {
       return <p className="text-sm text-bp-dim">{gameStarted ? t("allCardsPlayed") : t("cardsHereHint")}</p>
     }
@@ -1200,9 +1200,12 @@ export default function GameTable({
         <div
           key={index}
           className={`flex ${radius} ${
-            playable
-              ? "-translate-y-2.5 shadow-[0_18px_36px_rgba(0,0,0,0.5)]"
-              : dimmed ? "opacity-[0.38]" : ""
+            // Mobile: no pre-highlight; the tapped card just dips a little
+            mobile
+              ? playable ? "active:translate-y-1" : dimmed ? "opacity-[0.38]" : ""
+              : playable
+                ? "-translate-y-2.5 shadow-[0_18px_36px_rgba(0,0,0,0.5)]"
+                : dimmed ? "opacity-[0.38]" : ""
           }`}
         >
           <PlayingCard
@@ -1212,7 +1215,7 @@ export default function GameTable({
             onClick={() => handlePlayCard(card)}
             disabled={disabled}
             showBack={shouldShowCardBacks}
-            className={isNoSuitRound && card.suit === "diamonds" ? "!bg-white" : ""}
+            className={`${isNoSuitRound && card.suit === "diamonds" ? "!bg-white" : ""} ${mobile ? "hover:!scale-100 hover:!shadow-md" : ""}`}
           />
         </div>
       )
@@ -1881,7 +1884,7 @@ export default function GameTable({
           </div>
           <div className="flex justify-center items-end pt-4 min-h-[105px]">
             <div className="flex gap-1.5 items-end" style={currentPlayer?.hand.length ? { zoom: handZoom } : undefined}>
-              {renderHand("small")}
+              {renderHand("small", true)}
             </div>
           </div>
           {errorMessage && <p className="m-0 text-bp-warning text-sm text-center">{errorMessage}</p>}
