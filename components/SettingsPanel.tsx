@@ -83,10 +83,6 @@ function readBetBlink(): boolean {
   try { const v = localStorage.getItem("betBlinkEnabled"); return v === null ? false : v === "true" } catch { return false }
 }
 
-function readCardsOnSeats(): boolean {
-  try { const v = localStorage.getItem("cardsOnSeats"); return v === "true" } catch { return false }
-}
-
 function readTableSkin(): string {
   try { return localStorage.getItem("tableSkin") || "bearos" } catch { return "bearos" }
 }
@@ -132,10 +128,7 @@ export default function SettingsPanel() {
   const loggedIn = status === "authenticated"
   const { locale, setLocale, t } = useLocale()
   const [open, setOpen] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
-  useEffect(() => { setIsMobile(window.innerWidth < 768) }, [])
   const [betBlink, setBetBlink] = useState(false)
-  const [cardsOnSeats, setCardsOnSeats] = useState(false)
   const [tableSkin, setTableSkin] = useState("bearos")
   const [cardBackSkin, setCardBackSkin] = useState("black")
   const [roomSkin, setRoomSkin] = useState("bearos")
@@ -150,7 +143,6 @@ export default function SettingsPanel() {
 
   useEffect(() => {
     setBetBlink(readBetBlink())
-    setCardsOnSeats(readCardsOnSeats())
     setTableSkin(readTableSkin())
     setCardBackSkin(readCardBackSkin())
     setRoomSkin(readRoomSkin())
@@ -174,12 +166,6 @@ export default function SettingsPanel() {
     try { localStorage.setItem("betBlinkEnabled", String(val)) } catch {}
     window.dispatchEvent(new CustomEvent("settingsChanged", { detail: { betBlinkEnabled: val } }))
     if (loggedIn) saveSettingsToDB({ bet_blink_enabled: val })
-  }
-
-  function toggleCardsOnSeats(val: boolean) {
-    setCardsOnSeats(val)
-    try { localStorage.setItem("cardsOnSeats", String(val)) } catch {}
-    window.dispatchEvent(new CustomEvent("settingsChanged", { detail: { cardsOnSeats: val } }))
   }
 
   function selectSkin(id: string) {
@@ -328,21 +314,6 @@ export default function SettingsPanel() {
               <span className="text-[13px] text-bp-muted leading-snug">{t("bettingAlarmDesc")}</span>
             </span>
             <Switch on={betBlink} />
-          </button>
-
-          {/* Cards on seats toggle — hidden on mobile */}
-          <button
-            type="button"
-            role="switch"
-            aria-checked={cardsOnSeats}
-            onClick={() => toggleCardsOnSeats(!cardsOnSeats)}
-            className={`flex items-center gap-3.5 text-left ${isMobile ? "hidden" : ""}`}
-          >
-            <span className="flex-1 flex flex-col gap-[3px] min-w-0">
-              <span className="text-[15px] font-medium">{t("cardsOnSeats")}</span>
-              <span className="text-[13px] text-bp-muted leading-snug">{t("cardsOnSeatsDesc")}</span>
-            </span>
-            <Switch on={cardsOnSeats} />
           </button>
 
           {/* Room color */}

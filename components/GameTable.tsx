@@ -16,7 +16,7 @@ import ConfigureGameDialog, { GameConfigFields, type GameLength } from "./Config
 // Add this import at the top with other imports
 import { useSound } from "@/hooks/use-sound"
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, SlidersHorizontal, Minus, Plus, X, Link2, ArrowRight } from "lucide-react"
-import { TABLE_SKINS, SEAT_SKINS, CARD_BACK_SKINS } from "./SettingsPanel"
+import { TABLE_SKINS, SEAT_SKINS } from "./SettingsPanel"
 import { useSession } from "next-auth/react"
 import { useViewport } from "@/hooks/use-viewport"
 import { useLocale } from "@/lib/locale-context"
@@ -170,8 +170,6 @@ export default function GameTable({
   const pokerHandsRef = useRef(0) // count rounds where 7♠ was in current player's hand
   const [tableSkin, setTableSkin] = useState("bearos")
   const [seatSkin, setSeatSkin] = useState("bearos")
-  const [cardBackSkin, setCardBackSkin] = useState("black")
-  const [cardsOnSeats, setCardsOnSeats] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const lastReactionTimestampRef = useRef<Map<string, number>>(new Map())
   const [betNotifications, setBetNotifications] = useState<Set<string>>(new Set())
@@ -190,10 +188,6 @@ export default function GameTable({
       if (skin) setTableSkin(skin)
       const seat = localStorage.getItem("seatSkin")
       if (seat) setSeatSkin(seat)
-      const cardBack = localStorage.getItem("cardBackSkin")
-      if (cardBack) setCardBackSkin(cardBack)
-      const cos = localStorage.getItem("cardsOnSeats")
-      if (cos !== null) setCardsOnSeats(cos === "true")
     } catch {}
   }, [])
 
@@ -204,8 +198,6 @@ export default function GameTable({
       if ("betBlinkEnabled" in detail) setBetBlinkEnabled(detail.betBlinkEnabled)
       if ("tableSkin" in detail) setTableSkin(detail.tableSkin)
       if ("seatSkin" in detail) setSeatSkin(detail.seatSkin)
-      if ("cardBackSkin" in detail) setCardBackSkin(detail.cardBackSkin)
-      if ("cardsOnSeats" in detail) setCardsOnSeats(detail.cardsOnSeats)
     }
     window.addEventListener("settingsChanged", handleSettingsChanged)
     return () => window.removeEventListener("settingsChanged", handleSettingsChanged)
@@ -1900,7 +1892,6 @@ export default function GameTable({
   const layoutNaturalWidth =
     48 + PLAY_MIN_WIDTH + (!isBottomPosition && scoreTableExpanded ? scorePanelWidth + 24 : !isBottomPosition ? 200 : 0)
   const layoutZoom = Math.min(1, viewportWidth / layoutNaturalWidth)
-  const seatsHaveCards = cardsOnSeats && gameStarted
   // Who acts now: the betting player during bets, otherwise the player whose turn it is to play
   const activeTurnName =
     (!safeGameData.allBetsPlaced && typeof safeGameData.currentBettingTurn === "number"
@@ -1950,7 +1941,7 @@ export default function GameTable({
             className="relative w-[800px] h-[400px] mx-auto overflow-visible flex-shrink-0"
             // Top margin = half a seat minus the highest seat's y, so top seats (centered on the rail)
             // start level with the score table. With 3 or 5 players the top seats sit on the corners (y=29).
-            style={{ marginTop: (seatsHaveCards ? 110 : 54) - (players.length === 3 || players.length === 5 ? 29 : 0), marginBottom: seatsHaveCards ? 100 : 52 }}
+            style={{ marginTop: 54 - (players.length === 3 || players.length === 5 ? 29 : 0), marginBottom: 52 }}
           >
             {/* Rail */}
             <div className="absolute inset-0 rounded-[25%/25%] bg-bp-surface3 border border-bp-strong shadow-[0_30px_80px_rgba(0,0,0,0.55)]" />
@@ -1978,8 +1969,6 @@ export default function GameTable({
                 6: [[400, 400], [59, 371], [59, 29], [400, 0], [741, 29], [741, 371]],
               }
               const [left, top] = seatPositions[players.length]?.[index] ?? [400, 200]
-              // Top seats show their seat cards above the seat, the rest below
-              const isTopSeat = top < 200
 
               const isCurrentTurn = safeGameData.allBetsPlaced && players[currentTurn]?.name === player.name
               const isBettingTurn =
@@ -1992,29 +1981,6 @@ export default function GameTable({
               const hit = player.bet !== null && betValue !== "—" && player.roundWins === player.bet
               const isCurrentPlayerSeat = player.name === currentPlayerName
 
-              const seatCards = cardsOnSeats && gameStarted && player.hand.length > 0 && (() => {
-                const cardCount = player.hand.length
-                const gap = 2
-                const cardW = Math.min(Math.floor((200 - gap * (cardCount - 1)) / cardCount), 32)
-                const cardH = Math.round(cardW * 1.5)
-                const skin = CARD_BACK_SKINS.find(s => s.id === cardBackSkin) ?? CARD_BACK_SKINS[0]
-                return (
-                  <div
-                    className="pointer-events-none absolute left-0 right-0 flex justify-center"
-                    style={isTopSeat ? { gap: `${gap}px`, bottom: "calc(100% + 4px)" } : { gap: `${gap}px`, top: "calc(100% + 4px)" }}
-                  >
-                    {Array.from({ length: cardCount }).map((_, i) => (
-                      <div key={i} className="rounded overflow-hidden border border-white/20 flex-shrink-0" style={{ width: `${cardW}px`, height: `${cardH}px` }}>
-                        {skin.type === "image"
-                          // eslint-disable-next-line @next/next/no-img-element
-                          ? <img src={skin.value} alt="" className="w-full h-full object-cover" />
-                          : <div className="w-full h-full" style={{ backgroundColor: skin.value }} />}
-                      </div>
-                    ))}
-                  </div>
-                )
-              })()
-
               return (
                 <div
                   key={index}
@@ -2022,7 +1988,6 @@ export default function GameTable({
                   style={{ left: `${left}px`, top: `${top}px`, transform: "translate(-50%, -50%)" }}
                 >
                   {renderReaction(player.name)}
-                  {seatCards}
 
                   {/* Bet placed notification */}
                   {betNotifications.has(player.name) && (
