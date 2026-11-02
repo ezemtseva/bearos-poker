@@ -1253,7 +1253,7 @@ export default function GameTable({
         type="button"
         onClick={handlePlaceBet}
         disabled={betIsForbidden}
-        className={`${compact ? "h-9 px-8 text-sm mt-5" : "h-11 text-[15px]"} rounded-full font-semibold border transition-colors ${
+        className={`${compact ? "h-9 px-8 text-sm mt-5" : "h-11 text-[15px] mt-auto"} rounded-full font-semibold border transition-colors ${
           betIsForbidden
             ? "bg-bp-surface3 border-bp-strong text-bp-dim cursor-not-allowed"
             : "bg-bp-accent border-bp-accent text-bp-bg hover:bg-bp-accentHover"
