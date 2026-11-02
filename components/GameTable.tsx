@@ -1299,12 +1299,19 @@ export default function GameTable({
     const lastCol = colLabels.length - 1
     return (
       <table
-        className={`w-full border-collapse font-mono tabular-nums ${compact ? "text-xs" : "text-[13px]"}`}
+        className={`w-full border-collapse font-mono tabular-nums ${compact ? "text-xs table-fixed" : "text-[13px]"}`}
         style={{ minWidth: compact ? 36 + orderedPlayers.length * 96 : scoreTableMinWidth }}
       >
+        {compact && (
+          // Fixed layout on mobile: narrow round column, player columns share the rest equally
+          <colgroup>
+            <col style={{ width: 32 }} />
+            {orderedPlayers.flatMap((player) => colLabels.map((_, k) => <col key={`${player.name}-${k}`} />))}
+          </colgroup>
+        )}
         <thead>
           <tr>
-            <th scope="col" className={`${headTop} ${compact ? "pl-3 pr-1.5 pt-2 pb-0.5 text-[10px]" : "pl-3.5 pr-2 pt-2.5 pb-1 text-[11px]"} text-left font-medium text-bp-dim`}>#</th>
+            <th scope="col" className={`${headTop} ${compact ? "pl-3 pr-0 pt-2 pb-0.5 text-[10px]" : "pl-3.5 pr-2 pt-2.5 pb-1 text-[11px]"} text-left font-medium text-bp-dim`}>#</th>
             {orderedPlayers.map((player) => (
               <th
                 key={player.name}
@@ -1347,7 +1354,7 @@ export default function GameTable({
                 <tr key={round.roundId} className={isCurrent ? "bg-bp-surface3" : ""}>
                   <th
                     scope="row"
-                    className={`${compact ? "pl-3 pr-1.5 py-1.5" : "pl-3.5 pr-2 py-[7px]"} text-left font-medium border-b border-bp-divider ${isCurrent ? "text-bp-accent" : isFuture ? "text-bp-dim" : "text-bp-text2"}`}
+                    className={`${compact ? "pl-3 pr-0 py-1.5" : "pl-3.5 pr-2 py-[7px]"} text-left font-medium border-b border-bp-divider ${isCurrent ? "text-bp-accent" : isFuture ? "text-bp-dim" : "text-bp-text2"}`}
                   >
                     {roundLabel(round.roundName)}
                   </th>
