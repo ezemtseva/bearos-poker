@@ -300,6 +300,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "It's not your turn" }, { status: 400 })
     }
 
+    // A completed trick is still on the table (shown for 2s before it is resolved, while the turn
+    // has not moved yet). Accepting a card now would break the trick, so ask to wait.
+    if (cardsOnTable.length >= players.length) {
+      return NextResponse.json({ error: "Wait for the current trick to finish" }, { status: 409 })
+    }
+    const cardsOnTableBefore = cardsOnTable.length
+
     // Handle 7 of spades special case
     if (card.suit === "spades" && card.value === 7) {
       if (!pokerOption) {
@@ -371,15 +378,20 @@ export async function POST(req: NextRequest) {
     // Determine the highest card
     const highestCard = determineHighestCard(cardsOnTable, isNoTrumpsRound)
 
-    // Update the database with the new game state
-    await sql`
+    // Update the database with the new game state — only if nobody changed the table since we read it
+    const playUpdate = await sql`
       UPDATE poker_games
       SET players = ${JSON.stringify(players)}::jsonb,
           cards_on_table = ${JSON.stringify(cardsOnTable)}::jsonb,
           highest_card = ${JSON.stringify(highestCard)}::jsonb,
           last_played_card = ${JSON.stringify({ ...card, playerName, pokerOption })}::jsonb
       WHERE table_id = ${tableId}
+        AND jsonb_array_length(cards_on_table) = ${cardsOnTableBefore}
+        AND current_turn = ${currentTurn}
     `
+    if (playUpdate.rowCount === 0) {
+      return NextResponse.json({ error: "The table changed, please try again" }, { status: 409 })
+    }
 
     console.log(`[PLAY-CARD] Database updated successfully`)
 
