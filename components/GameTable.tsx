@@ -1226,30 +1226,34 @@ export default function GameTable({
           type="button"
           aria-label={t("decreaseBet")}
           onClick={() => setBetAmount((v) => Math.max((v ?? 0) - 1, 0))}
-          className={`${compact ? "w-11 h-11" : "w-12 h-12"} rounded-full border border-bp-strong bg-bp-surface3 text-bp-text flex items-center justify-center flex-shrink-0 hover:border-bp-muted transition-colors`}
+          className={`${compact ? "w-11 h-11" : "w-10 h-10"} rounded-full border border-bp-strong bg-bp-surface3 text-bp-text flex items-center justify-center flex-shrink-0 hover:border-bp-muted transition-colors`}
         >
           <Minus size={20} strokeWidth={2.2} />
         </button>
-        <span aria-live="polite" className={`font-display font-extrabold leading-[0.9] text-center select-none tabular-nums flex-shrink-0 flex justify-center ${compact ? "text-[48px] w-[56px]" : "text-[88px] w-[96px]"}`}>
+        <span aria-live="polite" className={`font-display font-extrabold leading-[0.9] text-center select-none tabular-nums flex-shrink-0 flex justify-center ${compact ? "text-[48px] w-[56px]" : "text-[72px] w-[80px]"}`}>
           {betAmount ?? 0}
         </span>
         <button
           type="button"
           aria-label={t("increaseBet")}
           onClick={() => setBetAmount((v) => Math.min((v ?? 0) + 1, cardsThisRound))}
-          className={`${compact ? "w-11 h-11" : "w-12 h-12"} rounded-full border border-bp-strong bg-bp-surface3 text-bp-text flex items-center justify-center flex-shrink-0 hover:border-bp-muted transition-colors`}
+          className={`${compact ? "w-11 h-11" : "w-10 h-10"} rounded-full border border-bp-strong bg-bp-surface3 text-bp-text flex items-center justify-center flex-shrink-0 hover:border-bp-muted transition-colors`}
         >
           <Plus size={20} strokeWidth={2.2} />
         </button>
       </div>
-      {forbiddenBet !== null && (
-        <span className={`text-bp-warning text-center ${compact ? "text-xs leading-none mt-2" : "text-[13px]"}`}>{t("youCannotBet")} {forbiddenBet}</span>
-      )}
+      {/* Always takes its space (invisible without a forbidden bet) so Confirm never moves */}
+      <span
+        aria-hidden={forbiddenBet === null}
+        className={`text-bp-warning text-center ${compact ? "text-xs leading-none mt-2" : "text-[13px] leading-tight"} ${forbiddenBet === null ? "invisible" : ""}`}
+      >
+        {t("youCannotBet")} {forbiddenBet ?? 0}
+      </span>
       <button
         type="button"
         onClick={handlePlaceBet}
         disabled={betIsForbidden}
-        className={`${compact ? `h-9 px-8 text-sm ${forbiddenBet !== null ? "mt-3" : "mt-5"}` : "h-12 text-base"} rounded-full font-semibold border transition-colors ${
+        className={`${compact ? "h-9 px-8 text-sm mt-3" : "h-11 text-[15px]"} rounded-full font-semibold border transition-colors ${
           betIsForbidden
             ? "bg-bp-surface3 border-bp-strong text-bp-dim cursor-not-allowed"
             : "bg-bp-accent border-bp-accent text-bp-bg hover:bg-bp-accentHover"
@@ -1745,7 +1749,7 @@ export default function GameTable({
           )}
         </div>
         <div className="grid grid-cols-3 border-t border-bp-border px-0.5 pt-1.5 pb-2">
-          {renderStat(t("colPts"), player.score, "", true)}
+          {renderStat(t("colPts"), player.score, isLeaderM ? "text-bp-accent" : "", true)}
           {renderStat(t("colBet"), betValueM, "", true)}
           {renderStat(t("colWon"), player.roundWins, hitM ? "text-bp-accent" : "", true)}
         </div>
@@ -1822,7 +1826,7 @@ export default function GameTable({
             {renderAvatar(currentPlayer, "w-8 h-8", "text-[13px]")}
             <span className="font-semibold text-[15px] flex-1 min-w-0 truncate">{currentPlayer.name}</span>
             <span className="flex gap-3.5 flex-shrink-0">
-              {renderStat(t("colPts"), currentPlayer.score, "", true)}
+              {renderStat(t("colPts"), currentPlayer.score, highestScore > 0 && currentPlayer.score === highestScore ? "text-bp-accent" : "", true)}
               {renderStat(t("colBet"), myBetM, "", true)}
               {renderStat(t("colWon"), currentPlayer.roundWins, myHitM ? "text-bp-accent" : "", true)}
             </span>
@@ -2020,7 +2024,7 @@ export default function GameTable({
                     </div>
                     {/* Stats row: pts | bet | won */}
                     <div className="grid grid-cols-3 border-t border-bp-border px-1 pt-2 pb-2.5">
-                      {renderStat(t("colPts"), player.score)}
+                      {renderStat(t("colPts"), player.score, isLeader ? "text-bp-accent" : "")}
                       {renderStat(t("colBet"), betValue)}
                       {renderStat(t("colWon"), player.roundWins, hit ? "text-bp-accent" : "")}
                     </div>
@@ -2034,7 +2038,7 @@ export default function GameTable({
           <section aria-label={t("yourHand")} className="flex flex-wrap gap-4 items-stretch min-h-[248px]">
             {/* Bet block — fixed width, and the row has a min height, so the hand never changes size when the bet appears */}
             <div
-              className={`w-[260px] flex-shrink-0 rounded-[20px] px-5 py-[18px] flex flex-col gap-3.5 ${
+              className={`w-[212px] flex-shrink-0 rounded-[20px] px-4 py-[18px] flex flex-col gap-3.5 ${
                 showBetControls ? `bg-bp-surface border-2 ${betBlinkEnabled ? "border-bp-accent animate-bet-border" : "border-bp-border"}` : "border-2 border-transparent"
               }`}
             >
@@ -2048,7 +2052,7 @@ export default function GameTable({
                 <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-bp-muted">{t("yourHand")}</span>
                 {renderStatusLine(false)}
               </div>
-              <div className="flex gap-3 flex-wrap justify-center items-center pt-3 pb-1 min-h-[160px]">
+              <div className="flex gap-3 flex-nowrap justify-center items-center pt-3 pb-1 min-h-[160px]">
                 {renderHand("normal")}
               </div>
               {errorMessage && <p className="m-0 text-bp-warning text-sm text-center">{errorMessage}</p>}
