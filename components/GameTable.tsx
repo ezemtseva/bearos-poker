@@ -1237,7 +1237,7 @@ export default function GameTable({
         >
           <Minus size={20} strokeWidth={2.2} />
         </button>
-        <span aria-live="polite" className={`font-display font-extrabold leading-[0.9] text-center select-none ${compact ? "text-[72px] min-w-[56px]" : "text-[88px] min-w-[64px]"}`}>
+        <span aria-live="polite" className={`font-display font-extrabold leading-[0.9] text-center select-none tabular-nums flex-shrink-0 flex justify-center ${compact ? "text-[72px] w-[80px]" : "text-[88px] w-[96px]"}`}>
           {betAmount ?? 0}
         </span>
         <button
