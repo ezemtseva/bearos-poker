@@ -1608,7 +1608,7 @@ export default function GameTable({
           0%, 100% { border-color: #D7FF3F; box-shadow: 0 0 10px rgba(215, 255, 63, 0.45); }
           50% { border-color: transparent; box-shadow: none; }
         }
-        .animate-bet-border { animation: betBorder 1s ease-in-out infinite; }
+        .animate-bet-border { animation: betBorder 2s ease-in-out infinite; }
         @keyframes reactionFloat {
           0%   { opacity: 1; transform: translateX(-50%) translateY(0)     scale(1); }
           40%  { opacity: 1; transform: translateX(-50%) translateY(-50px) scale(1.4); }
@@ -1767,7 +1767,6 @@ export default function GameTable({
     const mobileTableWidth = Math.max(0, viewportWidth - 32)
     const slotsWidth = players.length * 56 + Math.max(0, players.length - 1) * 8
     const slotsZoom = Math.min(1, (mobileTableWidth - 32) / Math.max(1, slotsWidth))
-    const myActiveTurn = !!currentPlayer && (isMyPlayTurn || (!safeGameData.allBetsPlaced && isCurrentPlayerBettingTurn))
     const myBetM = currentPlayer && shouldShowBetBanners() && currentPlayer.bet !== null ? currentPlayer.bet : "—"
     const myHitM = !!currentPlayer && currentPlayer.bet !== null && myBetM !== "—" && currentPlayer.roundWins === currentPlayer.bet
 
@@ -1797,7 +1796,12 @@ export default function GameTable({
 
         {/* Table with one slot per player */}
         <section aria-label={t("tableChip")} className="relative w-full aspect-[2/1]">
-          <div className="absolute inset-0 rounded-[25%/25%] bg-bp-surface3 border border-bp-strong" />
+          {/* On your play turn the table rail blinks (betting has its own blinking overlay) */}
+          <div
+            className={`absolute inset-0 rounded-[25%/25%] bg-bp-surface3 ${
+              isMyPlayTurn && betBlinkEnabled ? "border-2 border-bp-accent animate-bet-border" : "border border-bp-strong"
+            }`}
+          />
           <div className="absolute inset-[10px] rounded-[23%/22%] border border-bp-border" style={tableFeltStyle()} />
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="flex gap-2 items-start" style={slotsZoom < 1 ? { zoom: slotsZoom } : undefined}>
@@ -1819,7 +1823,7 @@ export default function GameTable({
         {/* Your seat */}
         {currentPlayer && (
           <div
-            className={`relative flex items-center gap-3 px-3.5 py-3 rounded-2xl ${turnBorder(myActiveTurn)}`}
+            className="relative flex items-center gap-3 px-3.5 py-3 rounded-2xl border border-bp-strong"
             style={{ backgroundColor: seatBgColor }}
           >
             {highestScore > 0 && currentPlayer.score === highestScore && <LeaderBadge size={22} />}
