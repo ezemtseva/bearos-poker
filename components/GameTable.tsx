@@ -1893,6 +1893,11 @@ export default function GameTable({
     48 + PLAY_MIN_WIDTH + (!isBottomPosition && scoreTableExpanded ? scorePanelWidth + 24 : !isBottomPosition ? 200 : 0)
   const layoutZoom = Math.min(1, viewportWidth / layoutNaturalWidth)
   const seatsHaveCards = cardsOnSeats && gameStarted
+  // Who acts now: the betting player during bets, otherwise the player whose turn it is to play
+  const activeTurnName =
+    (!safeGameData.allBetsPlaced && typeof safeGameData.currentBettingTurn === "number"
+      ? players[safeGameData.currentBettingTurn]?.name
+      : players[currentTurn]?.name) || "..."
 
   return (
     <>
@@ -1900,14 +1905,23 @@ export default function GameTable({
       <div className="fixed top-0 left-1/2 -translate-x-1/2 h-[var(--header-h)] flex items-center z-20 pointer-events-none">
         <dl className="m-0 flex gap-1.5">
           {[
-            { label: t("tableChip"), value: tableId, accent: true },
-            { label: t("round"), value: `${currentRound} / ${totalRounds}` },
-            { label: t("playLabel"), value: `${currentPlay} / ${cardsThisRound}` },
-            { label: t("timeLabel"), value: elapsedTime },
+            { key: "table", label: t("tableChip"), value: tableId, accent: true, hide: "hidden xl:flex" },
+            { key: "round", label: t("round"), value: `${currentRound} / ${totalRounds}` },
+            { key: "play", label: t("playLabel"), value: `${currentPlay} / ${cardsThisRound}` },
+            { key: "turn", label: t("currentTurnLabel"), value: activeTurnName, name: true },
+            { key: "time", label: t("timeLabel"), value: elapsedTime, hide: "hidden lg:flex" },
           ].map((item) => (
-            <div key={item.label} className="flex items-baseline gap-2 px-3.5 py-2 rounded-full bg-bp-surface border border-bp-border whitespace-nowrap">
+            <div key={item.key} className={`${item.hide ?? "flex"} items-baseline gap-2 px-3.5 py-2 rounded-full bg-bp-surface border border-bp-border whitespace-nowrap`}>
               <dt className="font-mono text-[11px] tracking-[0.1em] uppercase text-bp-muted">{item.label}</dt>
-              <dd className={`m-0 font-mono text-sm tabular-nums ${item.accent ? "tracking-[0.14em] text-bp-accent" : "text-bp-text"} ${item.label === t("timeLabel") ? "min-w-[4ch]" : ""}`}>{item.value}</dd>
+              <dd
+                className={`m-0 text-sm ${
+                  item.name ? "font-sans font-semibold text-bp-accent truncate max-w-[160px]" :
+                  `font-mono tabular-nums ${item.accent ? "tracking-[0.14em] text-bp-accent" : "text-bp-text"}`
+                } ${item.key === "time" ? "min-w-[4ch]" : ""}`}
+                title={item.name ? activeTurnName : undefined}
+              >
+                {item.value}
+              </dd>
             </div>
           ))}
         </dl>
