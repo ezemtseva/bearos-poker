@@ -1294,10 +1294,13 @@ export default function GameTable({
     const cell = compact ? "px-0.5 py-1.5" : "px-[3px] py-[7px]"
     const headTop = compact ? "" : "sticky top-0 z-[1] bg-bp-surface"
     const headSub = compact ? "" : "sticky top-[30px] z-[1] bg-bp-surface"
+    // Mobile drops the ± column so 3 players fit without horizontal scroll
+    const colLabels = compact ? [t("colBet"), t("colWon"), t("colPts")] : [t("colBet"), t("colWon"), t("colPts"), "±"]
+    const lastCol = colLabels.length - 1
     return (
       <table
         className={`w-full border-collapse font-mono tabular-nums ${compact ? "text-xs" : "text-[13px]"}`}
-        style={{ minWidth: compact ? Math.max(420, 36 + orderedPlayers.length * 104) : scoreTableMinWidth }}
+        style={{ minWidth: compact ? 36 + orderedPlayers.length * 96 : scoreTableMinWidth }}
       >
         <thead>
           <tr>
@@ -1306,7 +1309,7 @@ export default function GameTable({
               <th
                 key={player.name}
                 scope="colgroup"
-                colSpan={4}
+                colSpan={colLabels.length}
                 className={`${headTop} ${compact ? "px-1 pt-2 pb-0.5 text-xs" : "px-1.5 pt-2.5 pb-1 text-[13px]"} text-center font-sans font-semibold text-bp-text`}
               >
                 <span className="inline-flex items-center justify-center gap-1.5 max-w-full min-w-0">
@@ -1320,11 +1323,11 @@ export default function GameTable({
             <th scope="col" className={`${headSub} border-b border-bp-border ${compact ? "pl-3 pb-1.5" : "pl-3.5 pb-2"}`} />
             {orderedPlayers.map((player) => (
               <React.Fragment key={player.name}>
-                {[t("colBet"), t("colWon"), t("colPts"), "±"].map((label, k) => (
+                {colLabels.map((label, k) => (
                   <th
                     key={k}
                     scope="col"
-                    className={`${headSub} border-b border-bp-border font-medium uppercase text-bp-dim ${compact ? "text-[9px] px-0.5 pt-0.5 pb-1.5" : "text-[10px] tracking-[0.06em] px-[3px] pt-1 pb-2"} ${k === 3 ? (compact ? "pr-1.5" : "pr-2") : ""}`}
+                    className={`${headSub} border-b border-bp-border font-medium uppercase text-bp-dim ${compact ? "text-[9px] px-0.5 pt-0.5 pb-1.5" : "text-[10px] tracking-[0.06em] px-[3px] pt-1 pb-2"} ${k === lastCol ? (compact ? "pr-1.5" : "pr-2") : ""}`}
                   >
                     {label}
                   </th>
@@ -1353,8 +1356,8 @@ export default function GameTable({
                     if (isFuture) {
                       return (
                         <React.Fragment key={player.name}>
-                          {[0, 1, 2, 3].map((k) => (
-                            <td key={k} className={`${cell} ${k === 3 ? lastPad : ""} text-center border-b border-bp-divider text-bp-future`}>–</td>
+                          {colLabels.map((_, k) => (
+                            <td key={k} className={`${cell} ${k === lastCol ? lastPad : ""} text-center border-b border-bp-divider text-bp-future`}>–</td>
                           ))}
                         </React.Fragment>
                       )
@@ -1372,16 +1375,18 @@ export default function GameTable({
                       <React.Fragment key={player.name}>
                         <td className={`${cell} text-center border-b border-bp-divider ${isCurrent ? "text-bp-text font-medium" : "text-bp-text2"}`}>{betText}</td>
                         <td className={`${cell} text-center border-b border-bp-divider ${isCurrent ? "text-bp-text font-medium" : "text-bp-text2"}`}>{wonText}</td>
-                        <td className={`${cell} text-center border-b border-bp-divider ${
+                        <td className={`${cell} ${compact ? lastPad : ""} text-center border-b border-bp-divider ${
                           showLive ? "text-bp-dim" : isRoundLeader ? "bg-bp-accent/[0.16] text-bp-accent font-semibold" : "text-bp-text font-medium"
                         }`}>
                           {showLive ? "·" : hasScore ? playerScore.cumulativePoints : "-"}
                         </td>
-                        <td className={`${cell} ${lastPad} text-center border-b border-bp-divider ${
-                          showLive ? "text-bp-dim" : hasScore && rp < 0 ? "text-bp-warning" : "text-bp-muted"
-                        }`}>
-                          {showLive ? "·" : !hasScore ? "-" : rp > 0 ? `+${rp}` : rp === 0 ? "-" : rp}
-                        </td>
+                        {!compact && (
+                          <td className={`${cell} ${lastPad} text-center border-b border-bp-divider ${
+                            showLive ? "text-bp-dim" : hasScore && rp < 0 ? "text-bp-warning" : "text-bp-muted"
+                          }`}>
+                            {showLive ? "·" : !hasScore ? "-" : rp > 0 ? `+${rp}` : rp === 0 ? "-" : rp}
+                          </td>
+                        )}
                       </React.Fragment>
                     )
                   })}
@@ -1391,7 +1396,7 @@ export default function GameTable({
           ) : (
             <tr>
               <td />
-              <td colSpan={orderedPlayers.length * 4} className="px-2 py-3 text-bp-dim font-sans text-sm">{t("gameLogPlaceholder")}</td>
+              <td colSpan={orderedPlayers.length * colLabels.length} className="px-2 py-3 text-bp-dim font-sans text-sm">{t("gameLogPlaceholder")}</td>
             </tr>
           )}
         </tbody>
