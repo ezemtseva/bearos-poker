@@ -34,7 +34,7 @@ export default function PokerCardDialog({
             {availableOptions.includes("Trumps") && (
               <Button
                 onClick={() => onOptionSelect("Trumps")}
-                className="w-full h-12 justify-start text-left text-[15px] bg-bp-surface border-bp-strong hover:border-bp-accent hover:bg-bp-surface"
+                className="w-full h-12 justify-start text-left text-[15px] bg-bp-accent border-bp-accent text-bp-bg hover:bg-bp-accentHover hover:border-bp-accentHover"
                 variant="outline"
               >
                 {t("trumps")}
@@ -43,7 +43,7 @@ export default function PokerCardDialog({
             {availableOptions.includes("Poker") && (
               <Button
                 onClick={() => onOptionSelect("Poker")}
-                className="w-full h-12 justify-start text-left text-[15px] bg-bp-surface border-bp-strong hover:border-bp-accent hover:bg-bp-surface"
+                className="w-full h-12 justify-start text-left text-[15px] bg-bp-text2 border-bp-text2 text-bp-bg hover:bg-bp-text hover:border-bp-text"
                 variant="outline"
               >
                 {t("pokerOption")}
