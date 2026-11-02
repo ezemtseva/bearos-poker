@@ -2031,10 +2031,10 @@ export default function GameTable({
           </section>
 
           {/* Bet block + your hand */}
-          <section aria-label={t("yourHand")} className="flex flex-wrap gap-4 items-stretch">
-            {/* Bet block — keeps its width when empty so the hand does not move */}
+          <section aria-label={t("yourHand")} className="flex flex-wrap gap-4 items-stretch min-h-[248px]">
+            {/* Bet block — fixed width, and the row has a min height, so the hand never changes size when the bet appears */}
             <div
-              className={`flex-[1_1_220px] max-w-[280px] rounded-[20px] px-5 py-[18px] flex flex-col gap-3.5 ${
+              className={`w-[260px] flex-shrink-0 rounded-[20px] px-5 py-[18px] flex flex-col gap-3.5 ${
                 showBetControls ? `bg-bp-surface border-2 ${betBlinkEnabled ? "border-bp-accent animate-bet-border" : "border-bp-border"}` : "border-2 border-transparent"
               }`}
             >
