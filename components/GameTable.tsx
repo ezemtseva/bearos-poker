@@ -1833,7 +1833,7 @@ export default function GameTable({
 
         {/* Your seat */}
         {currentPlayer && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-stretch gap-2">
             <div
               className="relative flex-1 min-w-0 flex items-center gap-3 px-3.5 py-3 rounded-2xl border border-bp-strong"
               style={{ backgroundColor: seatBgColor }}
@@ -1848,12 +1848,12 @@ export default function GameTable({
               </span>
               {renderReaction(currentPlayer.name, false, "text-2xl")}
             </div>
-            {/* Emoji reactions — outside the seat container */}
-            <div className="relative flex-shrink-0">
+            {/* Emoji reactions — outside the seat container, same height as the seat */}
+            <div className="relative flex-shrink-0 flex w-[60px]">
               <button
                 type="button"
                 onClick={() => setShowMobileEmojiPanel(v => !v)}
-                className="w-11 h-11 rounded-full border border-bp-strong flex items-center justify-center text-lg active:scale-110 transition-transform"
+                className="w-full h-full rounded-2xl border border-bp-strong bg-bp-surface flex items-center justify-center text-2xl active:scale-95 transition-transform"
                 aria-label={t("emojiTab")}
               >😊</button>
               {showMobileEmojiPanel && (
