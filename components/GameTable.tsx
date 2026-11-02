@@ -1824,7 +1824,7 @@ export default function GameTable({
           >
             {highestScore > 0 && currentPlayer.score === highestScore && <LeaderBadge size={22} />}
             {renderAvatar(currentPlayer, "w-8 h-8", "text-[13px]")}
-            <span className="font-semibold text-[15px] flex-1 min-w-0 truncate">{t("you")} · {currentPlayer.name}</span>
+            <span className="font-semibold text-[15px] flex-1 min-w-0 truncate">{currentPlayer.name}</span>
             <span className="flex gap-3.5 flex-shrink-0">
               {renderStat(t("colPts"), currentPlayer.score, "", true)}
               {renderStat(t("colBet"), myBetM, "", true)}
