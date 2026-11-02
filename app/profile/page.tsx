@@ -188,7 +188,7 @@ export default function ProfilePage() {
       </section>
 
       {/* Stats — 6 widgets */}
-      <section aria-label="Stats" className="grid grid-cols-3 md:grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-2 md:gap-3">
+      <section aria-label="Stats" className="grid grid-cols-3 gap-2 md:gap-3">
         {stats.map(stat => (
           <div key={stat.label} className="bg-bp-surface border border-bp-border rounded-2xl md:rounded-[20px] p-3 md:p-5 flex flex-col gap-2 md:gap-2.5 min-w-0">
             <span className="font-mono text-[9px] md:text-[11px] tracking-[0.08em] md:tracking-[0.1em] uppercase text-bp-muted truncate">{stat.label}</span>
