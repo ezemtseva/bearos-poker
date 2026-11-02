@@ -1833,23 +1833,27 @@ export default function GameTable({
 
         {/* Your seat */}
         {currentPlayer && (
-          <div
-            className="relative flex items-center gap-3 px-3.5 py-3 rounded-2xl border border-bp-strong"
-            style={{ backgroundColor: seatBgColor }}
-          >
-            {highestScore > 0 && currentPlayer.score === highestScore && <LeaderBadge size={22} />}
-            {renderAvatar(currentPlayer, "w-8 h-8", "text-[13px]")}
-            <span className="font-semibold text-[15px] flex-1 min-w-0 truncate">{currentPlayer.name}</span>
-            <span className="flex gap-3.5 flex-shrink-0">
-              {renderStat(t("colPts"), currentPlayer.score, highestScore > 0 && currentPlayer.score === highestScore ? "text-bp-accent" : "", true)}
-              {renderStat(t("colBet"), myBetM, "", true)}
-              {renderStat(t("colWon"), currentPlayer.roundWins, myHitM ? "text-bp-accent" : "", true)}
-            </span>
+          <div className="flex items-center gap-2">
+            <div
+              className="relative flex-1 min-w-0 flex items-center gap-3 px-3.5 py-3 rounded-2xl border border-bp-strong"
+              style={{ backgroundColor: seatBgColor }}
+            >
+              {highestScore > 0 && currentPlayer.score === highestScore && <LeaderBadge size={22} />}
+              {renderAvatar(currentPlayer, "w-8 h-8", "text-[13px]")}
+              <span className="font-semibold text-[15px] flex-1 min-w-0 truncate">{currentPlayer.name}</span>
+              <span className="flex gap-3.5 flex-shrink-0">
+                {renderStat(t("colPts"), currentPlayer.score, highestScore > 0 && currentPlayer.score === highestScore ? "text-bp-accent" : "", true)}
+                {renderStat(t("colBet"), myBetM, "", true)}
+                {renderStat(t("colWon"), currentPlayer.roundWins, myHitM ? "text-bp-accent" : "", true)}
+              </span>
+              {renderReaction(currentPlayer.name, false, "text-2xl")}
+            </div>
+            {/* Emoji reactions — outside the seat container */}
             <div className="relative flex-shrink-0">
               <button
                 type="button"
                 onClick={() => setShowMobileEmojiPanel(v => !v)}
-                className="w-9 h-9 rounded-full border border-bp-strong flex items-center justify-center text-lg active:scale-110 transition-transform"
+                className="w-11 h-11 rounded-full border border-bp-strong flex items-center justify-center text-lg active:scale-110 transition-transform"
                 aria-label={t("emojiTab")}
               >😊</button>
               {showMobileEmojiPanel && (
@@ -1865,7 +1869,6 @@ export default function GameTable({
                 </>
               )}
             </div>
-            {renderReaction(currentPlayer.name, false, "text-2xl")}
           </div>
         )}
 
