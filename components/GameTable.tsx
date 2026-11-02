@@ -1228,35 +1228,35 @@ export default function GameTable({
   const renderBetControls = (compact: boolean) => (
     <>
       <span className={`font-mono text-[11px] tracking-[0.1em] uppercase text-bp-accent ${compact ? "text-center" : ""}`}>{t("makeYourBet")}</span>
-      <div className={`flex items-center ${compact ? "justify-center gap-7" : "justify-between gap-2"}`}>
+      <div className={`flex items-center ${compact ? "justify-center gap-4" : "justify-between gap-2"}`}>
         <button
           type="button"
           aria-label={t("decreaseBet")}
           onClick={() => setBetAmount((v) => Math.max((v ?? 0) - 1, 0))}
-          className={`${compact ? "w-[52px] h-[52px]" : "w-12 h-12"} rounded-full border border-bp-strong bg-bp-surface3 text-bp-text flex items-center justify-center flex-shrink-0 hover:border-bp-muted transition-colors`}
+          className={`${compact ? "w-11 h-11" : "w-12 h-12"} rounded-full border border-bp-strong bg-bp-surface3 text-bp-text flex items-center justify-center flex-shrink-0 hover:border-bp-muted transition-colors`}
         >
           <Minus size={20} strokeWidth={2.2} />
         </button>
-        <span aria-live="polite" className={`font-display font-extrabold leading-[0.9] text-center select-none tabular-nums flex-shrink-0 flex justify-center ${compact ? "text-[72px] w-[80px]" : "text-[88px] w-[96px]"}`}>
+        <span aria-live="polite" className={`font-display font-extrabold leading-[0.9] text-center select-none tabular-nums flex-shrink-0 flex justify-center ${compact ? "text-[48px] w-[56px]" : "text-[88px] w-[96px]"}`}>
           {betAmount ?? 0}
         </span>
         <button
           type="button"
           aria-label={t("increaseBet")}
           onClick={() => setBetAmount((v) => Math.min((v ?? 0) + 1, cardsThisRound))}
-          className={`${compact ? "w-[52px] h-[52px]" : "w-12 h-12"} rounded-full border border-bp-strong bg-bp-surface3 text-bp-text flex items-center justify-center flex-shrink-0 hover:border-bp-muted transition-colors`}
+          className={`${compact ? "w-11 h-11" : "w-12 h-12"} rounded-full border border-bp-strong bg-bp-surface3 text-bp-text flex items-center justify-center flex-shrink-0 hover:border-bp-muted transition-colors`}
         >
           <Plus size={20} strokeWidth={2.2} />
         </button>
       </div>
       {forbiddenBet !== null && (
-        <span className="text-[13px] text-bp-warning text-center">{t("youCannotBet")} {forbiddenBet}</span>
+        <span className={`text-bp-warning text-center ${compact ? "text-xs leading-none" : "text-[13px]"}`}>{t("youCannotBet")} {forbiddenBet}</span>
       )}
       <button
         type="button"
         onClick={handlePlaceBet}
         disabled={betIsForbidden}
-        className={`h-12 rounded-full text-base font-semibold border transition-colors ${
+        className={`${compact ? "h-9 px-8 text-sm" : "h-12 text-base"} rounded-full font-semibold border transition-colors ${
           betIsForbidden
             ? "bg-bp-surface3 border-bp-strong text-bp-dim cursor-not-allowed"
             : "bg-bp-accent border-bp-accent text-bp-bg hover:bg-bp-accentHover"
@@ -1803,6 +1803,16 @@ export default function GameTable({
               {renderTableSlots(true)}
             </div>
           </div>
+
+          {/* Betting overlay — shown only when it's your turn to bet */}
+          {showBetControls && (
+            <div
+              aria-label={t("makeYourBet")}
+              className={`absolute inset-0 rounded-[25%/25%] bg-bp-bg/85 backdrop-blur-[2px] border-2 border-bp-accent flex flex-col items-center justify-center gap-1.5 ${betBlinkEnabled ? "animate-bet-border" : ""}`}
+            >
+              {renderBetControls(true)}
+            </div>
+          )}
         </section>
 
         {/* Your seat */}
@@ -1841,13 +1851,6 @@ export default function GameTable({
             </div>
             {renderReaction(currentPlayer.name, false, "text-2xl")}
           </div>
-        )}
-
-        {/* Bet block — only while it's your turn to bet */}
-        {showBetControls && (
-          <section aria-label={t("makeYourBet")} className={`bg-bp-surface rounded-[20px] p-4 flex flex-col gap-3 border-2 border-bp-accent ${betBlinkEnabled ? "animate-bet-border" : ""}`}>
-            {renderBetControls(true)}
-          </section>
         )}
 
         {/* Your hand */}
