@@ -1808,7 +1808,7 @@ export default function GameTable({
           {showBetControls && (
             <div
               aria-label={t("makeYourBet")}
-              className={`absolute inset-0 rounded-[25%/25%] bg-bp-bg/85 backdrop-blur-[2px] border-2 border-bp-accent flex flex-col items-center justify-center gap-1.5 ${betBlinkEnabled ? "animate-bet-border" : ""}`}
+              className={`absolute inset-0 rounded-[25%/25%] bg-bp-bg/85 backdrop-blur-[2px] border-2 border-bp-accent flex flex-col items-center justify-center gap-3 ${betBlinkEnabled ? "animate-bet-border" : ""}`}
             >
               {renderBetControls(true)}
             </div>
