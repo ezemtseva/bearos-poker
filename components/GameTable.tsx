@@ -1763,6 +1763,10 @@ export default function GameTable({
     const mobileTableWidth = Math.max(0, viewportWidth - 32)
     const slotsWidth = players.length * 56 + Math.max(0, players.length - 1) * 8
     const slotsZoom = Math.min(1, (mobileTableWidth - 32) / Math.max(1, slotsWidth))
+    // Hand: scale the row of small cards (56px + 6px gap) to fill the section width, up to 1.8x
+    const handCount = currentPlayer?.hand.length ?? 0
+    const handNaturalWidth = handCount * 56 + Math.max(0, handCount - 1) * 6
+    const handZoom = handCount > 0 ? Math.min(1.8, mobileTableWidth / handNaturalWidth) : 1
     const myBetM = currentPlayer && shouldShowBetBanners() && currentPlayer.bet !== null ? currentPlayer.bet : "—"
     const myHitM = !!currentPlayer && currentPlayer.bet !== null && myBetM !== "—" && currentPlayer.roundWins === currentPlayer.bet
 
@@ -1860,8 +1864,10 @@ export default function GameTable({
             <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-bp-muted flex-shrink-0">{t("yourHand")}</span>
             {renderStatusLine(true)}
           </div>
-          <div className={`flex justify-center items-end pt-3 min-h-[105px] ${(currentPlayer?.hand.length ?? 0) >= 6 ? "gap-1" : "gap-1.5"}`}>
-            {renderHand((currentPlayer?.hand.length ?? 0) >= 6 ? "small" : "medium")}
+          <div className="flex justify-center items-end pt-4 min-h-[105px]">
+            <div className="flex gap-1.5 items-end" style={handZoom !== 1 ? { zoom: handZoom } : undefined}>
+              {renderHand("small")}
+            </div>
           </div>
           {errorMessage && <p className="m-0 text-bp-warning text-sm text-center">{errorMessage}</p>}
         </section>
