@@ -118,7 +118,7 @@ export default function ProfilePage() {
     { label: t("winRate"), value: `${winRate}%` },
     { label: t("points"), value: totalPoints },
     { label: t("pointsRecord"), value: pointsRecord },
-    { label: t("statPoker7"), value: pokerHands },
+    { label: t("poker"), value: pokerHands },
   ]
 
   const placeLabel = (place: number) =>
@@ -219,7 +219,7 @@ export default function ProfilePage() {
                     <span className="font-mono text-sm tracking-[0.1em] text-bp-accent">{game.table_id}</span>
                     <span className="font-mono text-[11px] text-bp-muted truncate">
                       {formatDate(game.played_at)}
-                      {game.poker_hands > 0 ? ` · 7♠ ×${game.poker_hands}` : ""}
+                      {game.poker_hands > 0 ? ` · ${t("poker")} ×${game.poker_hands}` : ""}
                     </span>
                   </span>
                   <span className={`font-display font-bold text-base ${game.final_score < 0 ? "text-bp-warning" : "text-bp-text"}`}>
@@ -238,7 +238,7 @@ export default function ProfilePage() {
                     <th scope="col" className="text-left font-medium px-3 py-3">{t("players")}</th>
                     <th scope="col" className="text-center font-medium px-3 py-3">{t("place")}</th>
                     <th scope="col" className="text-right font-medium px-3 py-3">{t("points")}</th>
-                    <th scope="col" className="text-center font-medium px-3 py-3">7♠</th>
+                    <th scope="col" className="text-center font-medium px-3 py-3">{t("poker")}</th>
                     <th scope="col" className="text-center font-medium px-3 py-3">{t("type")}</th>
                     <th scope="col" className="text-right font-medium px-6 py-3">{t("date")}</th>
                   </tr>
