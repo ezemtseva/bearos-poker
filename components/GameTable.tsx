@@ -1227,7 +1227,7 @@ export default function GameTable({
 
   const renderBetControls = (compact: boolean) => (
     <>
-      <span className={`font-mono text-[11px] tracking-[0.1em] uppercase text-bp-accent ${compact ? "text-center" : ""}`}>{t("makeYourBet")}</span>
+      <span className={`font-mono text-[11px] tracking-[0.1em] uppercase text-bp-accent ${compact ? "text-center mb-5" : ""}`}>{t("makeYourBet")}</span>
       <div className={`flex items-center ${compact ? "justify-center gap-4" : "justify-between gap-2"}`}>
         <button
           type="button"
@@ -1250,13 +1250,13 @@ export default function GameTable({
         </button>
       </div>
       {forbiddenBet !== null && (
-        <span className={`text-bp-warning text-center ${compact ? "text-xs leading-none" : "text-[13px]"}`}>{t("youCannotBet")} {forbiddenBet}</span>
+        <span className={`text-bp-warning text-center ${compact ? "text-xs leading-none mt-2" : "text-[13px]"}`}>{t("youCannotBet")} {forbiddenBet}</span>
       )}
       <button
         type="button"
         onClick={handlePlaceBet}
         disabled={betIsForbidden}
-        className={`${compact ? "h-9 px-8 text-sm" : "h-12 text-base"} rounded-full font-semibold border transition-colors ${
+        className={`${compact ? `h-9 px-8 text-sm ${forbiddenBet !== null ? "mt-3" : "mt-5"}` : "h-12 text-base"} rounded-full font-semibold border transition-colors ${
           betIsForbidden
             ? "bg-bp-surface3 border-bp-strong text-bp-dim cursor-not-allowed"
             : "bg-bp-accent border-bp-accent text-bp-bg hover:bg-bp-accentHover"
@@ -1808,7 +1808,7 @@ export default function GameTable({
           {showBetControls && (
             <div
               aria-label={t("makeYourBet")}
-              className={`absolute inset-0 rounded-[25%/25%] bg-bp-bg/85 backdrop-blur-[2px] border-2 border-bp-accent flex flex-col items-center justify-center gap-3 ${betBlinkEnabled ? "animate-bet-border" : ""}`}
+              className={`absolute inset-0 rounded-[25%/25%] bg-bp-bg/85 backdrop-blur-[2px] border-2 border-bp-accent flex flex-col items-center justify-center ${betBlinkEnabled ? "animate-bet-border" : ""}`}
             >
               {renderBetControls(true)}
             </div>
