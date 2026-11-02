@@ -8,6 +8,7 @@ import { useLocale } from "@/lib/locale-context"
 import type { Locale } from "@/lib/translations"
 
 const TABLE_SKINS = [
+  { id: "bearos", label: "Bearos", type: "color", value: "#121419" },
   { id: "blue", label: "Navy Blue", type: "color", value: "#0f4c81" },
   { id: "green", label: "Sage Green", type: "color", value: "#4a7c59" },
   { id: "teal", label: "Teal", type: "color", value: "#2d7d72" },
@@ -31,6 +32,7 @@ const TABLE_SKINS = [
 ] as const
 
 const SEAT_SKINS = [
+  { id: "bearos",    label: "Bearos",       value: "#15171C" },
   { id: "gray",      label: "Gray",         value: "#374151" },
   { id: "navy",      label: "Navy",         value: "#152340" },
   { id: "forest",    label: "Forest",       value: "#143323" },
@@ -86,7 +88,7 @@ function readCardsOnSeats(): boolean {
 }
 
 function readTableSkin(): string {
-  try { return localStorage.getItem("tableSkin") || "blue" } catch { return "blue" }
+  try { return localStorage.getItem("tableSkin") || "bearos" } catch { return "bearos" }
 }
 
 function readCardBackSkin(): string {
@@ -98,7 +100,7 @@ function readRoomSkin(): string {
 }
 
 function readSeatSkin(): string {
-  try { return localStorage.getItem("seatSkin") || "gray" } catch { return "gray" }
+  try { return localStorage.getItem("seatSkin") || "bearos" } catch { return "bearos" }
 }
 
 function saveSettingsToDB(patch: Record<string, unknown>) {
@@ -134,10 +136,10 @@ export default function SettingsPanel() {
   useEffect(() => { setIsMobile(window.innerWidth < 768) }, [])
   const [betBlink, setBetBlink] = useState(false)
   const [cardsOnSeats, setCardsOnSeats] = useState(false)
-  const [tableSkin, setTableSkin] = useState("blue")
+  const [tableSkin, setTableSkin] = useState("bearos")
   const [cardBackSkin, setCardBackSkin] = useState("black")
   const [roomSkin, setRoomSkin] = useState("bearos")
-  const [seatSkin, setSeatSkin] = useState("gray")
+  const [seatSkin, setSeatSkin] = useState("bearos")
   const [customTableSkinUrl, setCustomTableSkinUrl] = useState("")
   const [customCardSkinUrl, setCustomCardSkinUrl] = useState("")
   const [uploadingTable, setUploadingTable] = useState(false)
@@ -243,10 +245,10 @@ export default function SettingsPanel() {
   async function removeCustomSkin(type: "table" | "card") {
     await fetch("/api/user/skin", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type }) })
     if (type === "table") {
-      try { localStorage.removeItem("customTableSkinUrl"); localStorage.setItem("tableSkin", "blue") } catch {}
+      try { localStorage.removeItem("customTableSkinUrl"); localStorage.setItem("tableSkin", "bearos") } catch {}
       setCustomTableSkinUrl("")
-      setTableSkin("blue")
-      window.dispatchEvent(new CustomEvent("settingsChanged", { detail: { tableSkin: "blue", customTableSkinUrl: "" } }))
+      setTableSkin("bearos")
+      window.dispatchEvent(new CustomEvent("settingsChanged", { detail: { tableSkin: "bearos", customTableSkinUrl: "" } }))
     } else {
       try { localStorage.removeItem("customCardSkinUrl"); localStorage.setItem("cardBackSkin", "black") } catch {}
       setCustomCardSkinUrl("")

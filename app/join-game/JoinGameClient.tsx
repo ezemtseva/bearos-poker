@@ -95,7 +95,7 @@ export default function JoinGameClient() {
             placeholder={t("tableIdPlaceholder")}
             value={tableId}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTableId(e.target.value)}
-            className="h-[60px] md:h-16 px-4 md:px-[18px] font-mono text-[22px] md:text-2xl tracking-[0.18em] uppercase text-bp-accent placeholder:normal-case placeholder:tracking-normal placeholder:text-lg"
+            className="h-[60px] md:h-16 px-4 md:px-[18px] font-mono text-[22px] md:text-2xl tracking-[0.18em] text-bp-accent placeholder:tracking-normal placeholder:text-lg"
             required
           />
         </div>

@@ -10,7 +10,8 @@ export function useViewport() {
 
   useEffect(() => {
     function update() {
-      const w = window.innerWidth
+      // clientWidth = layout viewport; innerWidth grows when a mobile browser zooms out to fit wide content
+      const w = Math.min(window.innerWidth, document.documentElement.clientWidth || window.innerWidth)
       setWidth(w)
       if (w < 768) setSize("mobile")
       else if (w < 1200) setSize("tablet")

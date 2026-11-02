@@ -73,7 +73,7 @@ export default function PlayingCard({
 
   const isRed = suit === "hearts" || suit === "diamonds"
   const isPokerCard = suit === "spades" && value === 7
-  const cardColor = isPokerCard ? "bg-blue-100" : suit === "diamonds" ? "bg-red-100" : "bg-white"
+  const cardColor = isPokerCard ? "bg-[#E4FF7A]" : suit === "diamonds" ? "bg-[#FFDDE2]" : "bg-white"
   const displayValue = valueToDisplay(value)
 
   const sizeClass = isMedium ? "w-[62px] h-[93px] rounded-xl" : isSmall ? "w-14 h-[84px] rounded-xl" : "w-24 h-36 rounded-2xl"
@@ -87,7 +87,7 @@ export default function PlayingCard({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`relative ${sizeClass} shadow-md transition-transform
+      className={`relative ${sizeClass} font-card shadow-md transition-transform
         ${disabled ? "opacity-100" : "hover:scale-105 hover:shadow-lg"}
         ${cardColor}
         border border-gray-300 overflow-hidden ${className}`}

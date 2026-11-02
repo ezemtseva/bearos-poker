@@ -3,11 +3,91 @@
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
 import { useLocale } from "@/lib/locale-context"
 
 export type GameLength = "short" | "basic" | "long"
+
+const LENGTH_ROUNDS: Record<GameLength, number> = { short: 18, basic: 22, long: 28 }
+
+interface GameConfigFieldsProps {
+  gameLength: GameLength
+  hasGoldenRound: boolean
+  hasNoTrumps: boolean
+  onGameLengthChange: (gameLength: GameLength) => void
+  onGoldenRoundChange: (value: boolean) => void
+  onNoTrumpsChange: (value: boolean) => void
+}
+
+function ConfigSwitch({ on }: { on: boolean }) {
+  return (
+    <span className={`relative w-12 h-7 rounded-full flex-shrink-0 transition-colors ${on ? "bg-bp-accent" : "bg-bp-strong"}`}>
+      <span className={`absolute top-[3px] w-[22px] h-[22px] rounded-full transition-all ${on ? "left-[23px] bg-bp-bg" : "left-[3px] bg-bp-muted"}`} />
+    </span>
+  )
+}
+
+// Game length tiles + Golden round / No trumps switches (lobby card and dialog)
+export function GameConfigFields({
+  gameLength,
+  hasGoldenRound,
+  hasNoTrumps,
+  onGameLengthChange,
+  onGoldenRoundChange,
+  onNoTrumpsChange,
+}: GameConfigFieldsProps) {
+  const { t } = useLocale()
+  const options = [
+    { label: t("goldenRound"), desc: t("goldenRoundDesc"), on: hasGoldenRound, toggle: () => onGoldenRoundChange(!hasGoldenRound) },
+    { label: t("noTrumps"), desc: t("noTrumpsDesc"), on: hasNoTrumps, toggle: () => onNoTrumpsChange(!hasNoTrumps) },
+  ]
+
+  return (
+    <>
+      <fieldset className="border-0 m-0 p-0 flex flex-col gap-2.5 min-w-0">
+        <legend className="bp-label pb-2.5">{t("gameLengthLabel")}</legend>
+        <div className="grid grid-cols-3 gap-2">
+          {(["short", "basic", "long"] as GameLength[]).map((len) => {
+            const on = gameLength === len
+            return (
+              <button
+                key={len}
+                type="button"
+                aria-pressed={on}
+                onClick={() => onGameLengthChange(len)}
+                className={`flex flex-col items-start gap-2 p-3 md:p-4 rounded-2xl text-left border transition-colors min-w-0 ${
+                  on ? "bg-bp-accent border-bp-accent text-bp-bg" : "bg-bp-surface2 border-bp-strong text-bp-text hover:border-bp-muted"
+                }`}
+              >
+                <span className="font-semibold text-sm md:text-[15px] truncate max-w-full">{t(len)}</span>
+                <span className="font-display font-extrabold text-2xl md:text-[28px] leading-none">{LENGTH_ROUNDS[len]}</span>
+                <span className="font-mono text-[10px] md:text-[11px] tracking-[0.08em] uppercase opacity-70">{t("rounds")}</span>
+              </button>
+            )
+          })}
+        </div>
+      </fieldset>
+
+      <div className="flex flex-col gap-2">
+        {options.map((o) => (
+          <button
+            key={o.label}
+            type="button"
+            role="switch"
+            aria-checked={o.on}
+            onClick={o.toggle}
+            className="flex items-center gap-4 px-4 py-3.5 md:px-[18px] md:py-4 rounded-2xl border border-bp-border bg-bp-surface2 text-bp-text text-left"
+          >
+            <span className="flex-1 flex flex-col gap-1 min-w-0">
+              <span className="font-semibold text-[15px] md:text-base">{o.label}</span>
+              <span className="text-[13px] md:text-sm text-bp-muted">{o.desc}</span>
+            </span>
+            <ConfigSwitch on={o.on} />
+          </button>
+        ))}
+      </div>
+    </>
+  )
+}
 
 interface ConfigureGameDialogProps {
   isOpen: boolean
@@ -40,56 +120,19 @@ export default function ConfigureGameDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[480px] gap-5">
         <DialogHeader>
           <DialogTitle>{t("configureGame")}</DialogTitle>
         </DialogHeader>
-        <div className="py-4 space-y-4">
-          <div className="flex items-center gap-3">
-            <label htmlFor="game-length" className="text-sm font-medium whitespace-nowrap">
-              {t("gameType")}
-            </label>
-            <Select value={selectedLength} onValueChange={(value: string) => setSelectedLength(value as GameLength)}>
-              <SelectTrigger id="game-length">
-                <SelectValue placeholder={t("selectGameLength")} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="short">{t("shortRounds")}</SelectItem>
-                <SelectItem value="basic">{t("basicRounds")}</SelectItem>
-                <SelectItem value="long">{t("longRounds")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="no-trumps"
-                checked={hasNoTrumps}
-                onCheckedChange={(checked) => setHasNoTrumps(checked === true)}
-              />
-              <label htmlFor="no-trumps" className="text-sm font-medium cursor-pointer">
-                {t("noTrumps")}
-              </label>
-            </div>
-            <div className="text-xs text-gray-400 mt-1 ml-6">{t("noTrumpsDesc")}</div>
-          </div>
-
-          <div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="golden-round"
-                checked={hasGoldenRound}
-                onCheckedChange={(checked) => setHasGoldenRound(checked === true)}
-              />
-              <label htmlFor="golden-round" className="text-sm font-medium cursor-pointer">
-                {t("goldenRound")}
-              </label>
-            </div>
-            <div className="text-xs text-gray-400 mt-1 ml-6">{t("goldenRoundDesc")}</div>
-          </div>
-        </div>
-        <DialogFooter className="flex justify-between">
+        <GameConfigFields
+          gameLength={selectedLength}
+          hasGoldenRound={hasGoldenRound}
+          hasNoTrumps={hasNoTrumps}
+          onGameLengthChange={setSelectedLength}
+          onGoldenRoundChange={setHasGoldenRound}
+          onNoTrumpsChange={setHasNoTrumps}
+        />
+        <DialogFooter className="flex gap-2">
           <Button variant="outline" onClick={onClose}>
             {t("cancel")}
           </Button>

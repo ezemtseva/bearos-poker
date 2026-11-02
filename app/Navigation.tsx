@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import dynamic from "next/dynamic"
 import { useLocale } from "@/lib/locale-context"
 
@@ -18,6 +19,8 @@ export function LogoMark({ size = 20 }: { size?: number }) {
 
 export default function Navigation() {
   const { t } = useLocale()
+  // On the game screen the header center holds the game info chips
+  const isGame = usePathname()?.startsWith("/game/")
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-10 h-[var(--header-h)] bg-bp-bg/85 backdrop-blur-md border-b border-bp-border text-bp-text">
@@ -27,7 +30,7 @@ export default function Navigation() {
           <span className="w-10 h-10 rounded-xl bg-bp-accent flex items-center justify-center flex-shrink-0">
             <LogoMark />
           </span>
-          <span className="hidden md:inline font-display font-bold text-[17px] tracking-[-0.01em]">{t("appName")}</span>
+          <span className={`hidden ${isGame ? "xl:inline" : "md:inline"} font-display font-bold text-[17px] tracking-[-0.01em]`}>{t("appName")}</span>
         </Link>
 
         {/* Right */}

@@ -467,8 +467,8 @@ export default function Game() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <div className="text-white text-xl">Loading game data...</div>
+      <div className="flex-1 flex justify-center items-center min-h-[50vh]">
+        <div className="font-mono text-sm tracking-[0.1em] uppercase text-bp-muted animate-pulse">{t("loadingGame")}</div>
       </div>
     )
   }
@@ -498,14 +498,14 @@ export default function Game() {
 
   if (!gameData) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <div className="text-white text-xl">Error loading game data. Please refresh the page or try again later.</div>
+      <div className="flex-1 flex justify-center items-center min-h-[50vh] px-4">
+        <div className="text-bp-warning text-center max-w-md">{t("errorLoadingGame")}</div>
       </div>
     )
   }
 
   return (
-    <div className="w-full px-4 py-8">
+    <div className="w-full flex-1 flex flex-col">
       <GameTable
         tableId={safeGameData.tableId}
         players={safeGameData.players}

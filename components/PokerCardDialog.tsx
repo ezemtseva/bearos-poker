@@ -29,12 +29,12 @@ export default function PokerCardDialog({
         <DialogHeader>
           <DialogTitle>{t("howToPlay7")}</DialogTitle>
         </DialogHeader>
-        <div className="py-4">
-          <div className="space-y-2">
+        <div className="py-2">
+          <div className="flex flex-col gap-2">
             {availableOptions.includes("Trumps") && (
               <Button
                 onClick={() => onOptionSelect("Trumps")}
-                className="w-full justify-start text-left bg-red-900/50 hover:bg-red-800/70 text-white border-red-700/50"
+                className="w-full h-12 justify-start text-left text-[15px] bg-bp-surface border-bp-strong hover:border-bp-accent hover:bg-bp-surface"
                 variant="outline"
               >
                 {t("trumps")}
@@ -43,7 +43,7 @@ export default function PokerCardDialog({
             {availableOptions.includes("Poker") && (
               <Button
                 onClick={() => onOptionSelect("Poker")}
-                className="w-full justify-start text-left bg-yellow-900/50 hover:bg-yellow-800/70 text-white border-yellow-700/50"
+                className="w-full h-12 justify-start text-left text-[15px] bg-bp-surface border-bp-strong hover:border-bp-accent hover:bg-bp-surface"
                 variant="outline"
               >
                 {t("pokerOption")}
@@ -52,7 +52,7 @@ export default function PokerCardDialog({
             {availableOptions.includes("Simple") && (
               <Button
                 onClick={() => onOptionSelect("Simple")}
-                className="w-full justify-start text-left bg-blue-900/50 hover:bg-blue-800/70 text-white border-blue-700/50"
+                className="w-full h-12 justify-start text-left text-[15px] bg-bp-surface border-bp-strong hover:border-bp-accent hover:bg-bp-surface"
                 variant="outline"
                 disabled={!isValidSimple}
               >
@@ -61,7 +61,7 @@ export default function PokerCardDialog({
             )}
           </div>
         </div>
-        <DialogFooter className="flex justify-center">
+        <DialogFooter className="flex sm:justify-center">
           <Button onClick={onClose} variant="secondary">
             {t("cancel")}
           </Button>

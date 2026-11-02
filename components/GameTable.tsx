@@ -3,7 +3,6 @@
 import React from "react"
 import { useState, useEffect, useRef } from "react"
 import type { Player, Card, GameData, ScoreTableRow, PlayerScore } from "../types/game"
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import PlayingCard from "./PlayingCard"
@@ -13,10 +12,10 @@ import PokerCardDialog from "./PokerCardDialog"
 // Add this at the top of the file, after the imports
 import { useMemo } from "react"
 // Add the import for ConfigureGameDialog near the top with other imports
-import ConfigureGameDialog, { type GameLength } from "./ConfigureGameDialog"
+import ConfigureGameDialog, { GameConfigFields, type GameLength } from "./ConfigureGameDialog"
 // Add this import at the top with other imports
 import { useSound } from "@/hooks/use-sound"
-import { Settings, ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, SlidersHorizontal, Minus, Plus, X, Link2, ArrowRight } from "lucide-react"
 import { TABLE_SKINS, SEAT_SKINS, CARD_BACK_SKINS } from "./SettingsPanel"
 import { useSession } from "next-auth/react"
 import { useViewport } from "@/hooks/use-viewport"
@@ -35,7 +34,7 @@ interface GameTableProps {
   onStartGame: () => void
   onPlayCard: (card: Card) => void
   onPlaceBet: (bet: number) => void
-  onConfigureGame: (gameLength: GameLength, hasGoldenRound: boolean, hasNoTrumps: boolean) => void
+  onConfigureGame: (gameLength: GameLength, hasGoldenRound: boolean, hasNoTrumps: boolean) => void | Promise<void>
   onSetAvatar: (avatar: string) => void
   onSendReaction: (emoji: string) => void
   gameData: GameData
@@ -51,11 +50,30 @@ const EMOJI_LIST = [
   "🤌","🐻","🐼","🐻‍❄️","🐔","🦍","🍌","🍆","🍑",
 ]
 
-function StarIcon({ size = 18 }: { size?: number }) {
+const STAR_PATH = "M12 2l3 6.5 7 .8-5.2 4.8 1.4 7L12 17.6 5.8 21.1l1.4-7L2 9.3l7-.8z"
+
+const SUIT_SYMBOLS: Record<Card["suit"], string> = { spades: "♠", hearts: "♥", diamonds: "♦", clubs: "♣" }
+
+function StarIcon({ size = 14, color = "#D7FF3F" }: { size?: number; color?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="#FFE066" stroke="#FFD700" strokeWidth="1" strokeLinejoin="round"/>
+    <svg role="img" aria-label="Leader" width={size} height={size} viewBox="0 0 24 24" className="flex-shrink-0">
+      <path d={STAR_PATH} fill={color} />
     </svg>
+  )
+}
+
+// Small accent circle with a dark star at the top-right corner of a seat
+function LeaderBadge({ size = 24 }: { size?: number }) {
+  return (
+    <span
+      aria-label="Leader"
+      className="absolute rounded-full bg-bp-accent flex items-center justify-center z-[1]"
+      style={{ width: size, height: size, top: -size * 0.4, right: -size * 0.4 }}
+    >
+      <svg width={Math.round(size * 0.54)} height={Math.round(size * 0.54)} viewBox="0 0 24 24" aria-hidden="true">
+        <path d={STAR_PATH} fill="#0B0C0F" />
+      </svg>
+    </span>
   )
 }
 
@@ -150,8 +168,8 @@ export default function GameTable({
   const [activeReactions, setActiveReactions] = useState<Map<string, { emoji: string; key: number }>>(new Map())
   const [betBlinkEnabled, setBetBlinkEnabled] = useState(false)
   const pokerHandsRef = useRef(0) // count rounds where 7♠ was in current player's hand
-  const [tableSkin, setTableSkin] = useState("blue")
-  const [seatSkin, setSeatSkin] = useState("gray")
+  const [tableSkin, setTableSkin] = useState("bearos")
+  const [seatSkin, setSeatSkin] = useState("bearos")
   const [cardBackSkin, setCardBackSkin] = useState("black")
   const [cardsOnSeats, setCardsOnSeats] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -1003,8 +1021,8 @@ export default function GameTable({
     return gameStarted && players.some((player) => player.bet !== null)
   }
 
-  // Add this function inside the GameTable component
-  const renderGameStatusMessage = () => {
+  // Status line shown in the "Your hand" header: text + whether it's an active (accent) state
+  const getGameStatus = (): { text: string; active: boolean } => {
     console.log("Rendering game status with:", {
       allBetsPlaced: safeGameData.allBetsPlaced,
       currentBettingTurn: safeGameData.currentBettingTurn,
@@ -1016,55 +1034,36 @@ export default function GameTable({
 
     // NEW: If we're in the golden round, show a special message
     if (safeGameData.isGoldenRound) {
-      if (isCurrentPlayerTurn) {
-        return <span className="text-amber-500 italic">{t("goldenRoundYourTurn")}</span>
-      } else {
-        return (
-          <span className="text-amber-500 italic">
-            {t("goldenRoundWaiting")} {players[currentTurn]?.name || "..."} {t("toPlayCard")}
-          </span>
-        )
-      }
+      if (isCurrentPlayerTurn) return { text: t("goldenRoundYourTurn"), active: true }
+      return { text: `${t("goldenRoundWaiting")} ${players[currentTurn]?.name || "..."} ${t("toPlayCard")}`, active: false }
     }
 
     // If all bets are placed, we're in the card playing phase
     if (safeGameData.allBetsPlaced) {
       if (isCurrentPlayerTurn) {
-        return <span className="text-green-600 italic">{t("yourTurnCard")}</span>
-      } else {
-        return (
-          <span className="text-yellow-600 italic">
-            {t("waitingFor")} {players[currentTurn]?.name || "..."} {t("toPlayCard")}
-          </span>
-        )
+        const lead = cardsOnTable[0]
+        if (lead && !(lead.suit === "spades" && lead.value === 7 && lead.pokerOption)) {
+          return { text: `${t("yourTurnFollow")} ${SUIT_SYMBOLS[lead.suit]}`, active: true }
+        }
+        return { text: t("yourTurnShort"), active: true }
       }
+      return { text: `${t("waitingFor")} ${players[currentTurn]?.name || "..."} ${t("toPlayCard")}`, active: false }
     }
 
     // If the player has already placed a bet, show a stable message
-    if (currentPlayer && currentPlayer.bet !== null) {
-      return <span className="text-yellow-600 italic">{t("waitingOthersBet")}</span>
-    }
+    if (currentPlayer && currentPlayer.bet !== null) return { text: t("waitingOthersBet"), active: false }
 
     // If all players have bet but allBetsPlaced is false, we're in the transition period
-    if (allPlayersHaveBet && !safeGameData.allBetsPlaced) {
-      return <span className="text-yellow-600 italic">{t("preparingRound")}</span>
-    }
+    if (allPlayersHaveBet && !safeGameData.allBetsPlaced) return { text: t("preparingRound"), active: false }
 
-    // If it's the current player's turn to bet, show that message
-    if (isCurrentPlayerBettingTurn) {
-      return <span className="text-green-600 italic">{t("yourTurnBet")}</span>
-    }
+    // If it's the current player's turn to bet
+    if (isCurrentPlayerBettingTurn) return { text: t("placeBetFirst"), active: false }
 
     // Otherwise, we're waiting for another player to bet
-    return (
-      <span className="text-yellow-600 italic">
-        {t("waitingFor")}{" "}
-        {currentBettingPlayerName.startsWith("Waiting")
-          ? players.find((p) => p.name !== currentPlayerName)?.name || "..."
-          : currentBettingPlayerName}{" "}
-        {t("toPlaceBet")}
-      </span>
-    )
+    const waitingName = currentBettingPlayerName.startsWith("Waiting")
+      ? players.find((p) => p.name !== currentPlayerName)?.name || "..."
+      : currentBettingPlayerName
+    return { text: `${t("waitingFor")} ${waitingName} ${t("toPlaceBet")}`, active: false }
   }
 
   // Add this function to handle saving the game configuration
@@ -1072,919 +1071,430 @@ export default function GameTable({
     onConfigureGame(gameLength, hasGoldenRound, hasNoTrumps)
   }
 
-  // Score table helpers (used in both panel and layout)
+  // Lobby: host picks the configuration inline; it is sent once, right before starting the game
+  const serverGameLength: GameLength = safeGameData.gameLength || "basic"
+  const [lobbyGameLength, setLobbyGameLength] = useState<GameLength>(serverGameLength)
+  const [lobbyGoldenRound, setLobbyGoldenRound] = useState<boolean>(safeGameData.hasGoldenRound || false)
+  const [lobbyNoTrumps, setLobbyNoTrumps] = useState<boolean>(safeGameData.hasNoTrumps || false)
+  const [isStartingGame, setIsStartingGame] = useState(false)
+  useEffect(() => { setLobbyGameLength(serverGameLength) }, [serverGameLength])
+  useEffect(() => { setLobbyGoldenRound(safeGameData.hasGoldenRound || false) }, [safeGameData.hasGoldenRound])
+  useEffect(() => { setLobbyNoTrumps(safeGameData.hasNoTrumps || false) }, [safeGameData.hasNoTrumps])
+
+  const handleLobbyStart = async () => {
+    if (!canStartGame || isStartingGame) return
+    setIsStartingGame(true)
+    try {
+      const configChanged =
+        lobbyGameLength !== serverGameLength ||
+        lobbyGoldenRound !== (safeGameData.hasGoldenRound || false) ||
+        lobbyNoTrumps !== (safeGameData.hasNoTrumps || false)
+      if (configChanged) await onConfigureGame(lobbyGameLength, lobbyGoldenRound, lobbyNoTrumps)
+      onStartGame()
+    } finally {
+      setIsStartingGame(false)
+    }
+  }
+
+  // ─── Shared view helpers ─────────────────────────────────────────────────────
+  const totalRounds = getTotalRounds(safeGameData.gameLength || "basic", safeGameData.hasGoldenRound || false, safeGameData.hasNoTrumps || false)
+  const isMyPlayTurn = !!isCurrentPlayerTurn && safeGameData.allBetsPlaced
+  const showBetControls = gameStarted && !!currentPlayer && currentPlayer.bet === null && isCurrentPlayerBettingTurn
+  const forbiddenBet = showBetControls ? calculateForbiddenBet() : null
+  const betIsForbidden = forbiddenBet !== null && (betAmount ?? 0) === forbiddenBet
+  const seatBgColor = SEAT_SKINS.find((s) => s.id === seatSkin)?.value ?? "#15171C"
+
+  const tableFeltStyle = (): React.CSSProperties => {
+    if (tableSkin === "custom_table") { try { const u = localStorage.getItem("customTableSkinUrl"); if (u) return { backgroundImage: `url(${u})`, backgroundSize: "cover", backgroundPosition: "center" } } catch {} }
+    const skin = TABLE_SKINS.find((s) => s.id === tableSkin)
+    if (!skin) return { backgroundColor: "#121419" }
+    if (skin.type === "image") return { backgroundImage: `url(${skin.value})`, backgroundSize: "cover", backgroundPosition: "center" }
+    return { backgroundColor: skin.value }
+  }
+
+  const roundLabel = (roundName: string) =>
+    roundName === "NT" ? (locale === "ru" ? "Б" : "NT") :
+    roundName === "B" && locale === "ru" ? "Т" :
+    roundName === "G" && locale === "ru" ? "З" :
+    roundName
+
+  const renderAvatar = (player: Player, sizeClass: string, textClass: string) => (
+    <span className={`${sizeClass} rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center bg-bp-strong text-bp-text font-display font-extrabold ${textClass}`}>
+      {player.avatar ? (
+        player.avatar.startsWith("data:") || player.avatar.startsWith("http") || player.avatar.startsWith("/")
+          // eslint-disable-next-line @next/next/no-img-element
+          ? <img src={player.avatar} alt={player.name} className="w-full h-full object-cover" />
+          : <span className="font-sans font-normal">{player.avatar}</span>
+      ) : player.name.charAt(0).toUpperCase()}
+    </span>
+  )
+
+  const renderStat = (label: string, value: React.ReactNode, valueClass = "", compact = false) => (
+    <span className="flex flex-col items-center gap-0.5 min-w-0">
+      <span className={`font-mono uppercase text-bp-dim ${compact ? "text-[9px]" : "text-[10px] tracking-[0.08em]"}`}>{label}</span>
+      <span className={`font-display font-bold leading-tight ${compact ? "text-[15px]" : "text-[17px]"} ${valueClass}`}>{value}</span>
+    </span>
+  )
+
+  const turnBorder = (active: boolean) =>
+    active ? `border-2 border-bp-accent ${betBlinkEnabled ? "animate-bet-border" : ""}` : "border border-bp-strong"
+
+  // 7♠ option strip shown on table cards
+  const renderPokerStrip = (card: Card, compact: boolean) =>
+    card.suit === "spades" && card.value === 7 && card.pokerOption ? (
+      <div className={`absolute bottom-0 left-0 right-0 bg-bp-bg/90 text-bp-accent font-mono uppercase text-center tracking-[0.06em] ${compact ? "text-[8px] py-0.5 rounded-b-xl" : "text-[10px] py-1 rounded-b-2xl"}`}>
+        {card.pokerOption === "Trumps" ? t("trumps") : card.pokerOption === "Poker" ? t("poker") : t("simple")}
+      </div>
+    ) : null
+
+  // One slot per player in the middle of the table; played cards fill the slots in play order
+  const renderTableSlots = (compact: boolean) => {
+    const slotSize = compact ? "w-14 h-[84px] rounded-xl" : "w-24 h-36 rounded-2xl"
+    return Array.from({ length: Math.max(players.length, cardsOnTable.length) }).map((_, index) => {
+      const card = cardsOnTable[index]
+      if (!card) {
+        return (
+          <div key={index} className="flex flex-col items-center gap-1.5">
+            <div className={`${slotSize} border border-dashed border-bp-strong`} />
+            <span className={`font-mono ${compact ? "text-[8px]" : "text-[11px]"}`}>&nbsp;</span>
+          </div>
+        )
+      }
+      const isHighest =
+        !!safeGameData.highestCard &&
+        card.suit === safeGameData.highestCard.suit &&
+        card.value === safeGameData.highestCard.value
+      return (
+        <div key={index} className="flex flex-col items-center gap-1.5 min-w-0">
+          <div className={`relative ${compact ? "rounded-xl" : "rounded-2xl"} ${isHighest ? "outline outline-[3px] outline-bp-accent outline-offset-[3px]" : ""}`}>
+            <PlayingCard
+              suit={card.suit}
+              value={card.value}
+              disabled
+              size={compact ? "small" : "normal"}
+              className={isNoSuitRound && card.suit === "diamonds" ? "!bg-white" : ""}
+            />
+            {renderPokerStrip(card, compact)}
+          </div>
+          <span
+            className={`font-mono uppercase truncate text-center ${compact ? "text-[8px] max-w-[56px] tracking-[0.04em]" : "text-[11px] max-w-[96px] tracking-[0.08em]"} ${isHighest ? "text-bp-accent" : "text-bp-muted"}`}
+            title={card.playerName}
+          >
+            {card.playerName ?? " "}
+          </span>
+        </div>
+      )
+    })
+  }
+
+  // Cards in the player's hand. Highlights live on the wrapper, never inside the card.
+  const renderHand = (size: "normal" | "medium" | "small") => {
+    if (!currentPlayer?.hand?.length) {
+      return <p className="text-sm text-bp-dim">{gameStarted ? t("allCardsPlayed") : t("cardsHereHint")}</p>
+    }
+    const radius = size === "normal" ? "rounded-2xl" : "rounded-xl"
+    return currentPlayer.hand.map((card, index) => {
+      const disabled =
+        !isCurrentPlayerTurn ||
+        isClearing ||
+        !isValidCardToPlay(card) ||
+        !safeGameData.allBetsPlaced ||
+        isPlayingCard
+      const playable = !disabled && !shouldShowCardBacks
+      const dimmed = safeGameData.allBetsPlaced && disabled
+      return (
+        <div
+          key={index}
+          className={`${radius} transition-all duration-150 ${
+            playable
+              ? "-translate-y-2.5 shadow-[0_0_0_3px_#D7FF3F,0_18px_36px_rgba(0,0,0,0.5)]"
+              : dimmed ? "opacity-[0.38]" : ""
+          }`}
+        >
+          <PlayingCard
+            suit={card.suit}
+            value={card.value}
+            size={size}
+            onClick={() => handlePlayCard(card)}
+            disabled={disabled}
+            showBack={shouldShowCardBacks}
+            className={isNoSuitRound && card.suit === "diamonds" ? "!bg-white" : ""}
+          />
+        </div>
+      )
+    })
+  }
+
+  const renderBetControls = (compact: boolean) => (
+    <>
+      <span className={`font-mono text-[11px] tracking-[0.1em] uppercase text-bp-accent ${compact ? "text-center" : ""}`}>{t("makeYourBet")}</span>
+      <div className={`flex items-center ${compact ? "justify-center gap-7" : "justify-between gap-2"}`}>
+        <button
+          type="button"
+          aria-label={t("decreaseBet")}
+          onClick={() => setBetAmount((v) => Math.max((v ?? 0) - 1, 0))}
+          className={`${compact ? "w-[52px] h-[52px]" : "w-12 h-12"} rounded-full border border-bp-strong bg-bp-surface3 text-bp-text flex items-center justify-center flex-shrink-0 hover:border-bp-muted transition-colors`}
+        >
+          <Minus size={20} strokeWidth={2.2} />
+        </button>
+        <span aria-live="polite" className={`font-display font-extrabold leading-[0.9] text-center select-none ${compact ? "text-[72px] min-w-[56px]" : "text-[88px] min-w-[64px]"}`}>
+          {betAmount ?? 0}
+        </span>
+        <button
+          type="button"
+          aria-label={t("increaseBet")}
+          onClick={() => setBetAmount((v) => Math.min((v ?? 0) + 1, cardsThisRound))}
+          className={`${compact ? "w-[52px] h-[52px]" : "w-12 h-12"} rounded-full border border-bp-strong bg-bp-surface3 text-bp-text flex items-center justify-center flex-shrink-0 hover:border-bp-muted transition-colors`}
+        >
+          <Plus size={20} strokeWidth={2.2} />
+        </button>
+      </div>
+      {forbiddenBet !== null && (
+        <span className="text-[13px] text-bp-warning text-center">{t("youCannotBet")} {forbiddenBet}</span>
+      )}
+      <button
+        type="button"
+        onClick={handlePlaceBet}
+        disabled={betIsForbidden}
+        className={`h-12 rounded-full text-base font-semibold border transition-colors ${
+          betIsForbidden
+            ? "bg-bp-surface3 border-bp-strong text-bp-dim cursor-not-allowed"
+            : "bg-bp-accent border-bp-accent text-bp-bg hover:bg-bp-accentHover"
+        }`}
+      >
+        {t("confirm")}
+      </button>
+    </>
+  )
+
+  const renderStatusLine = (compact: boolean) => {
+    if (!gameStarted || currentRound > totalRounds) return null
+    const status = getGameStatus()
+    return (
+      <span className={`flex items-center gap-2 font-semibold min-w-0 ${compact ? "text-[13px]" : "text-sm"} ${status.active ? "text-bp-accent" : "text-bp-muted"}`}>
+        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${status.active ? "bg-bp-accent" : "bg-bp-dim"}`} />
+        <span className="truncate">{status.text}</span>
+      </span>
+    )
+  }
+
+  // ─── Score table ─────────────────────────────────────────────────────────────
   const stCurrentIdx = players.findIndex((p) => p.name === currentPlayerName)
   const orderedPlayers = stCurrentIdx > 0
     ? [players[stCurrentIdx], ...players.filter((_, i) => i !== stCurrentIdx)]
     : [...players]
-  const visibleWidth = 70 + Math.max(1, Math.min(scoreTablePlayerCount, players.length || 1)) * 200
+  const SCORE_GROUP_W = 132
+  const SCORE_LABEL_W = 44
+  const scoreShownCount = Math.max(1, Math.min(scoreTablePlayerCount, players.length || 1))
+  const scoreWantedWidth = SCORE_LABEL_W + scoreShownCount * SCORE_GROUP_W
+  // 360–440px wide; wider only when the player explicitly shows more than 3 players
+  const scorePanelWidth = scoreShownCount > 3 ? scoreWantedWidth : Math.min(440, Math.max(360, scoreWantedWidth))
+  const scoreTableMinWidth = SCORE_LABEL_W + orderedPlayers.length * SCORE_GROUP_W
 
   const isBottomPosition = scoreTablePosition === "bottom"
 
-  // Chevron direction depends on position
+  const renderScoreTable = (compact: boolean) => {
+    const cell = compact ? "px-0.5 py-1.5" : "px-[3px] py-[7px]"
+    const headTop = compact ? "" : "sticky top-0 z-[1] bg-bp-surface"
+    const headSub = compact ? "" : "sticky top-[30px] z-[1] bg-bp-surface"
+    return (
+      <table
+        className={`w-full border-collapse font-mono tabular-nums ${compact ? "text-xs" : "text-[13px]"}`}
+        style={{ minWidth: compact ? Math.max(420, 36 + orderedPlayers.length * 104) : scoreTableMinWidth }}
+      >
+        <thead>
+          <tr>
+            <th scope="col" className={`${headTop} ${compact ? "pl-3 pr-1.5 pt-2 pb-0.5 text-[10px]" : "pl-3.5 pr-2 pt-2.5 pb-1 text-[11px]"} text-left font-medium text-bp-dim`}>#</th>
+            {orderedPlayers.map((player) => (
+              <th
+                key={player.name}
+                scope="colgroup"
+                colSpan={4}
+                className={`${headTop} ${compact ? "px-1 pt-2 pb-0.5 text-xs" : "px-1.5 pt-2.5 pb-1 text-[13px]"} text-center font-sans font-semibold text-bp-text`}
+              >
+                <span className="inline-flex items-center justify-center gap-1.5 max-w-full min-w-0">
+                  {player.score === highestScore && highestScore > 0 && <StarIcon size={compact ? 12 : 14} />}
+                  <span className="truncate" title={player.name}>{player.name}</span>
+                </span>
+              </th>
+            ))}
+          </tr>
+          <tr>
+            <th scope="col" className={`${headSub} border-b border-bp-border ${compact ? "pl-3 pb-1.5" : "pl-3.5 pb-2"}`} />
+            {orderedPlayers.map((player) => (
+              <React.Fragment key={player.name}>
+                {[t("colBet"), t("colWon"), t("colPts"), "±"].map((label, k) => (
+                  <th
+                    key={k}
+                    scope="col"
+                    className={`${headSub} border-b border-bp-border font-medium uppercase text-bp-dim ${compact ? "text-[9px] px-0.5 pt-0.5 pb-1.5" : "text-[10px] tracking-[0.06em] px-[3px] pt-1 pb-2"} ${k === 3 ? (compact ? "pr-1.5" : "pr-2") : ""}`}
+                  >
+                    {label}
+                  </th>
+                ))}
+              </React.Fragment>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {safeGameData.scoreTable && safeGameData.scoreTable.length > 0 ? (
+            safeGameData.scoreTable.map((round: ScoreTableRow) => {
+              const isCurrent = round.roundId === currentRound
+              const isFuture = round.roundId > currentRound
+              const isCompleted = round.roundId < currentRound || (isCurrent && safeGameData.gameOver)
+              const roundMaxPoints = Math.max(...orderedPlayers.map(p => round.scores[p.name]?.cumulativePoints ?? -Infinity))
+              return (
+                <tr key={round.roundId} className={isCurrent ? "bg-bp-surface3" : ""}>
+                  <th
+                    scope="row"
+                    className={`${compact ? "pl-3 pr-1.5 py-1.5" : "pl-3.5 pr-2 py-[7px]"} text-left font-medium border-b border-bp-divider ${isCurrent ? "text-bp-accent" : isFuture ? "text-bp-dim" : "text-bp-text2"}`}
+                  >
+                    {roundLabel(round.roundName)}
+                  </th>
+                  {orderedPlayers.map((player) => {
+                    const lastPad = compact ? "pr-1.5" : "pr-2"
+                    if (isFuture) {
+                      return (
+                        <React.Fragment key={player.name}>
+                          {[0, 1, 2, 3].map((k) => (
+                            <td key={k} className={`${cell} ${k === 3 ? lastPad : ""} text-center border-b border-bp-divider text-bp-future`}>–</td>
+                          ))}
+                        </React.Fragment>
+                      )
+                    }
+                    const scoreData = round.scores[player.name]
+                    const playerScore: PlayerScore = scoreData || { cumulativePoints: 0, roundPoints: 0, bet: null }
+                    const hasScore = !!scoreData && round.roundId <= currentRound
+                    const wins = isCurrent ? player.roundWins || 0 : scoreData?.wins
+                    const isRoundLeader = isCompleted && hasScore && playerScore.cumulativePoints === roundMaxPoints && roundMaxPoints > 0
+                    const showLive = isCurrent && !safeGameData.gameOver
+                    const betText = hasScore ? (playerScore.bet !== null ? playerScore.bet : "-") : "-"
+                    const wonText = isCurrent ? wins : hasScore ? (wins !== undefined ? wins : "-") : "-"
+                    const rp = playerScore.roundPoints
+                    return (
+                      <React.Fragment key={player.name}>
+                        <td className={`${cell} text-center border-b border-bp-divider ${isCurrent ? "text-bp-text font-medium" : "text-bp-text2"}`}>{betText}</td>
+                        <td className={`${cell} text-center border-b border-bp-divider ${isCurrent ? "text-bp-text font-medium" : "text-bp-text2"}`}>{wonText}</td>
+                        <td className={`${cell} text-center border-b border-bp-divider ${
+                          showLive ? "text-bp-dim" : isRoundLeader ? "bg-bp-accent/[0.16] text-bp-accent font-semibold" : "text-bp-text font-medium"
+                        }`}>
+                          {showLive ? "·" : hasScore ? playerScore.cumulativePoints : "-"}
+                        </td>
+                        <td className={`${cell} ${lastPad} text-center border-b border-bp-divider ${
+                          showLive ? "text-bp-dim" : hasScore && rp < 0 ? "text-bp-warning" : "text-bp-muted"
+                        }`}>
+                          {showLive ? "·" : !hasScore ? "-" : rp > 0 ? `+${rp}` : rp === 0 ? "-" : rp}
+                        </td>
+                      </React.Fragment>
+                    )
+                  })}
+                </tr>
+              )
+            })
+          ) : (
+            <tr>
+              <td />
+              <td colSpan={orderedPlayers.length * 4} className="px-2 py-3 text-bp-dim font-sans text-sm">{t("gameLogPlaceholder")}</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    )
+  }
+
   const collapseIcon = isBottomPosition
-    ? (scoreTableExpanded ? "▼" : "▲")
-    : (scoreTablePosition === "right" ? (scoreTableExpanded ? "▶" : "◀") : (scoreTableExpanded ? "◀" : "▶"))
+    ? (scoreTableExpanded ? <ChevronDown size={15} /> : <ChevronUp size={15} />)
+    : scoreTablePosition === "right"
+      ? (scoreTableExpanded ? <ChevronRight size={15} /> : <ChevronLeft size={15} />)
+      : (scoreTableExpanded ? <ChevronLeft size={15} /> : <ChevronRight size={15} />)
+
+  const smallIconBtn = (active = false) =>
+    `w-9 h-9 rounded-full border flex items-center justify-center flex-shrink-0 transition-colors ${
+      active ? "bg-bp-accent border-bp-accent text-bp-bg" : "border-bp-strong text-bp-text2 hover:text-bp-text hover:border-bp-muted"
+    }`
+  const pillClass = (on: boolean) =>
+    `h-8 min-w-[36px] px-3 rounded-full font-mono text-xs transition-colors ${on ? "bg-bp-accent text-bp-bg" : "text-bp-text2 hover:text-bp-text"}`
 
   const scoreTablePanel = (
-    <div
-      className={`flex-shrink-0 transition-all duration-300 mx-auto bg-gray-800/60 rounded-xl overflow-hidden flex flex-col min-h-0 ${
-        isBottomPosition
-          ? scoreTableExpanded ? "max-h-64" : "h-10"
-          : scoreTableExpanded ? "" : "w-auto"
+    <section
+      aria-labelledby="score-title"
+      className={`bg-bp-surface border border-bp-border rounded-[20px] overflow-hidden flex flex-col min-w-0 ${
+        isBottomPosition ? "w-full order-2" : `flex-shrink-0 ${scoreTableExpanded ? "min-h-[420px]" : "self-start"} ${scoreTablePosition === "right" ? "order-2" : "order-0"}`
       }`}
-      style={scoreTableExpanded
-        ? isBottomPosition
-          ? { width: visibleWidth }
-          : { width: visibleWidth, maxHeight: "calc(100vh - 32px)" }
-        : undefined}
+      style={!isBottomPosition && scoreTableExpanded ? { width: scorePanelWidth } : undefined}
     >
-      {/* Header row: toggle + title + gear */}
-      <div className="flex items-center justify-between px-4 py-2.5 gap-2">
-        <span className="text-[16px] font-semibold text-gray-300 flex-1 whitespace-nowrap">{t("scoreTable")}</span>
-        {scoreTableExpanded && (
+      <div className={`flex items-center justify-between gap-3 px-[18px] py-4 ${scoreTableExpanded ? "border-b border-bp-border" : ""}`}>
+        <h2 id="score-title" className="m-0 font-display font-bold text-base whitespace-nowrap">{t("scoreTable")}</h2>
+        <span className="flex items-center gap-1.5">
+          {scoreTableExpanded && (
+            <button
+              type="button"
+              onClick={() => setShowScoreSettings((v) => !v)}
+              className={smallIconBtn(showScoreSettings)}
+              aria-label={t("scoreTableSettings")}
+              aria-expanded={showScoreSettings}
+              title={t("scoreTableSettings")}
+            >
+              <SlidersHorizontal size={15} />
+            </button>
+          )}
           <button
-            onClick={() => setShowScoreSettings((v) => !v)}
-            className="text-gray-400 hover:text-white"
-            title="Score table settings"
+            type="button"
+            onClick={() => setScoreTableExpanded((v) => !v)}
+            className={smallIconBtn()}
+            aria-label={scoreTableExpanded ? t("collapse") : t("expand")}
+            title={scoreTableExpanded ? t("collapse") : t("expand")}
           >
-            <Settings size={15} />
+            {collapseIcon}
           </button>
-        )}
-        <button
-          onClick={() => setScoreTableExpanded((v) => !v)}
-          className="text-xs text-gray-300 hover:text-white"
-        >
-          {collapseIcon}
-        </button>
+        </span>
       </div>
 
-      {/* Settings panel */}
+      {/* Settings: players shown + position */}
       {scoreTableExpanded && showScoreSettings && (
-        <div className="px-4 pb-3 flex flex-wrap items-center gap-3">
-          <span className="text-sm text-white whitespace-nowrap">{t("playersShown")}</span>
-          <select
-            value={scoreTablePlayerCount}
-            onChange={(e) => setScoreTablePlayerCount(Number(e.target.value))}
-            className="text-sm bg-gray-700 text-white border border-gray-600 rounded px-2 py-1"
-          >
-            {Array.from({ length: Math.max(0, players.length - 1) }, (_, i) => i + 2).map((n) => (
-              <option key={n} value={n}>{n}</option>
-            ))}
-          </select>
-          <span className="text-sm text-white whitespace-nowrap">{t("position")}</span>
-          <select
-            value={scoreTablePosition}
-            onChange={(e) => setScoreTablePosition(e.target.value as "left" | "right" | "bottom")}
-            className="text-sm bg-gray-700 text-white border border-gray-600 rounded px-2 py-1"
-          >
-            <option value="left">{t("posLeft")}</option>
-            <option value="right">{t("posRight")}</option>
-            <option value="bottom">{t("posBottom")}</option>
-          </select>
+        <div className="px-[18px] py-3 flex flex-col gap-2.5 border-b border-bp-border">
+          {players.length > 2 && (
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm text-bp-text2">{t("playersShown")}</span>
+              <div className="flex gap-1 p-[3px] rounded-full bg-bp-band border border-bp-border">
+                {Array.from({ length: Math.max(0, players.length - 1) }, (_, i) => i + 2).map((n) => (
+                  <button key={n} type="button" aria-pressed={scoreShownCount === n} onClick={() => setScoreTablePlayerCount(n)} className={pillClass(scoreShownCount === n)}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm text-bp-text2">{t("position")}</span>
+            <div className="flex gap-1 p-[3px] rounded-full bg-bp-band border border-bp-border">
+              {(["left", "right", "bottom"] as const).map((pos) => (
+                <button key={pos} type="button" aria-pressed={scoreTablePosition === pos} onClick={() => setScoreTablePosition(pos)} className={pillClass(scoreTablePosition === pos)}>
+                  {pos === "left" ? t("posLeft") : pos === "right" ? t("posRight") : t("posBottom")}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
       {scoreTableExpanded && (
-        <div style={{ maxWidth: visibleWidth, overflowX: "auto" }}>
-          <div
-            style={{ maxHeight: "748px", overflowY: "auto", scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}
-            className="[&::-webkit-scrollbar]:hidden"
-          >
-          <table className="w-full caption-bottom text-sm">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-white font-bold text-left border-r border-gray-600 border-b-0"></TableHead>
-                {orderedPlayers.map((player, pi) => (
-                  <TableHead key={player.name} colSpan={4} className={`text-center text-white font-bold max-w-[200px] ${pi < orderedPlayers.length - 1 ? "border-r border-gray-600" : ""}`}>
-                    <div className="flex items-center justify-center gap-1 min-w-0">
-                      {player.score === highestScore && highestScore > 0 && <span className="flex-shrink-0"><StarIcon size={16} /></span>}
-                      <span className="truncate min-w-0" title={player.name}>{player.name}</span>
-                    </div>
-                  </TableHead>
-                ))}
-              </TableRow>
-              <TableRow>
-                <TableHead className="border-r border-gray-600">{t("roundLabel")}</TableHead>
-                {orderedPlayers.map((player, pi) => (
-                  <React.Fragment key={player.name}>
-                    <TableHead className="text-center">{t("betLabel")}</TableHead>
-                    <TableHead className="text-center">{t("winsLabel")}</TableHead>
-                    <TableHead className="text-center">{t("pointsLabel")}</TableHead>
-                    <TableHead className={`text-center ${pi < orderedPlayers.length - 1 ? "border-r border-gray-600" : ""}`}>{t("roundIncrLabel")}</TableHead>
-                  </React.Fragment>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {safeGameData.scoreTable && safeGameData.scoreTable.length > 0 ? (
-                safeGameData.scoreTable.map((round: ScoreTableRow) => (
-                  <TableRow
-                    key={round.roundId}
-                    className={`
-                    ${round.roundId === currentRound ? "bg-blue-400/70" : ""}
-                    ${round.roundId < currentRound ? "bg-gray-600/70" : ""}
-                  `}
-                  >
-                    <TableCell className="border-r border-gray-600">{
-                      round.roundName === "NT" ? (locale === "ru" ? "Б" : "NT") :
-                      round.roundName === "B" && locale === "ru" ? "Т" :
-                      round.roundName === "G" && locale === "ru" ? "З" :
-                      round.roundName
-                    }</TableCell>
-                    {(() => {
-                      const roundMaxPoints = Math.max(...orderedPlayers.map(p => round.scores[p.name]?.cumulativePoints ?? -Infinity))
-                      return orderedPlayers.map((player, pi) => {
-                      const scoreData = round.scores[player.name]
-                      const playerScore: PlayerScore = scoreData || {
-                        cumulativePoints: 0,
-                        roundPoints: 0,
-                        bet: null,
-                      }
-                      const hasScore = !!scoreData && round.roundId <= currentRound
-                      const wins =
-                        round.roundId === currentRound ? player.roundWins || 0 : round.scores[player.name]?.wins || 0
-                      const isRoundLeader = hasScore && playerScore.cumulativePoints === roundMaxPoints && roundMaxPoints > 0
-                      return (
-                        <React.Fragment key={player.name}>
-                          <TableCell className="text-center">
-                            {hasScore ? (playerScore.bet !== null ? playerScore.bet : "-") : "-"}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {round.roundId === currentRound
-                              ? wins
-                              : hasScore
-                                ? (playerScore.wins !== undefined ? playerScore.wins : "-")
-                                : "-"}
-                          </TableCell>
-                          <TableCell className={`text-center font-bold ${isRoundLeader ? "bg-gray-200/20" : ""} ${hasScore && playerScore.cumulativePoints > 0 ? "text-green-400" : hasScore && playerScore.cumulativePoints < 0 ? "text-red-400" : ""}`}>
-                            {!hasScore ? "-" : playerScore.cumulativePoints}
-                          </TableCell>
-                          <TableCell
-                            className={`text-center italic ${pi < orderedPlayers.length - 1 ? "border-r border-gray-600" : ""} ${
-                              hasScore && playerScore.roundPoints < 0
-                                ? "text-red-400/50"
-                                : hasScore && playerScore.roundPoints > 0
-                                  ? "text-green-400/50"
-                                  : ""
-                            }`}
-                          >
-                            {!hasScore ? "-" : playerScore.roundPoints > 0
-                              ? `+${playerScore.roundPoints}`
-                              : playerScore.roundPoints === 0
-                                ? "-"
-                                : playerScore.roundPoints}
-                          </TableCell>
-                        </React.Fragment>
-                      )
-                    })})()}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell className="border-r border-gray-600"></TableCell>
-                  <TableCell colSpan={orderedPlayers.length * 4} className="italic text-gray-400">{t("gameLogPlaceholder")}</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </table>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-
-  // ─── Mobile layout ───────────────────────────────────────────────────────────
-  const mobileTopOpponents = players.slice(0, 3)
-  const mobileBottomOpponents = players.slice(3)
-  const mobileSeatBgColor = SEAT_SKINS.find(s => s.id === seatSkin)?.value ?? "#374151"
-
-  const renderMobileSeat = (player: typeof players[0], i: number, rowSize?: number, emojiDown = false) => {
-    const isCardTurnM = safeGameData.allBetsPlaced && players[currentTurn]?.name === player.name
-    const isBettingTurnM = !safeGameData.allBetsPlaced && typeof safeGameData.currentBettingTurn === "number" && players[safeGameData.currentBettingTurn]?.name === player.name
-    const isActiveTurnM = isCardTurnM || isBettingTurnM
-    const betValueM = shouldShowBetBanners() && player.bet !== null ? player.bet : "—"
-    const isLeaderM = player.score === highestScore && highestScore > 0
-    const seatWidth = "flex-1 min-w-0"
-    return (
-      <div
-        key={i}
-        className={`relative rounded-xl border-2 p-2 ${seatWidth} ${isActiveTurnM ? "border-green-400 animate-bet-border" : "border-gray-600/30"}`}
-        style={{ backgroundColor: mobileSeatBgColor }}
-        onClick={() => { if (player.name.length > 8) { setMobileNamePopup(player.name); setTimeout(() => setMobileNamePopup(null), 2000) } }}
-      >
-        {isLeaderM && (
-          <span className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 leading-none"><StarIcon size={16} /></span>
-        )}
-        <div className="flex items-center gap-1 mb-1 min-w-0">
-          <div className="w-5 h-5 rounded-full bg-gray-500 flex items-center justify-center text-[10px] overflow-hidden flex-shrink-0">
-            {player.avatar ? (player.avatar.startsWith("data:") || player.avatar.startsWith("http") ? <img src={player.avatar} alt="" className="w-full h-full object-cover" /> : <span>{player.avatar}</span>) : player.name[0]}
-          </div>
-          <span className="text-[11px] font-medium truncate text-gray-100 min-w-0">{player.name}</span>
-          {mobileNamePopup === player.name && (
-            <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-50 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-xs font-semibold shadow-xl whitespace-nowrap" onClick={() => setMobileNamePopup(null)}>
-              {player.name}
-            </div>
-          )}
-        </div>
-        <div className="grid grid-cols-3 text-[11px] text-center">
-          <div><div className="text-gray-400">{t("pts")}</div><div className={`font-bold ${player.score > 0 ? "text-green-400" : player.score < 0 ? "text-red-400" : ""}`}>{player.score}</div></div>
-          <div><div className="text-gray-400">{t("seatBetLabel")}</div><div className="font-bold text-purple-400">{betValueM}</div></div>
-          <div><div className="text-gray-400">{t("seatWinsLabel")}</div><div className="font-bold text-blue-400">{player.roundWins}</div></div>
-        </div>
-        {activeReactions.get(player.name) && (
-          <div
-            key={activeReactions.get(player.name)!.key}
-            className={`absolute left-1/2 pointer-events-none text-2xl z-20 ${emojiDown ? "reaction-float-down" : "reaction-float"}`}
-            style={emojiDown ? { bottom: "-10px" } : { top: "-10px" }}
-          >
-            {activeReactions.get(player.name)!.emoji}
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  if (isMobile) return (
-    <div className="flex flex-col text-white pb-6">
-      {/* Header */}
-      {gameStarted ? (
-        <div className="flex justify-between items-center px-4 py-2 text-sm bg-black/20 rounded-lg mx-4 mt-1">
-          <span className="text-gray-400">{t("tableIdLabel")} <strong className="text-white">{tableId}</strong></span>
-          <span className="text-gray-400">{t("round")} <strong className="text-white">{currentRound}</strong></span>
-          <span className="text-gray-400">{t("playLabel")} <strong className="text-white">{currentPlay}</strong></span>
-          <span className="text-gray-400">{t("timeLabel")} <strong className="text-white">{elapsedTime}</strong></span>
-        </div>
-      ) : (
-        <div className="px-4 py-2 text-sm text-center text-gray-400 mt-1">
-          <div>{t("tableIdLabel")} {tableId}</div>
-          {players.length < 2 && <p className="text-yellow-600 italic mt-1">{t("waitingMorePlayers")}</p>}
-        </div>
-      )}
-
-      {/* Pre-game */}
-      {!gameStarted && (
-        <div className="px-4 py-3">
-          <div className="flex flex-col gap-2 mb-3">
-            {players.map((p, i) => (
-              <div key={i} className="flex items-center gap-2 bg-black/20 rounded-lg px-3 py-2">
-                <div className="w-6 h-6 rounded-full bg-gray-600 flex items-center justify-center text-xs overflow-hidden">
-                  {p.avatar ? (p.avatar.startsWith("data:") || p.avatar.startsWith("http") ? <img src={p.avatar} alt="" className="w-full h-full object-cover" /> : <span>{p.avatar}</span>) : p.name[0]}
-                </div>
-                <span className="text-sm">{p.name}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Table preview — same style as community cards area */}
-          <div
-            className="flex justify-center items-center min-h-[150px] rounded-xl p-3 my-3"
-            style={(() => {
-              if (tableSkin === "custom_table") { try { const u = localStorage.getItem("customTableSkinUrl"); if (u) return { backgroundImage: `url(${u})`, backgroundSize: "cover", backgroundPosition: "center" } } catch {} }
-              const skin = TABLE_SKINS.find(s => s.id === tableSkin)
-              if (!skin) return { backgroundColor: "#0f4c81" }
-              if (skin.type === "image") return { backgroundImage: `url(${skin.value})`, backgroundSize: "cover", backgroundPosition: "center" }
-              return { backgroundColor: skin.value }
-            })()}
-          />
-
-          <div className="flex gap-2 flex-wrap">
-            <Button size="sm" onClick={onShare}>{t("shareLink")}</Button>
-            {isOwner && players.length >= 2 && <Button size="sm" onClick={() => setShowConfigureDialog(true)}>{t("configure")}</Button>}
-            {canStartGame && <Button size="sm" onClick={onStartGame}>{ t("startGame") }</Button>}
-          </div>
-        </div>
-      )}
-
-      {gameStarted && <>
-        {/* Top opponents (max 3) */}
-        <div className="px-4 pt-3">
-          <div className={`flex gap-2 ${mobileTopOpponents.length < 3 ? "justify-center" : ""}`}>
-            {mobileTopOpponents.map((player, i) => renderMobileSeat(player, i, mobileTopOpponents.length, true))}
-          </div>
-        </div>
-
-        {/* Community cards + betting overlay */}
-        <div className="px-4 py-3">
-          <div
-            className="relative flex justify-center gap-2 min-h-[150px] items-center rounded-xl p-3"
-            style={(() => {
-              if (tableSkin === "custom_table") { try { const u = localStorage.getItem("customTableSkinUrl"); if (u) return { backgroundImage: `url(${u})`, backgroundSize: "cover", backgroundPosition: "center" } } catch {} }
-              const skin = TABLE_SKINS.find(s => s.id === tableSkin)
-              if (!skin) return { backgroundColor: "#0f4c81" }
-              if (skin.type === "image") return { backgroundImage: `url(${skin.value})`, backgroundSize: "cover", backgroundPosition: "center" }
-              return { backgroundColor: skin.value }
-            })()}
-          >
-            {cardsOnTable.length === 0
-              ? null
-              : cardsOnTable.map((card, index) => (
-                <div key={index} className="relative">
-                  <PlayingCard
-                    suit={card.suit} value={card.value} disabled size="small"
-                    className={safeGameData.highestCard?.suit === card.suit && safeGameData.highestCard?.value === card.value ? "bg-yellow-100" : (isNoSuitRound && card.suit === "diamonds") ? "bg-white" : ""}
-                  />
-                  {card.suit === "spades" && card.value === 7 && card.pokerOption && (
-                    <div className={`absolute bottom-0 left-0 right-0 text-white text-[9px] py-0.5 text-center ${card.pokerOption === "Trumps" ? "bg-red-300" : card.pokerOption === "Poker" ? "bg-yellow-300" : "bg-blue-300"}`}>
-                      {card.pokerOption}
-                    </div>
-                  )}
-                </div>
-              ))
-            }
-
-            {/* Betting overlay — shown only when it's player's turn to bet */}
-            {currentPlayer?.bet === null && isCurrentPlayerBettingTurn && (
-              <div className={`absolute inset-0 rounded-xl flex flex-col items-center justify-center gap-2 bg-black/70 ${betBlinkEnabled ? "animate-bet-border" : ""}`}>
-                <h2 className="text-sm font-bold text-white">{t("makeYourBet")}</h2>
-                <div className="flex items-center gap-4">
-                  <button onClick={() => setBetAmount(v => Math.max(0, (v ?? 0) - 1))} className="w-10 h-10 rounded-xl bg-gray-700 hover:bg-gray-600 text-white border border-gray-500 text-2xl font-bold">−</button>
-                  <span className="text-4xl font-bold w-10 text-center select-none text-white">{betAmount ?? 0}</span>
-                  <button onClick={() => setBetAmount(v => Math.min(cardsThisRound, (v ?? 0) + 1))} className="w-10 h-10 rounded-xl bg-gray-700 hover:bg-gray-600 text-white border border-gray-500 text-2xl font-bold">+</button>
-                </div>
-                {(() => { const fb = calculateForbiddenBet(); return fb !== null ? <p className="text-red-400 text-xs italic text-center">{t("youCannotBet")} {fb}</p> : null })()}
-                <Button onClick={handlePlaceBet}>{t("confirm")}</Button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Bottom opponents (4th–6th), centered under table */}
-        {mobileBottomOpponents.length > 0 && (
-          <div className="px-4 pb-2">
-            <div className={`flex gap-2 ${mobileBottomOpponents.length < 3 ? "justify-center" : ""}`}>
-              {mobileBottomOpponents.map((player, i) => renderMobileSeat(player, i + 3, mobileBottomOpponents.length))}
-            </div>
-          </div>
-        )}
-
-        {/* Your hand + emoji button */}
-        <div className="px-4 mt-1">
-          <div className="bg-black/20 rounded-lg px-3 pt-2 pb-3">
-          <div className="relative flex items-center justify-center mb-2">
-            <h2 className="text-sm font-bold">{t("yourHand")}</h2>
-            <div className="absolute right-0">
-              <button
-                onClick={() => setShowMobileEmojiPanel(v => !v)}
-                className="text-xl active:scale-110 transition-transform"
-              >😊</button>
-              {showMobileEmojiPanel && (
-                <>
-                <div className="fixed inset-0 z-10" onClick={() => setShowMobileEmojiPanel(false)} />
-                <div className="absolute bottom-full right-0 mb-2 z-20 bg-gray-900 border border-white/10 rounded-xl p-2 shadow-xl w-52">
-                  <div className="grid grid-cols-6 gap-1">
-                    {EMOJI_LIST.map(emoji => (
-                      <button key={emoji} onClick={() => { onSendReaction(emoji); setShowMobileEmojiPanel(false) }} className="text-xl hover:scale-125 active:scale-125 transition-transform text-center">{emoji}</button>
-                    ))}
-                  </div>
-                </div>
-                </>
-              )}
-            </div>
-          </div>
-          <div className="flex gap-1 pb-2 justify-center min-h-[84px] items-center">
-            {currentPlayer?.hand?.length
-              ? currentPlayer.hand.map((card, index) => (
-                <PlayingCard
-                  key={index} suit={card.suit} value={card.value} size={(currentPlayer.hand.length >= 6) ? "small" : "medium"}
-                  onClick={() => handlePlayCard(card)}
-                  disabled={!isCurrentPlayerTurn || isClearing || !isValidCardToPlay(card) || !safeGameData.allBetsPlaced || isPlayingCard}
-                  showBack={shouldShowCardBacks}
-                  className={`${isNoSuitRound && card.suit === "diamonds" ? "bg-white" : ""} ${!isCurrentPlayerTurn || !isValidCardToPlay(card) || !safeGameData.allBetsPlaced || isPlayingCard ? "opacity-50" : ""}`}
-                />
-              ))
-              : <p className="italic text-gray-400 text-sm">{gameStarted ? t("allCardsPlayed") : t("cardsHereHint")}</p>
-            }
-          </div>
-          </div>
-        </div>
-
-        {/* Status */}
-        <div className="px-4 pt-1 text-center text-sm">
-          {currentRound <= getTotalRounds(safeGameData.gameLength || "basic", safeGameData.hasGoldenRound || false, safeGameData.hasNoTrumps || false) && renderGameStatusMessage()}
-          {errorMessage && <p className="text-red-500 mt-1">{errorMessage}</p>}
-        </div>
-
-        {/* Score table (mobile) */}
-        {safeGameData.scoreTable && safeGameData.scoreTable.length > 0 && (
-          <div className="mx-4 mt-4 mb-4 bg-gray-800/60 rounded-xl overflow-hidden">
-            <button
-              onClick={() => setScoreTableExpanded(v => !v)}
-              className="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold text-gray-300 hover:text-white"
-            >
-              <span>{t("scoreTable")}</span>
-              <span className="text-xs">{scoreTableExpanded ? "▲" : "▼"}</span>
-            </button>
-            {scoreTableExpanded && (
-              <div className="overflow-x-auto">
-                <table className="text-[11px] w-full">
-                  <thead>
-                    <tr className="border-t border-white/10">
-                      <th className="px-2 py-1 border-r border-white/10 min-w-[28px]" />
-                      {orderedPlayers.map(p => (
-                        <th key={p.name} colSpan={4} className="px-2 py-1 text-center text-gray-200 font-semibold border-r border-white/10 whitespace-nowrap min-w-[104px]"><span className="inline-flex items-center gap-1">{p.score === highestScore && highestScore > 0 && <StarIcon size={13} />}{p.name.length > 8 ? p.name.slice(0, 8) + "…" : p.name}</span></th>
-                      ))}
-                    </tr>
-                    <tr className="border-t border-white/5">
-                      <th className="px-2 py-1 text-center text-gray-500 font-normal border-r border-white/10 min-w-[28px]">Rnd</th>
-                      {orderedPlayers.map(p => (
-                        <React.Fragment key={p.name}>
-                          <th className="px-1 py-1 text-center text-gray-500 font-normal min-w-[26px]">{t("betLabel")}</th>
-                          <th className="px-1 py-1 text-center text-gray-500 font-normal min-w-[26px]">{t("winsLabel")}</th>
-                          <th className="px-1 py-1 text-center text-gray-500 font-normal min-w-[26px]">Pnts</th>
-                          <th className="px-1 py-1 text-center text-gray-500 font-normal border-r border-white/10 min-w-[26px]">{t("roundIncrLabel")}</th>
-                        </React.Fragment>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {safeGameData.scoreTable.map((round: ScoreTableRow) => (
-                      <tr key={round.roundId} className={`border-t border-white/5 ${round.roundId === currentRound ? "bg-blue-400/20" : round.roundId < currentRound ? "bg-gray-600/20" : ""}`}>
-                        <td className="px-2 py-1 text-center text-gray-400 border-r border-white/10">{
-                          round.roundName === "NT" ? (locale === "ru" ? "Б" : "NT") :
-                          round.roundName === "B" && locale === "ru" ? "Т" :
-                          round.roundName === "G" && locale === "ru" ? "З" :
-                          round.roundName
-                        }</td>
-                        {(() => {
-                          const roundMaxPoints = Math.max(...orderedPlayers.map(p => round.scores[p.name]?.cumulativePoints ?? -Infinity))
-                          return orderedPlayers.map(player => {
-                          const s: PlayerScore = round.scores[player.name] || { bet: null, wins: 0, cumulativePoints: 0, roundPoints: 0 }
-                          const hasScore = !!round.scores[player.name] && round.roundId <= currentRound
-                          const isRoundLeader = hasScore && s.cumulativePoints === roundMaxPoints && roundMaxPoints > 0
-                          return (
-                            <React.Fragment key={player.name}>
-                              <td className="px-1 py-1 text-center text-gray-300">{hasScore ? (s.bet !== null ? s.bet : "-") : "-"}</td>
-                              <td className="px-1 py-1 text-center text-gray-300">{hasScore ? (s.wins !== undefined ? s.wins : "-") : "-"}</td>
-                              <td className={`px-1 py-1 text-center font-bold ${isRoundLeader ? "bg-gray-200/20" : ""} ${hasScore && s.cumulativePoints > 0 ? "text-green-400" : hasScore && s.cumulativePoints < 0 ? "text-red-400" : ""}`}>{hasScore ? s.cumulativePoints : "-"}</td>
-                              <td className="px-1 py-1 text-center italic border-r border-white/10">
-                                {!hasScore ? "-" : s.roundPoints === 0 ? "-" : <span className={s.roundPoints > 0 ? "text-green-400/50" : "text-red-400/50"}>{s.roundPoints > 0 ? `+${s.roundPoints}` : s.roundPoints}</span>}
-                              </td>
-                            </React.Fragment>
-                          )
-                        })})()}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-      </>}
-
-      {/* Shared dialogs */}
-      <GameResultsDialog isOpen={showResultsDialog} onClose={() => setShowResultsDialog(false)} players={players} />
-      <PokerCardDialog isOpen={showPokerCardDialog} onClose={() => setShowPokerCardDialog(false)} onOptionSelect={handlePokerCardOptionSelect} isFirstCard={cardsOnTable.length === 0} isValidSimple={isValidSimplePlay()} availableOptions={cardsOnTable.length === 0 ? ["Trumps", "Poker", "Simple"] : ["Poker", "Simple"]} />
-      <ConfigureGameDialog isOpen={showConfigureDialog} onClose={() => setShowConfigureDialog(false)} onSave={handleSaveGameConfig} currentGameLength={safeGameData.gameLength || "short"} currentHasGoldenRound={safeGameData.hasGoldenRound || false} currentHasNoTrumps={safeGameData.hasNoTrumps || false} />
-      {showSuitPickerDialog && (
-        <Dialog open={showSuitPickerDialog} onOpenChange={() => setShowSuitPickerDialog(false)}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>{t("selectSuitTitle")}</DialogTitle>
-            </DialogHeader>
-            <div className="py-4">
-              <div className="space-y-2">
-                {(["spades", "clubs", "hearts", "diamonds"] as const).map(suit => {
-                  const isRed = suit === "hearts" || suit === "diamonds"
-                  return (
-                    <Button key={suit} onClick={() => handleSuitSelected(suit)}
-                      className={`w-full justify-start text-left font-medium ${isRed ? "bg-red-900/50 hover:bg-red-800/70 border-red-700/50" : "bg-gray-800/80 hover:bg-gray-700/80 border-gray-600/50"} text-white`}
-                      variant="outline">
-                      {t(`suit${suit.charAt(0).toUpperCase() + suit.slice(1)}` as "suitSpades" | "suitHearts" | "suitDiamonds" | "suitClubs")}
-                    </Button>
-                  )
-                })}
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-      {showAvatarPicker && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowAvatarPicker(false)}>
-          <div className="bg-gray-800 rounded-xl p-4 w-80 shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="text-white font-semibold text-sm">{t("emojiAvatar")}</h3>
-              <button onClick={() => setShowAvatarPicker(false)} className="text-gray-400 hover:text-white text-lg">✕</button>
-            </div>
-            <div className="flex gap-2 mb-4">
-              <button className={`flex-1 py-1.5 rounded text-xs ${avatarPickerTab === "emoji" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`} onClick={() => setAvatarPickerTab("emoji")}>{t("emojiTab")}</button>
-              <button className={`flex-1 py-1.5 rounded text-xs ${avatarPickerTab === "image" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`} onClick={() => setAvatarPickerTab("image")}>{t("avatarTab")}</button>
-            </div>
-            <div className="h-[220px] overflow-y-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
-              {avatarPickerTab === "emoji" && (
-                <div className="grid grid-cols-6 gap-1">
-                  {EMOJI_LIST.map(emoji => <button key={emoji} onClick={() => { onSendReaction(emoji); setShowAvatarPicker(false) }} className="text-2xl hover:scale-125 transition-transform text-center">{emoji}</button>)}
-                </div>
-              )}
-              {avatarPickerTab === "image" && (
-                <div className="flex flex-col items-center gap-2 py-2">
-                  {players.find(p => p.name === currentPlayerName)?.avatar && <img src={players.find(p => p.name === currentPlayerName)!.avatar!} alt="Avatar" className="w-16 h-16 rounded-full object-cover" />}
-                  <Button size="sm" onClick={() => fileInputRef.current?.click()}>{t("choosePhoto")}</Button>
-                  {players.find(p => p.name === currentPlayerName)?.avatar && <Button size="sm" className="bg-white hover:bg-gray-100 text-gray-900" onClick={() => { onSetAvatar(""); setShowAvatarPicker(false) }}>{t("removePhoto")}</Button>}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
-      <style jsx global>{`
-        @keyframes betBorder { 0%,100%{border-color:rgb(74 222 128);box-shadow:0 0 8px rgb(74 222 128/.6);}50%{border-color:transparent;box-shadow:none;} }
-        .animate-bet-border{animation:betBorder 1s ease-in-out infinite;}
-        @keyframes reactionFloat{0%{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}40%{opacity:1;transform:translateX(-50%) translateY(-50px) scale(1.4);}100%{opacity:0;transform:translateX(-50%) translateY(-90px) scale(0.8);}}
-        .reaction-float{animation:reactionFloat 3s ease-out forwards;}
-        @keyframes reactionFloatDown{0%{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}40%{opacity:1;transform:translateX(-50%) translateY(50px) scale(1.4);}100%{opacity:0;transform:translateX(-50%) translateY(90px) scale(0.8);}}
-        .reaction-float-down{animation:reactionFloatDown 3s ease-out forwards;}
-      `}</style>
-
-    </div>
-  )
-  // ─── End mobile layout ────────────────────────────────────────────────────────
-
-  // ─── Tablet: scale the desktop layout to fit viewport ────────────────────────
-  const tabletScale = isTablet ? Math.min(1, (viewportWidth - 32) / 900) : 1
-
-  return (
-    <div style={isTablet ? { zoom: tabletScale } : undefined}
-      className={`flex gap-4 ${isBottomPosition ? "flex-col" : "flex-row items-start"}`}>
-
-      {/* Score table: left or right position */}
-      {scoreTablePosition === "left" && scoreTablePanel}
-
-      {/* Main content */}
-      <div className="flex-1 space-y-8">
-
-      {/* Game Info — fixed in center of nav bar */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 h-[64px] flex items-center z-20 pointer-events-none">
-        {gameStarted ? (
-          <div className="inline-flex justify-center items-center space-x-6 px-4 py-2 bg-black/40 rounded-lg backdrop-blur-sm">
-            <span className="text-gray-400">{t("tableIdLabel")} <strong className="text-white">{tableId}</strong></span>
-            <span className="text-gray-400">{t("round")}: <strong className="text-white">{currentRound}</strong></span>
-            <span className="text-gray-400">{t("playLabel")}: <strong className="text-white">{currentPlay}</strong></span>
-            <span className="text-gray-400">{t("currentTurnLabel")}: <strong className="text-white">{players[currentTurn]?.name || "..."}</strong></span>
-            <span className="text-gray-400">{t("timeLabel")}: <strong className="text-white inline-block min-w-[3.5ch] tabular-nums">{elapsedTime}</strong></span>
-          </div>
+        isBottomPosition ? (
+          <div className="overflow-auto max-h-64">{renderScoreTable(false)}</div>
         ) : (
-          <div className="inline-flex justify-center items-center space-x-4 px-4 py-2">
-            <span className="text-gray-300">{t("tableIdLabel")} <strong className="text-white">{tableId}</strong></span>
-            {players.length < 2 ? (
-              <span className="text-yellow-500 italic">{t("waitingMorePlayers")}</span>
-            ) : (
-              <span className="text-yellow-500 italic">{t("waitingStart")}</span>
-            )}
+          // Rows scroll inside; the panel itself is as tall as the play column
+          <div className="flex-1 min-h-0 relative">
+            <div className="absolute inset-0 overflow-auto">{renderScoreTable(false)}</div>
           </div>
-        )}
-      </div>
+        )
+      )}
+    </section>
+  )
 
-      {/* Table with seats */}
-      <div className="relative w-[800px] h-[400px] mx-auto overflow-visible" style={{ marginTop: cardsOnSeats && gameStarted ? "104px" : "80px" }}>
-        {/* Table shadow */}
-        <div className="absolute inset-0 rounded-[200px/100px] bg-black/20 transform translate-y-2 blur-md"></div>
-
-        {/* Table rail (border) */}
-        <div className="absolute inset-0 rounded-[200px/100px] bg-[#e6e0d4] shadow-lg"></div>
-
-        {/* Table felt */}
-        <div
-          className="absolute inset-[20px] rounded-[180px/90px]"
-          style={(() => {
-            if (tableSkin === "custom_table") { try { const u = localStorage.getItem("customTableSkinUrl"); if (u) return { backgroundImage: `url(${u})`, backgroundSize: "cover", backgroundPosition: "center" } } catch {} }
-            const skin = TABLE_SKINS.find((s) => s.id === tableSkin)
-            if (!skin) return { backgroundColor: "#0f4c81" }
-            if (skin.type === "image") return { backgroundImage: `url(${skin.value})`, backgroundSize: "cover", backgroundPosition: "center" }
-            return { backgroundColor: skin.value }
-          })()}
-        >
-          {/* Inner felt line */}
-          <div className="absolute inset-[30px] rounded-[150px/75px] border-2 border-[#0a3d6a] opacity-50"></div>
-        </div>
-
-        {/* Player seats — current player always at index 0 (bottom center) */}
-        {[...players.filter(p => p.name === currentPlayerName), ...players.filter(p => p.name !== currentPlayerName)].map((player, index) => {
-          // Seat positions centered on each border segment of the rounded-rect table.
-          // Flat edge centers: bottom (400,400), top (400,0), left (0,200), right (800,200)
-          // Corner arc midpoints (border-radius 200px/100px): TL(59,29) TR(741,29) BL(59,371) BR(741,371)
-          const seatPositions: Record<number, [number, number][]> = {
-            1: [[400, 400]],
-            2: [[400, 400], [400, 0]],
-            3: [[400, 400], [59, 29], [741, 29]],
-            4: [[400, 400], [0, 200], [400, 0], [800, 200]],
-            5: [[400, 400], [59, 371], [59, 29], [741, 29], [741, 371]],
-            6: [[400, 400], [59, 371], [59, 29], [400, 0], [741, 29], [741, 371]],
-          }
-          const [left, top] = seatPositions[players.length]?.[index] ?? [400, 200]
-
-          // Score color: positive = green, negative = red, zero = gray
-          let scoreColor = "text-green-400"
-          if (player.score === 0) {
-            scoreColor = "text-gray-400"
-          } else if (player.score < 0) {
-            scoreColor = "text-red-400"
-          }
-
-          const isCurrentTurn = safeGameData.allBetsPlaced && players[currentTurn]?.name === player.name
-          const isBettingTurn =
-            !safeGameData.allBetsPlaced &&
-            typeof safeGameData.currentBettingTurn === "number" &&
-            players[safeGameData.currentBettingTurn]?.name === player.name
-          const isActiveTurn = isCurrentTurn || isBettingTurn
-          const isLeader = player.score === highestScore && highestScore > 0
-          const betValue = shouldShowBetBanners() && player.bet !== null ? player.bet : "—"
-
-          // ─── Seat appearance — edit these to restyle seats ───────────────
-          const seatBgColor    = SEAT_SKINS.find((s) => s.id === seatSkin)?.value ?? "#374151"
-          const seatBg         = ""                      // color applied via inline style
-
-          const seatText       = "text-gray-100"         // default text color
-          const seatBorder     = "border-gray-500"       // default border
-          const seatBorderTurn = "border-green-400 animate-bet-border"  // border when it's this player's turn
-          const seatBorderLead = "border-yellow-400 ring-1 ring-yellow-400"              // leader highlight
-          const dividerColor   = "border-gray-600"       // divider between name and stats rows
-          const labelColor     = "text-gray-400"         // stat labels (pts / bet / wins)
-          // ─────────────────────────────────────────────────────────────────
-
-          const borderClass = isActiveTurn ? seatBorderTurn : seatBorder
-
-          const isCurrentPlayerSeat = player.name === currentPlayerName
-          const reaction = activeReactions.get(player.name)
-
-          return (
-            <div
-              key={index}
-              className="absolute -translate-x-1/2 -translate-y-1/2"
-              style={{ left: `${left}px`, top: `${top}px` }}
-            >
-              {/* Reaction animation */}
-              {reaction && (
-                <div
-                  key={reaction.key}
-                  className="absolute left-1/2 pointer-events-none text-3xl reaction-float z-20"
-                  style={{ top: "-10px" }}
-                >
-                  {reaction.emoji}
-                </div>
-              )}
-              {/* Cards on seat — top seats: above the seat card */}
-              {cardsOnSeats && gameStarted && player.hand.length > 0 && top < 200 && (() => {
-                const cardCount = player.hand.length
-                const gap = 2
-                const cardW = Math.min(Math.floor((150 - gap * (cardCount - 1)) / cardCount), 32)
-                const cardH = Math.round(cardW * 1.5)
-                const skin = CARD_BACK_SKINS.find(s => s.id === cardBackSkin) ?? CARD_BACK_SKINS[0]
-                return (
-                  <div className="pointer-events-none absolute left-0 right-0 flex justify-center" style={{ gap: `${gap}px`, bottom: `calc(100% + 4px)` }}>
-                    {Array.from({ length: cardCount }).map((_, i) => (
-                      <div key={i} className="rounded overflow-hidden border border-white/20 flex-shrink-0" style={{ width: `${cardW}px`, height: `${cardH}px` }}>
-                        {skin.type === "image"
-                          // eslint-disable-next-line @next/next/no-img-element
-                          ? <img src={skin.value} alt="" className="w-full h-full object-cover" />
-                          : <div className="w-full h-full" style={{ backgroundColor: skin.value }} />}
-                      </div>
-                    ))}
-                  </div>
-                )
-              })()}
-
-              {/* Bet placed notification */}
-              {betNotifications.has(player.name) && (
-                <div className="absolute left-1/2 -translate-x-1/2 pointer-events-none z-20 -top-8">
-                  <div className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap">
-                    ✓ {t("betPlaced")}
-                  </div>
-                </div>
-              )}
-              <div
-                className={`relative w-[150px] rounded-xl shadow-lg border-2 ${seatBg} ${seatText} ${borderClass}`}
-                style={{ backgroundColor: seatBgColor }}
-              >
-                {isLeader && (
-                  <span className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 leading-none"><StarIcon size={22} /></span>
-                )}
-                {/* Top row: avatar + name */}
-                <div className="flex items-center gap-2 px-3 py-2">
-                  <div
-                    className={`relative w-7 h-7 rounded-full flex-shrink-0 overflow-hidden outline-none ${isCurrentPlayerSeat ? "cursor-pointer group" : ""}`}
-                    onClick={isCurrentPlayerSeat ? () => { setShowAvatarPicker(true); setAvatarPickerTab("emoji") } : undefined}
-                  >
-                    {player.avatar ? (
-                      <img src={player.avatar} alt={player.name} className="w-full h-full object-cover border-0 outline-none ring-0" />
-                    ) : (
-                      <div className="w-full h-full bg-gray-500 flex items-center justify-center text-white text-xs font-bold">
-                        {player.name.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    {isCurrentPlayerSeat && (
-                      <div className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center rounded-full">
-                        <span className="text-white text-[8px]">✏️</span>
-                      </div>
-                    )}
-                  </div>
-                  <span className="text-sm font-bold line-clamp-2 text-center break-words" title={player.name}>{player.name}</span>
-                </div>
-                {/* Stats row: pts | bet | wins */}
-                <div className={`grid grid-cols-3 border-t ${dividerColor} px-1 py-1.5`}>
-                  <div className="flex flex-col items-center">
-                    <span className={`text-[10px] uppercase tracking-wide ${labelColor}`}>{t("pts")}</span>
-                    <span className={`text-sm font-bold ${scoreColor}`}>{player.score}</span>
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <span className={`text-[10px] uppercase tracking-wide ${labelColor}`}>{t("seatBetLabel")}</span>
-                    <span className="text-sm font-bold text-purple-300">{betValue}</span>
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <span className={`text-[10px] uppercase tracking-wide ${labelColor}`}>{t("seatWinsLabel")}</span>
-                    <span className="text-sm font-bold text-blue-300">{player.roundWins}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Cards on seat — bottom seats: below the seat card */}
-              {cardsOnSeats && gameStarted && player.hand.length > 0 && top >= 200 && (() => {
-                const cardCount = player.hand.length
-                const gap = 2
-                const cardW = Math.min(Math.floor((150 - gap * (cardCount - 1)) / cardCount), 32)
-                const cardH = Math.round(cardW * 1.5)
-                const skin = CARD_BACK_SKINS.find(s => s.id === cardBackSkin) ?? CARD_BACK_SKINS[0]
-                return (
-                  <div className="pointer-events-none absolute left-0 right-0 flex justify-center" style={{ gap: `${gap}px`, top: `calc(100% + 4px)` }}>
-                    {Array.from({ length: cardCount }).map((_, i) => (
-                      <div key={i} className="rounded overflow-hidden border border-white/20 flex-shrink-0" style={{ width: `${cardW}px`, height: `${cardH}px` }}>
-                        {skin.type === "image"
-                          // eslint-disable-next-line @next/next/no-img-element
-                          ? <img src={skin.value} alt="" className="w-full h-full object-cover" />
-                          : <div className="w-full h-full" style={{ backgroundColor: skin.value }} />}
-                      </div>
-                    ))}
-                  </div>
-                )
-              })()}
-            </div>
-          )
-        })}
-
-        {/* Buttons in center of table (pre-game only) */}
-        {!gameStarted && (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 z-10">
-            <Button onClick={onShare}>{t("shareGameLink")}</Button>
-            {isOwner && players.length >= 2 && (
-              <Button onClick={() => setShowConfigureDialog(true)}>{t("configureGameBtn")}</Button>
-            )}
-            {canStartGame && <Button onClick={onStartGame}>{ t("startGame") }</Button>}
-          </div>
-        )}
-
-        {/* Cards on table */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex space-x-2">
-          {cardsOnTable.map((card, index) => (
-            <div key={index} className="relative">
-              <PlayingCard
-                suit={card.suit}
-                value={card.value}
-                disabled
-                className={
-                  safeGameData.highestCard &&
-                  card.suit === safeGameData.highestCard.suit &&
-                  card.value === safeGameData.highestCard.value
-                    ? "bg-yellow-100"
-                    : (isNoSuitRound && card.suit === "diamonds")
-                      ? "bg-white"
-                      : ""
-                }
-              />
-              {card.suit === "spades" && card.value === 7 && card.pokerOption && (
-                <div
-                  className={`absolute bottom-0 left-0 right-0 text-white text-xs py-1 px-2 text-center
-  ${card.pokerOption === "Trumps" ? "bg-red-300" : card.pokerOption === "Poker" ? "bg-yellow-300" : "bg-blue-300"}`}
-                >
-                  {card.pokerOption}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Spacer container to manage vertical spacing */}
-      <div className="h-2"></div>
-
-      {/* Betting and Player's hand */}
-      <div className="flex mt-4" style={cardsOnSeats && gameStarted ? { marginTop: "40px" } : undefined}>
-        {/* Spacer div */}
-        <div className="w-1/6"></div>
-        {/* Your Bet/Win section — container always present to keep hand position stable */}
-        <div className={`w-1/3 mr-8 flex flex-col rounded-xl p-3 border-2 ${isCurrentPlayerBettingTurn && betBlinkEnabled ? "border-green-400 animate-bet-border" : "border-transparent"}`}>
-        {(!gameStarted || (currentPlayer && currentPlayer.bet === null && isCurrentPlayerBettingTurn)) && <>
-          <h2 className="text-xl font-bold mb-2 text-center px-4 py-1 bg-black/20 rounded-lg w-fit mx-auto">{!gameStarted ? t("bet") : t("makeYourBet")}</h2>
-          {!gameStarted ? (
-            <div className="flex flex-col items-center justify-center min-h-36">
-              <p className="text-center italic">{t("youWillBetHere")}</p>
-            </div>
-          ) : currentPlayer && currentPlayer.bet === null ? (
-            isCurrentPlayerBettingTurn ? (
-              <div className="flex flex-col flex-1">
-                {/* Number display + up/down buttons */}
-                <div className="relative flex items-center justify-center flex-1">
-                  <span className="text-white text-6xl font-bold select-none">
-                    {betAmount ?? 0}
-                  </span>
-                  <button
-                    onClick={() => setBetAmount((v) => Math.max((v ?? 0) - 1, 0))}
-                    className="absolute w-10 h-10 flex items-center justify-center rounded-lg bg-gray-700 hover:bg-gray-600 text-white border border-gray-500"
-                    style={{ right: "calc(50% + 2.5rem)" }}
-                  >
-                    <ChevronLeft size={20} />
-                  </button>
-                  <button
-                    onClick={() => setBetAmount((v) => Math.min((v ?? 0) + 1, cardsThisRound))}
-                    className="absolute w-10 h-10 flex items-center justify-center rounded-lg bg-gray-700 hover:bg-gray-600 text-white border border-gray-500"
-                    style={{ left: "calc(50% + 2.5rem)" }}
-                  >
-                    <ChevronRight size={20} />
-                  </button>
-                </div>
-                {/* Confirm + forbidden bet */}
-                <div className="flex flex-col items-center mt-2">
-                  {(() => {
-                    const forbiddenBet = calculateForbiddenBet()
-                    return (
-                      <div className="flex flex-col items-center justify-center gap-3" style={{ minHeight: "56px" }}>
-                        <p className={`text-red-500 text-sm italic ${forbiddenBet !== null ? "visible" : "invisible"}`}>
-                          {t("youCannotBet")} {forbiddenBet ?? "–"}
-                        </p>
-                        <Button onClick={handlePlaceBet}>{t("confirm")}</Button>
-                      </div>
-                    )
-                  })()}
-                </div>
-              </div>
-            ) : (
-              <p className="text-center text-yellow-600 italic mt-4">
-                {waitingForBetDelay ? (
-                  t("preparingRound")
-                ) : (
-                  <>
-                    {t("waitingFor")}{" "}
-                    {currentBettingPlayerName.startsWith("Waiting")
-                      ? players.find((p) => p.name !== currentPlayerName)?.name || "..."
-                      : currentBettingPlayerName}{" "}
-                    {t("toPlaceBet")}
-                  </>
-                )}
-              </p>
-            )
-          ) : null}
-        </>}
-        </div>
-
-        {/* Player's hand */}
-        <div className="w-2/3">
-          <div className="mb-2">
-            <h2 className="text-xl font-bold text-center px-4 py-1 bg-black/20 rounded-lg w-fit mx-auto">{t("yourHand")}</h2>
-          </div>
-          <div className="flex justify-center space-x-2 items-center min-h-36 w-[680px] mx-auto">
-            {currentPlayer && currentPlayer.hand && currentPlayer.hand.length > 0 ? (
-              currentPlayer.hand.map((card, index) => (
-                <PlayingCard
-                  key={index}
-                  suit={card.suit}
-                  value={card.value}
-                  onClick={() => handlePlayCard(card)}
-                  disabled={
-                    !isCurrentPlayerTurn ||
-                    isClearing ||
-                    !isValidCardToPlay(card) ||
-                    !safeGameData.allBetsPlaced ||
-                    isPlayingCard
-                  }
-                  showBack={shouldShowCardBacks}
-                  className={`${isNoSuitRound && card.suit === "diamonds" ? "bg-white" : ""} ${
-                    !isCurrentPlayerTurn || !isValidCardToPlay(card) || !safeGameData.allBetsPlaced || isPlayingCard
-                      ? "opacity-50"
-                      : ""
-                  }`}
-                />
-              ))
-            ) : (
-              <p className="italic">{gameStarted ? t("allCardsPlayed") : t("cardsHereHint")}</p>
-            )}
-          </div>
-          {/* Replace the hardcoded check with the dynamic getTotalRounds function */}
-          {gameStarted && currentRound <= getTotalRounds(safeGameData.gameLength || "basic", safeGameData.hasGoldenRound || false, safeGameData.hasNoTrumps || false) && (
-            <p className="text-center mt-2 w-[680px] mx-auto">{renderGameStatusMessage()}</p>
-          )}
-          {errorMessage && <p className="text-red-600 text-center mt-2 w-[680px] mx-auto">{errorMessage}</p>}
-        </div>
-      </div>
-
-      </div>{/* end main content column */}
-
-      {/* Score table: right position */}
-      {scoreTablePosition === "right" && scoreTablePanel}
-
-      {/* Score table: bottom position (rendered inside flex-col after main content) */}
-      {scoreTablePosition === "bottom" && scoreTablePanel}
-
+  // ─── Shared dialogs (all layouts) ────────────────────────────────────────────
+  const myAvatar = players.find((p) => p.name === currentPlayerName)?.avatar
+  const sharedDialogs = (
+    <>
       <GameResultsDialog isOpen={showResultsDialog} onClose={() => setShowResultsDialog(false)} players={players} />
       <PokerCardDialog
         isOpen={showPokerCardDialog}
@@ -2008,19 +1518,20 @@ export default function GameTable({
             <DialogHeader>
               <DialogTitle>{t("selectSuitTitle")}</DialogTitle>
             </DialogHeader>
-            <div className="py-4">
-              <div className="space-y-2">
-                {(["spades", "clubs", "hearts", "diamonds"] as const).map(suit => {
-                  const isRed = suit === "hearts" || suit === "diamonds"
-                  return (
-                    <Button key={suit} onClick={() => handleSuitSelected(suit)}
-                      className={`w-full justify-start text-left font-medium ${isRed ? "bg-red-900/50 hover:bg-red-800/70 border-red-700/50" : "bg-gray-800/80 hover:bg-gray-700/80 border-gray-600/50"} text-white`}
-                      variant="outline">
-                      {t(`suit${suit.charAt(0).toUpperCase() + suit.slice(1)}` as "suitSpades" | "suitHearts" | "suitDiamonds" | "suitClubs")}
-                    </Button>
-                  )
-                })}
-              </div>
+            <div className="py-2 grid grid-cols-2 gap-2">
+              {(["spades", "clubs", "hearts", "diamonds"] as const).map(suit => {
+                const isRed = suit === "hearts" || suit === "diamonds"
+                return (
+                  <Button
+                    key={suit}
+                    onClick={() => handleSuitSelected(suit)}
+                    variant="outline"
+                    className={`h-14 justify-start text-left text-[15px] bg-bp-surface hover:bg-bp-surface hover:border-bp-accent ${isRed ? "text-[#FF6B7F]" : "text-bp-text"}`}
+                  >
+                    {t(`suit${suit.charAt(0).toUpperCase() + suit.slice(1)}` as "suitSpades" | "suitHearts" | "suitDiamonds" | "suitClubs")}
+                  </Button>
+                )
+              })}
             </div>
           </DialogContent>
         </Dialog>
@@ -2028,97 +1539,542 @@ export default function GameTable({
 
       {/* Avatar / Reaction Picker Modal */}
       {showAvatarPicker && (
-        <div
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
-          onClick={() => setShowAvatarPicker(false)}
-        >
-          <div className="bg-gray-800 rounded-xl p-4 w-80 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="text-white font-semibold text-sm">{t("emojiAvatar")}</h3>
-              <button onClick={() => setShowAvatarPicker(false)} className="text-gray-400 hover:text-white text-lg leading-none">✕</button>
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4" onClick={() => setShowAvatarPicker(false)}>
+          <div
+            className="bg-bp-surface2 border border-bp-strong rounded-[20px] p-5 w-[340px] max-w-full shadow-[0_24px_60px_rgba(0,0,0,0.6)] text-bp-text"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="m-0 font-display font-bold text-base">{t("emojiAvatar")}</h3>
+              <button type="button" onClick={() => setShowAvatarPicker(false)} aria-label={t("close")} className={smallIconBtn()}>
+                <X size={14} />
+              </button>
             </div>
             {/* Tabs */}
-            <div className="flex gap-2 mb-4">
-              <button
-                className={`flex-1 py-1.5 rounded text-xs ${avatarPickerTab === "emoji" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`}
-                onClick={() => setAvatarPickerTab("emoji")}
-              >{t("emojiTab")}</button>
-              <button
-                className={`flex-1 py-1.5 rounded text-xs ${avatarPickerTab === "image" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`}
-                onClick={() => setAvatarPickerTab("image")}
-              >{t("avatarTab")}</button>
+            <div className="flex gap-1 p-[3px] mb-4 rounded-full bg-bp-band border border-bp-border">
+              <button type="button" className={`flex-1 ${pillClass(avatarPickerTab === "emoji")}`} onClick={() => setAvatarPickerTab("emoji")}>{t("emojiTab")}</button>
+              <button type="button" className={`flex-1 ${pillClass(avatarPickerTab === "image")}`} onClick={() => setAvatarPickerTab("image")}>{t("avatarTab")}</button>
             </div>
 
             <div className="h-[220px] overflow-y-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
-            {avatarPickerTab === "emoji" && (
-              <div className="grid grid-cols-6 gap-1">
-                {EMOJI_LIST.map((emoji) => (
-                  <button
-                    key={emoji}
-                    className="text-2xl hover:bg-gray-700 rounded p-1 transition-colors"
-                    onClick={() => { onSendReaction(emoji); setShowAvatarPicker(false) }}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            )}
+              {avatarPickerTab === "emoji" && (
+                <div className="grid grid-cols-6 gap-1">
+                  {EMOJI_LIST.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      className="text-2xl hover:bg-bp-surface3 rounded-lg p-1 transition-colors"
+                      onClick={() => { onSendReaction(emoji); setShowAvatarPicker(false) }}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-            {avatarPickerTab === "image" && (
-              <div className="flex flex-col items-center justify-between h-full py-2">
-                <div className="flex-1 flex items-center justify-center">
-                  {players.find((p) => p.name === currentPlayerName)?.avatar ? (
-                    <img
-                      src={players.find((p) => p.name === currentPlayerName)!.avatar}
-                      alt="avatar"
-                      className="w-[140px] h-[140px] rounded-full object-cover border-0 outline-none ring-0"
-                    />
-                  ) : (
-                    <div className="w-[140px] h-[140px] rounded-full bg-gray-600 flex items-center justify-center text-4xl text-white font-bold">
-                      {currentPlayerName?.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                </div>
-                <div className="flex gap-2 mt-3 self-end">
-                  {players.find((p) => p.name === currentPlayerName)?.avatar && (
-                    <Button size="sm" variant="outline" className="w-[100px]" onClick={() => { onSetAvatar(""); setShowAvatarPicker(false) }}>
-                      {t("removePhoto")}
+              {avatarPickerTab === "image" && (
+                <div className="flex flex-col items-center justify-between h-full py-2">
+                  <div className="flex-1 flex items-center justify-center">
+                    {myAvatar ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={myAvatar} alt="avatar" className="w-[120px] h-[120px] rounded-full object-cover" />
+                    ) : (
+                      <div className="w-[120px] h-[120px] rounded-full bg-bp-strong flex items-center justify-center font-display font-extrabold text-4xl">
+                        {currentPlayerName?.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    {myAvatar && (
+                      <Button size="sm" variant="outline" onClick={() => { onSetAvatar(""); setShowAvatarPicker(false) }}>
+                        {t("removePhoto")}
+                      </Button>
+                    )}
+                    <Button size="sm" onClick={() => fileInputRef.current?.click()}>
+                      {t("choosePhoto")}
                     </Button>
-                  )}
-                  <Button size="sm" className="w-[100px]" onClick={() => fileInputRef.current?.click()}>
-                    {t("choosePhoto")}
-                  </Button>
+                  </div>
                 </div>
-                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
-              </div>
-            )}
+              )}
             </div>
           </div>
         </div>
       )}
+      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
 
-      {/* Add CSS for animations */}
       <style jsx global>{`
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translate(-50%, -10px); }
-        to { opacity: 1; transform: translate(-50%, 0); }
-      }
-      @keyframes betBorder {
-        0%, 100% { border-color: rgb(74 222 128); box-shadow: 0 0 8px rgb(74 222 128 / 0.6); }
-        50% { border-color: transparent; box-shadow: none; }
-      }
-      .animate-bet-border {
-        animation: betBorder 1s ease-in-out infinite;
-      }
-      @keyframes reactionFloat {
-        0%   { opacity: 1; transform: translateX(-50%) translateY(0)   scale(1); }
-        40%  { opacity: 1; transform: translateX(-50%) translateY(-50px) scale(1.4); }
-        100% { opacity: 0; transform: translateX(-50%) translateY(-90px) scale(0.8); }
-      }
-      .reaction-float {
-        animation: reactionFloat 3s ease-out forwards;
-      }
-    `}</style>
-    </div>
+        @keyframes betBorder {
+          0%, 100% { border-color: #D7FF3F; box-shadow: 0 0 10px rgba(215, 255, 63, 0.45); }
+          50% { border-color: transparent; box-shadow: none; }
+        }
+        .animate-bet-border { animation: betBorder 1s ease-in-out infinite; }
+        @keyframes reactionFloat {
+          0%   { opacity: 1; transform: translateX(-50%) translateY(0)     scale(1); }
+          40%  { opacity: 1; transform: translateX(-50%) translateY(-50px) scale(1.4); }
+          100% { opacity: 0; transform: translateX(-50%) translateY(-90px) scale(0.8); }
+        }
+        .reaction-float { animation: reactionFloat 3s ease-out forwards; }
+        @keyframes reactionFloatDown {
+          0%   { opacity: 1; transform: translateX(-50%) translateY(0)    scale(1); }
+          40%  { opacity: 1; transform: translateX(-50%) translateY(50px) scale(1.4); }
+          100% { opacity: 0; transform: translateX(-50%) translateY(90px) scale(0.8); }
+        }
+        .reaction-float-down { animation: reactionFloatDown 3s ease-out forwards; }
+      `}</style>
+    </>
+  )
+
+  const renderReaction = (playerName: string, down = false, sizeClass = "text-3xl") => {
+    const reaction = activeReactions.get(playerName)
+    if (!reaction) return null
+    return (
+      <div
+        key={reaction.key}
+        className={`absolute left-1/2 pointer-events-none z-20 ${sizeClass} ${down ? "reaction-float-down" : "reaction-float"}`}
+        style={down ? { bottom: "-10px" } : { top: "-10px" }}
+      >
+        {reaction.emoji}
+      </div>
+    )
+  }
+
+  // ─── Lobby (pre-game) — desktop and mobile ───────────────────────────────────
+  if (!gameStarted) {
+    return (
+      <div className="w-full max-w-[1280px] mx-auto px-4 pt-6 pb-8 md:px-8 md:py-12 grid gap-4 md:gap-6 md:grid-cols-[minmax(0,380fr)_minmax(0,460fr)] md:grid-rows-[auto_1fr] items-start text-bp-text">
+        {/* Table ID + share */}
+        <section className="flex flex-col gap-3 md:col-start-1 md:row-start-1 min-w-0">
+          <span className="bp-label tracking-[0.12em]">{t("tableId")}</span>
+          <h1 className="m-0 font-mono font-medium text-[clamp(36px,11vw,56px)] md:text-[clamp(48px,6vw,72px)] tracking-[0.14em] leading-none text-bp-accent break-all">
+            {tableId}
+          </h1>
+          <div className="flex gap-2 flex-wrap pt-1.5">
+            <Button onClick={onShare} className="h-12 px-5 text-[15px]">
+              <Link2 size={16} />
+              {t("shareGameLink")}
+            </Button>
+          </div>
+        </section>
+
+        {/* Configure game (host) / waiting (others) */}
+        {isOwner ? (
+          <section
+            aria-labelledby="cfg-title"
+            className="bg-bp-surface border border-bp-border rounded-3xl p-5 md:p-7 flex flex-col gap-6 md:col-start-2 md:row-start-1 md:row-span-2 min-w-0"
+          >
+            <div className="flex justify-between items-baseline gap-3 flex-wrap">
+              <h2 id="cfg-title" className="m-0 font-display font-bold text-xl md:text-2xl">{t("configureGame")}</h2>
+              <span className="bp-label">{t("hostOnly")}</span>
+            </div>
+            <GameConfigFields
+              gameLength={lobbyGameLength}
+              hasGoldenRound={lobbyGoldenRound}
+              hasNoTrumps={lobbyNoTrumps}
+              onGameLengthChange={setLobbyGameLength}
+              onGoldenRoundChange={setLobbyGoldenRound}
+              onNoTrumpsChange={setLobbyNoTrumps}
+            />
+            <Button size="lg" className="w-full" onClick={handleLobbyStart} disabled={!canStartGame || isStartingGame}>
+              {t("startGame")}
+              <ArrowRight size={20} />
+            </Button>
+            {players.length < 2 && <p className="m-0 -mt-2 text-sm text-bp-muted text-center">{t("waitingMorePlayers")}</p>}
+          </section>
+        ) : (
+          <section className="bg-bp-surface border border-bp-border rounded-3xl p-5 md:p-7 flex items-center gap-3 md:col-start-2 md:row-start-1 min-w-0">
+            <span className="w-2 h-2 rounded-full bg-bp-accent animate-pulse flex-shrink-0" />
+            <span className="text-[15px] text-bp-text2">{players.length < 2 ? t("waitingMorePlayers") : t("waitingForHost")}</span>
+          </section>
+        )}
+
+        {/* At the table */}
+        <section aria-labelledby="players-title" className="bg-bp-surface border border-bp-border rounded-3xl py-2 md:col-start-1 md:row-start-2 self-start min-w-0">
+          <div className="flex justify-between items-baseline gap-3 px-5 pt-4 pb-3 md:pt-5 md:pb-3.5">
+            <h2 id="players-title" className="m-0 font-display font-bold text-xl md:text-2xl">{t("atTheTable")}</h2>
+            <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-bp-muted">{players.length} / 6</span>
+          </div>
+          {players.map((p) => {
+            const isMe = p.name === currentPlayerName
+            const role = p.isOwner && isMe ? t("hostYou") : p.isOwner ? t("host") : isMe ? t("you") : ""
+            return (
+              <div key={p.name} className="flex items-center gap-3 px-5 py-3 border-t border-bp-divider">
+                <button
+                  type="button"
+                  className={`relative rounded-full ${isMe ? "cursor-pointer hover:ring-2 hover:ring-bp-accent" : "cursor-default"}`}
+                  onClick={isMe ? () => { setShowAvatarPicker(true); setAvatarPickerTab("emoji") } : undefined}
+                  tabIndex={isMe ? 0 : -1}
+                  aria-label={isMe ? t("emojiAvatar") : p.name}
+                >
+                  {renderAvatar(p, "w-9 h-9", "text-[15px]")}
+                  {renderReaction(p.name, false, "text-2xl")}
+                </button>
+                <span className="font-semibold text-base truncate min-w-0">{p.name}</span>
+                {role && (
+                  <span className="ml-auto font-mono text-[11px] tracking-[0.08em] uppercase px-2.5 py-1 rounded-full bg-bp-surface3 text-bp-text2 whitespace-nowrap">
+                    {role}
+                  </span>
+                )}
+              </div>
+            )
+          })}
+        </section>
+
+        {sharedDialogs}
+      </div>
+    )
+  }
+
+  // ─── Mobile layout ───────────────────────────────────────────────────────────
+  const mobileOpponents = players.filter((p) => p.name !== currentPlayerName)
+
+  const renderMobileSeat = (player: Player, i: number) => {
+    const isCardTurnM = safeGameData.allBetsPlaced && players[currentTurn]?.name === player.name
+    const isBettingTurnM = !safeGameData.allBetsPlaced && typeof safeGameData.currentBettingTurn === "number" && players[safeGameData.currentBettingTurn]?.name === player.name
+    const isActiveTurnM = isCardTurnM || isBettingTurnM
+    const betValueM = shouldShowBetBanners() && player.bet !== null ? player.bet : "—"
+    const isLeaderM = player.score === highestScore && highestScore > 0
+    const hitM = player.bet !== null && betValueM !== "—" && player.roundWins === player.bet
+    return (
+      <div
+        key={i}
+        className={`relative rounded-2xl min-w-0 ${turnBorder(isActiveTurnM)}`}
+        style={{ backgroundColor: seatBgColor }}
+        onClick={() => { if (player.name.length > 8) { setMobileNamePopup(player.name); setTimeout(() => setMobileNamePopup(null), 2000) } }}
+      >
+        {isLeaderM && <LeaderBadge size={22} />}
+        <div className="flex items-center gap-2 px-2.5 pt-2.5 pb-1.5 min-w-0">
+          {renderAvatar(player, "w-7 h-7", "text-xs")}
+          <span className="text-sm font-semibold truncate min-w-0">{player.name}</span>
+          {mobileNamePopup === player.name && (
+            <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-50 bg-bp-surface2 border border-bp-strong rounded-xl px-3 py-2 text-bp-text text-xs font-semibold shadow-xl whitespace-nowrap" onClick={() => setMobileNamePopup(null)}>
+              {player.name}
+            </div>
+          )}
+        </div>
+        <div className="grid grid-cols-3 border-t border-bp-border px-0.5 pt-1.5 pb-2">
+          {renderStat(t("colPts"), player.score, "", true)}
+          {renderStat(t("colBet"), betValueM, "", true)}
+          {renderStat(t("colWon"), player.roundWins, hitM ? "text-bp-accent" : "", true)}
+        </div>
+        {renderReaction(player.name, true, "text-2xl")}
+      </div>
+    )
+  }
+
+  if (isMobile) {
+    // Fit one slot per player into the table width
+    const mobileTableWidth = Math.max(0, viewportWidth - 32)
+    const slotsWidth = players.length * 56 + Math.max(0, players.length - 1) * 8
+    const slotsZoom = Math.min(1, (mobileTableWidth - 32) / Math.max(1, slotsWidth))
+    const myActiveTurn = !!currentPlayer && (isMyPlayTurn || (!safeGameData.allBetsPlaced && isCurrentPlayerBettingTurn))
+    const myBetM = currentPlayer && shouldShowBetBanners() && currentPlayer.bet !== null ? currentPlayer.bet : "—"
+    const myHitM = !!currentPlayer && currentPlayer.bet !== null && myBetM !== "—" && currentPlayer.roundWins === currentPlayer.bet
+
+    return (
+      <div className="flex flex-col gap-3.5 px-4 pt-3.5 pb-6 text-bp-text">
+        {/* Info strip */}
+        <dl className="m-0 grid grid-cols-4 gap-1 px-1.5 py-2 rounded-[14px] bg-bp-surface border border-bp-border">
+          {[
+            { label: t("tableChip"), value: tableId, accent: true },
+            { label: t("round"), value: `${currentRound}/${totalRounds}` },
+            { label: t("playLabel"), value: `${currentPlay}/${cardsThisRound}` },
+            { label: t("timeLabel"), value: elapsedTime },
+          ].map((item) => (
+            <div key={item.label} className="flex flex-col items-center gap-0.5 min-w-0">
+              <dt className="font-mono text-[9px] tracking-[0.08em] uppercase text-bp-dim truncate max-w-full">{item.label}</dt>
+              <dd className={`m-0 font-mono text-[13px] tabular-nums truncate max-w-full ${item.accent ? "tracking-[0.08em] text-bp-accent" : ""}`}>{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+
+        {/* Opponents */}
+        {mobileOpponents.length > 0 && (
+          <div className="grid grid-cols-2 gap-2">
+            {mobileOpponents.map((player, i) => renderMobileSeat(player, i))}
+          </div>
+        )}
+
+        {/* Table with one slot per player */}
+        <section aria-label={t("tableChip")} className="relative w-full aspect-[2/1]">
+          <div className="absolute inset-0 rounded-[25%/25%] bg-bp-surface3 border border-bp-strong" />
+          <div className="absolute inset-[10px] rounded-[23%/22%] border border-bp-border" style={tableFeltStyle()} />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="flex gap-2 items-start" style={slotsZoom < 1 ? { zoom: slotsZoom } : undefined}>
+              {renderTableSlots(true)}
+            </div>
+          </div>
+        </section>
+
+        {/* Your seat */}
+        {currentPlayer && (
+          <div
+            className={`relative flex items-center gap-3 px-3.5 py-3 rounded-2xl ${turnBorder(myActiveTurn)}`}
+            style={{ backgroundColor: seatBgColor }}
+          >
+            {highestScore > 0 && currentPlayer.score === highestScore && <LeaderBadge size={22} />}
+            {renderAvatar(currentPlayer, "w-8 h-8", "text-[13px]")}
+            <span className="font-semibold text-[15px] flex-1 min-w-0 truncate">{t("you")} · {currentPlayer.name}</span>
+            <span className="flex gap-3.5 flex-shrink-0">
+              {renderStat(t("colPts"), currentPlayer.score, "", true)}
+              {renderStat(t("colBet"), myBetM, "", true)}
+              {renderStat(t("colWon"), currentPlayer.roundWins, myHitM ? "text-bp-accent" : "", true)}
+            </span>
+            <div className="relative flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowMobileEmojiPanel(v => !v)}
+                className="w-9 h-9 rounded-full border border-bp-strong flex items-center justify-center text-lg active:scale-110 transition-transform"
+                aria-label={t("emojiTab")}
+              >😊</button>
+              {showMobileEmojiPanel && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowMobileEmojiPanel(false)} />
+                  <div className="absolute bottom-full right-0 mb-2 z-20 bg-bp-surface2 border border-bp-strong rounded-2xl p-2 shadow-[0_24px_60px_rgba(0,0,0,0.6)] w-56">
+                    <div className="grid grid-cols-6 gap-1">
+                      {EMOJI_LIST.map(emoji => (
+                        <button key={emoji} type="button" onClick={() => { onSendReaction(emoji); setShowMobileEmojiPanel(false) }} className="text-xl hover:scale-125 active:scale-125 transition-transform text-center">{emoji}</button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+            {renderReaction(currentPlayer.name, false, "text-2xl")}
+          </div>
+        )}
+
+        {/* Bet block — only while it's your turn to bet */}
+        {showBetControls && (
+          <section aria-label={t("makeYourBet")} className={`bg-bp-surface rounded-[20px] p-4 flex flex-col gap-3 border-2 border-bp-accent ${betBlinkEnabled ? "animate-bet-border" : ""}`}>
+            {renderBetControls(true)}
+          </section>
+        )}
+
+        {/* Your hand */}
+        <section aria-label={t("yourHand")} className="flex flex-col gap-2">
+          <div className="flex justify-between items-center gap-3 min-w-0">
+            <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-bp-muted flex-shrink-0">{t("yourHand")}</span>
+            {renderStatusLine(true)}
+          </div>
+          <div className={`flex justify-center items-end pt-3 min-h-[105px] ${(currentPlayer?.hand.length ?? 0) >= 6 ? "gap-1" : "gap-1.5"}`}>
+            {renderHand((currentPlayer?.hand.length ?? 0) >= 6 ? "small" : "medium")}
+          </div>
+          {errorMessage && <p className="m-0 text-bp-warning text-sm text-center">{errorMessage}</p>}
+        </section>
+
+        {/* Score table (mobile) */}
+        {safeGameData.scoreTable && safeGameData.scoreTable.length > 0 && (
+          <section aria-labelledby="mscore-title" className="bg-bp-surface border border-bp-border rounded-[20px] overflow-hidden">
+            <div className={`flex justify-between items-center px-3.5 py-3 ${scoreTableExpanded ? "border-b border-bp-border" : ""}`}>
+              <h2 id="mscore-title" className="m-0 font-display font-bold text-[15px]">{t("scoreTable")}</h2>
+              <button
+                type="button"
+                onClick={() => setScoreTableExpanded(v => !v)}
+                className={smallIconBtn()}
+                aria-label={scoreTableExpanded ? t("collapse") : t("expand")}
+              >
+                {scoreTableExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+            </div>
+            {scoreTableExpanded && <div className="overflow-x-auto">{renderScoreTable(true)}</div>}
+          </section>
+        )}
+
+        {sharedDialogs}
+      </div>
+    )
+  }
+  // ─── End mobile layout ────────────────────────────────────────────────────────
+
+  // ─── Desktop / tablet ────────────────────────────────────────────────────────
+  // Scale the whole layout down when the viewport is narrower than its natural width
+  const PLAY_MIN_WIDTH = 920 // 800px table + room for seats that overhang the rail
+  const layoutNaturalWidth =
+    48 + PLAY_MIN_WIDTH + (!isBottomPosition && scoreTableExpanded ? scorePanelWidth + 24 : !isBottomPosition ? 200 : 0)
+  const layoutZoom = Math.min(1, viewportWidth / layoutNaturalWidth)
+  const seatsHaveCards = cardsOnSeats && gameStarted
+
+  return (
+    <>
+      {/* Game info — chips in the center of the header */}
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 h-[var(--header-h)] flex items-center z-20 pointer-events-none">
+        <dl className="m-0 flex gap-1.5">
+          {[
+            { label: t("tableChip"), value: tableId, accent: true },
+            { label: t("round"), value: `${currentRound} / ${totalRounds}` },
+            { label: t("playLabel"), value: `${currentPlay} / ${cardsThisRound}` },
+            { label: t("timeLabel"), value: elapsedTime },
+          ].map((item) => (
+            <div key={item.label} className="flex items-baseline gap-2 px-3.5 py-2 rounded-full bg-bp-surface border border-bp-border whitespace-nowrap">
+              <dt className="font-mono text-[11px] tracking-[0.1em] uppercase text-bp-muted">{item.label}</dt>
+              <dd className={`m-0 font-mono text-sm tabular-nums ${item.accent ? "tracking-[0.14em] text-bp-accent" : "text-bp-text"} ${item.label === t("timeLabel") ? "min-w-[4ch]" : ""}`}>{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+
+      <div
+        style={layoutZoom < 1 ? { zoom: layoutZoom } : undefined}
+        className={`w-full max-w-[1440px] mx-auto px-6 pt-12 pb-6 flex gap-6 text-bp-text ${isBottomPosition ? "flex-col" : "flex-row items-stretch"}`}
+      >
+        {scoreTablePanel}
+
+        {/* Play column */}
+        <div className={`order-1 min-w-0 flex flex-col gap-7 ${isBottomPosition ? "w-full" : "flex-1"}`} style={{ minWidth: PLAY_MIN_WIDTH }}>
+          {/* Table with seats */}
+          <section
+            aria-label={t("tableChip")}
+            className="relative w-[800px] h-[400px] mx-auto overflow-visible flex-shrink-0"
+            style={{ marginTop: seatsHaveCards ? 56 : 0, marginBottom: seatsHaveCards ? 76 : 28 }}
+          >
+            {/* Rail */}
+            <div className="absolute inset-0 rounded-[25%/25%] bg-bp-surface3 border border-bp-strong shadow-[0_30px_80px_rgba(0,0,0,0.55)]" />
+            {/* Felt */}
+            <div className="absolute inset-[18px] rounded-[23%/22%] border border-bp-border" style={tableFeltStyle()} />
+            {/* Inner dashed line */}
+            <div className="absolute inset-[44px] rounded-[19%/16%] border border-dashed border-bp-strong opacity-60" />
+
+            {/* Cards on table — one slot per player */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="flex gap-3.5 items-start">{renderTableSlots(false)}</div>
+            </div>
+
+            {/* Player seats — current player always at index 0 (bottom center) */}
+            {[...players.filter(p => p.name === currentPlayerName), ...players.filter(p => p.name !== currentPlayerName)].map((player, index) => {
+              // Seat positions centered on each border segment of the rounded-rect table.
+              // Flat edge centers: bottom (400,400), top (400,0), left (0,200), right (800,200)
+              // Corner arc midpoints (border-radius 200px/100px): TL(59,29) TR(741,29) BL(59,371) BR(741,371)
+              const seatPositions: Record<number, [number, number][]> = {
+                1: [[400, 400]],
+                2: [[400, 400], [400, 0]],
+                3: [[400, 400], [59, 29], [741, 29]],
+                4: [[400, 400], [0, 200], [400, 0], [800, 200]],
+                5: [[400, 400], [59, 371], [59, 29], [741, 29], [741, 371]],
+                6: [[400, 400], [59, 371], [59, 29], [400, 0], [741, 29], [741, 371]],
+              }
+              const [left, top] = seatPositions[players.length]?.[index] ?? [400, 200]
+              // Top seats: top edge level with the top of the table (and the score table)
+              const isTopSeat = top < 200
+
+              const isCurrentTurn = safeGameData.allBetsPlaced && players[currentTurn]?.name === player.name
+              const isBettingTurn =
+                !safeGameData.allBetsPlaced &&
+                typeof safeGameData.currentBettingTurn === "number" &&
+                players[safeGameData.currentBettingTurn]?.name === player.name
+              const isActiveTurn = isCurrentTurn || isBettingTurn
+              const isLeader = player.score === highestScore && highestScore > 0
+              const betValue = shouldShowBetBanners() && player.bet !== null ? player.bet : "—"
+              const hit = player.bet !== null && betValue !== "—" && player.roundWins === player.bet
+              const isCurrentPlayerSeat = player.name === currentPlayerName
+
+              const seatCards = cardsOnSeats && gameStarted && player.hand.length > 0 && (() => {
+                const cardCount = player.hand.length
+                const gap = 2
+                const cardW = Math.min(Math.floor((200 - gap * (cardCount - 1)) / cardCount), 32)
+                const cardH = Math.round(cardW * 1.5)
+                const skin = CARD_BACK_SKINS.find(s => s.id === cardBackSkin) ?? CARD_BACK_SKINS[0]
+                return (
+                  <div
+                    className="pointer-events-none absolute left-0 right-0 flex justify-center"
+                    style={isTopSeat ? { gap: `${gap}px`, bottom: "calc(100% + 4px)" } : { gap: `${gap}px`, top: "calc(100% + 4px)" }}
+                  >
+                    {Array.from({ length: cardCount }).map((_, i) => (
+                      <div key={i} className="rounded overflow-hidden border border-white/20 flex-shrink-0" style={{ width: `${cardW}px`, height: `${cardH}px` }}>
+                        {skin.type === "image"
+                          // eslint-disable-next-line @next/next/no-img-element
+                          ? <img src={skin.value} alt="" className="w-full h-full object-cover" />
+                          : <div className="w-full h-full" style={{ backgroundColor: skin.value }} />}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()
+
+              return (
+                <div
+                  key={index}
+                  className="absolute w-[200px] z-[2]"
+                  style={{ left: `${left}px`, top: isTopSeat ? 0 : `${top}px`, transform: isTopSeat ? "translate(-50%, 0)" : "translate(-50%, -50%)" }}
+                >
+                  {renderReaction(player.name)}
+                  {seatCards}
+
+                  {/* Bet placed notification */}
+                  {betNotifications.has(player.name) && (
+                    <div className="absolute left-1/2 -translate-x-1/2 pointer-events-none z-20 -top-9">
+                      <div className="bg-bp-accent text-bp-bg text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap shadow-lg">
+                        ✓ {t("betPlaced")}
+                      </div>
+                    </div>
+                  )}
+
+                  <div
+                    className={`relative rounded-2xl shadow-[0_14px_34px_rgba(0,0,0,0.5)] ${turnBorder(isActiveTurn)}`}
+                    style={{ backgroundColor: seatBgColor }}
+                  >
+                    {isLeader && <LeaderBadge />}
+                    {/* Top row: avatar + name */}
+                    <div className="flex items-center gap-2.5 px-3 pt-2.5 pb-2 min-w-0">
+                      <div
+                        className={`relative rounded-full flex-shrink-0 ${isCurrentPlayerSeat ? "cursor-pointer group" : ""}`}
+                        onClick={isCurrentPlayerSeat ? () => { setShowAvatarPicker(true); setAvatarPickerTab("emoji") } : undefined}
+                      >
+                        {renderAvatar(player, "w-8 h-8", "text-sm")}
+                        {isCurrentPlayerSeat && (
+                          <div className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center rounded-full">
+                            <span className="text-white text-[9px]">✏️</span>
+                          </div>
+                        )}
+                      </div>
+                      <span className="font-semibold text-[15px] truncate min-w-0" title={player.name}>{player.name}</span>
+                      {isActiveTurn && (
+                        <span className="ml-auto font-mono text-[10px] tracking-[0.1em] uppercase px-2 py-[3px] rounded-full bg-bp-accent text-bp-bg flex-shrink-0">
+                          {t("turnChip")}
+                        </span>
+                      )}
+                    </div>
+                    {/* Stats row: pts | bet | won */}
+                    <div className="grid grid-cols-3 border-t border-bp-border px-1 pt-2 pb-2.5">
+                      {renderStat(t("colPts"), player.score)}
+                      {renderStat(t("colBet"), betValue)}
+                      {renderStat(t("colWon"), player.roundWins, hit ? "text-bp-accent" : "")}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </section>
+
+          {/* Bet block + your hand */}
+          <section aria-label={t("yourHand")} className="flex flex-wrap gap-4 items-stretch">
+            {/* Bet block — keeps its width when empty so the hand does not move */}
+            <div
+              className={`flex-[1_1_220px] max-w-[280px] rounded-[20px] px-5 py-[18px] flex flex-col gap-3.5 ${
+                showBetControls ? `bg-bp-surface border-2 border-bp-accent ${betBlinkEnabled ? "animate-bet-border" : ""}` : "border-2 border-transparent"
+              }`}
+            >
+              {showBetControls && renderBetControls(false)}
+            </div>
+
+            <div
+              className={`flex-[999_1_420px] min-w-0 bg-bp-surface rounded-[20px] px-5 py-[18px] flex flex-col gap-3.5 ${
+                isMyPlayTurn ? "border-2 border-bp-accent" : "border border-bp-border"
+              }`}
+            >
+              <div className="flex justify-between items-center gap-3 flex-wrap min-w-0">
+                <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-bp-muted">{t("yourHand")}</span>
+                {renderStatusLine(false)}
+              </div>
+              <div className="flex gap-3 flex-wrap justify-center items-center pt-3 pb-1 min-h-[160px]">
+                {renderHand("normal")}
+              </div>
+              {errorMessage && <p className="m-0 text-bp-warning text-sm text-center">{errorMessage}</p>}
+            </div>
+          </section>
+        </div>
+
+        {sharedDialogs}
+      </div>
+    </>
   )
 }

@@ -58,29 +58,35 @@ export default function GameResultsDialog({ isOpen, onClose, players }: GameResu
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px] shadow-[0_0_15px_5px_rgba(255,215,0,0.7)]">
+      <DialogContent className="sm:max-w-[440px] border-2 border-bp-accent">
         <DialogHeader>
-          <DialogDescription className="text-center text-lg font-bold text-white">
-            {t("congratsTo")} <span className="text-yellow-300">{winner.name}</span>
+          <span className="bp-label text-center">{t("gameOver")}</span>
+          <DialogDescription className="text-center font-display font-bold text-xl text-bp-text leading-snug">
+            {t("congratsTo")} <span className="text-bp-accent">{winner.name}</span>
           </DialogDescription>
         </DialogHeader>
-        <div className="py-4">
-          <ul className="space-y-2">
+        <div className="py-2">
+          <ul className="flex flex-col">
             {sortedPlayers.map((player, index) => (
               <li
                 key={player.name}
-                className={`flex justify-between items-center ${index === 0 ? "font-bold text-yellow-300" : "text-gray-300"}`}
+                className={`flex justify-between items-center gap-3 py-2.5 ${index > 0 ? "border-t border-bp-divider" : ""}`}
               >
-                <span>
-                  {index + 1}. {player.name}
+                <span className="flex items-center gap-3 min-w-0">
+                  <span className={`w-11 text-center font-mono text-xs py-[5px] rounded-full flex-shrink-0 ${index === 0 ? "bg-bp-accent text-bp-bg" : "bg-bp-surface3 text-bp-text2"}`}>
+                    {index + 1}
+                  </span>
+                  <span className={`truncate ${index === 0 ? "font-semibold text-bp-text" : "text-bp-text2"}`}>{player.name}</span>
                 </span>
-                <span>{player.score} {t("pts")}</span>
+                <span className={`font-display font-bold flex-shrink-0 ${player.score < 0 ? "text-bp-warning" : index === 0 ? "text-bp-accent" : "text-bp-text"}`}>
+                  {player.score} <span className="font-mono text-xs font-normal text-bp-muted">{t("pts")}</span>
+                </span>
               </li>
             ))}
           </ul>
         </div>
         <DialogFooter className="sm:justify-center">
-          <Button onClick={onClose} className="w-[120px] h-[40px] focus-visible:ring-0 focus-visible:ring-offset-0">
+          <Button onClick={onClose} className="min-w-[140px] focus-visible:ring-0 focus-visible:ring-offset-0">
             {t("close")}
           </Button>
         </DialogFooter>
