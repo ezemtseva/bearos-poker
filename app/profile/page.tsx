@@ -218,7 +218,7 @@ export default function ProfilePage() {
                   <span className="flex-1 flex flex-col gap-[3px] min-w-0">
                     <span className="font-mono text-sm tracking-[0.1em] text-bp-accent">{game.table_id}</span>
                     <span className="font-mono text-[11px] text-bp-muted truncate">
-                      {formatDate(game.played_at)} · {game.game_length} · {game.players_count} {t("players2")}
+                      {formatDate(game.played_at)}
                       {game.poker_hands > 0 ? ` · 7♠ ×${game.poker_hands}` : ""}
                     </span>
                   </span>
