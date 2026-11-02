@@ -1925,7 +1925,7 @@ export default function GameTable({
           <section
             aria-label={t("tableChip")}
             className="relative w-[800px] h-[400px] mx-auto overflow-visible flex-shrink-0"
-            style={{ marginTop: seatsHaveCards ? 56 : 0, marginBottom: seatsHaveCards ? 76 : 28 }}
+            style={{ marginTop: seatsHaveCards ? 56 : 0, marginBottom: seatsHaveCards ? 100 : 52 }}
           >
             {/* Rail */}
             <div className="absolute inset-0 rounded-[25%/25%] bg-bp-surface3 border border-bp-strong shadow-[0_30px_80px_rgba(0,0,0,0.55)]" />
