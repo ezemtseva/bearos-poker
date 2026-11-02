@@ -1136,8 +1136,9 @@ export default function GameTable({
     </span>
   )
 
+  // Lime turn frames (seats, bet block, hand) appear only when the betting alarm is on
   const turnBorder = (active: boolean) =>
-    active ? `border-2 border-bp-accent ${betBlinkEnabled ? "animate-bet-border" : ""}` : "border border-bp-strong"
+    active && betBlinkEnabled ? "border-2 border-bp-accent animate-bet-border" : "border border-bp-strong"
 
   // 7♠ option strip shown on table cards
   const renderPokerStrip = (card: Card, compact: boolean) =>
@@ -1808,7 +1809,7 @@ export default function GameTable({
           {showBetControls && (
             <div
               aria-label={t("makeYourBet")}
-              className={`absolute inset-0 rounded-[25%/25%] bg-bp-bg/85 backdrop-blur-[2px] border-2 border-bp-accent flex flex-col items-center justify-center ${betBlinkEnabled ? "animate-bet-border" : ""}`}
+              className={`absolute inset-0 rounded-[25%/25%] bg-bp-bg/85 backdrop-blur-[2px] border-2 flex flex-col items-center justify-center ${betBlinkEnabled ? "border-bp-accent animate-bet-border" : "border-bp-strong"}`}
             >
               {renderBetControls(true)}
             </div>
@@ -2070,7 +2071,7 @@ export default function GameTable({
             {/* Bet block — keeps its width when empty so the hand does not move */}
             <div
               className={`flex-[1_1_220px] max-w-[280px] rounded-[20px] px-5 py-[18px] flex flex-col gap-3.5 ${
-                showBetControls ? `bg-bp-surface border-2 border-bp-accent ${betBlinkEnabled ? "animate-bet-border" : ""}` : "border-2 border-transparent"
+                showBetControls ? `bg-bp-surface border-2 ${betBlinkEnabled ? "border-bp-accent animate-bet-border" : "border-bp-border"}` : "border-2 border-transparent"
               }`}
             >
               {showBetControls && renderBetControls(false)}
@@ -2078,7 +2079,7 @@ export default function GameTable({
 
             <div
               className={`flex-[999_1_420px] min-w-0 bg-bp-surface rounded-[20px] px-5 py-[18px] flex flex-col gap-3.5 ${
-                isMyPlayTurn ? "border-2 border-bp-accent" : "border border-bp-border"
+                isMyPlayTurn && betBlinkEnabled ? "border-2 border-bp-accent" : "border border-bp-border"
               }`}
             >
               <div className="flex justify-between items-center gap-3 flex-wrap min-w-0">
