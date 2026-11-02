@@ -1916,7 +1916,7 @@ export default function GameTable({
   const layoutNaturalWidth =
     48 + PLAY_MIN_WIDTH + (!isBottomPosition && scoreTableExpanded ? scorePanelWidth + 24 : !isBottomPosition ? 200 : 0)
   const layoutZoom = Math.min(1, viewportWidth / layoutNaturalWidth)
-  // Emoji button sits outside the layout, to the right of the hand; shown only when the free margin
+  // Emoji button sits outside the layout, to the right of the hand (bottom-aligned); shown only when the free margin
   // on the right fits it (16px gap + 48px button), i.e. wide screens with the score table not on the right
   const rightMargin = Math.max(0, (viewportWidth - 1440) / 2) + 24
   const showWebEmojiButton = layoutZoom === 1 && scoreTablePosition !== "right" && rightMargin >= 64
@@ -2073,7 +2073,7 @@ export default function GameTable({
               className="relative flex-[999_1_420px] min-w-0 bg-bp-surface border border-bp-border rounded-[20px] px-5 py-[18px] flex flex-col gap-3.5"
             >
               {showWebEmojiButton && (
-                <div className="absolute -top-px left-[calc(100%+17px)] w-12 h-12">
+                <div className="absolute -bottom-px left-[calc(100%+17px)] w-12 h-12">
                   <button
                     type="button"
                     onClick={() => setShowMobileEmojiPanel(v => !v)}
