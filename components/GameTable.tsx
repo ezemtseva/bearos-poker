@@ -138,6 +138,8 @@ export default function GameTable({
   const [showConfigureDialog, setShowConfigureDialog] = useState(false)
   // Add a new state variable near the top of the component with the other state variables
   const [isPlayingCard, setIsPlayingCard] = useState(false)
+  // Mobile: the tapped card stays pressed until it leaves the hand
+  const [pressedCard, setPressedCard] = useState<Card | null>(null)
   const [displayedCards, setDisplayedCards] = useState<Card[]>(cardsOnTable)
   const [isClearing, setIsClearing] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -1181,6 +1183,18 @@ export default function GameTable({
   }
 
   // Cards in the player's hand. Highlights live on the wrapper, never inside the card.
+  // Release the pressed card once it has left the hand, or when the play did not go through
+  // (request finished / 7♠ dialog closed) and the card is still in the hand after a while
+  const pressedInHand = !!pressedCard && !!currentPlayer?.hand?.some((c) => c.suit === pressedCard.suit && c.value === pressedCard.value)
+  useEffect(() => {
+    if (pressedCard && !pressedInHand) setPressedCard(null)
+  }, [pressedCard, pressedInHand])
+  useEffect(() => {
+    if (!pressedCard || isPlayingCard || showPokerCardDialog || showSuitPickerDialog) return
+    const timer = setTimeout(() => setPressedCard(null), 4000)
+    return () => clearTimeout(timer)
+  }, [pressedCard, isPlayingCard, showPokerCardDialog, showSuitPickerDialog])
+
   const renderHand = (size: "normal" | "medium" | "small", mobile = false) => {
     if (!currentPlayer?.hand?.length) {
       return <p className="text-sm text-bp-dim">{gameStarted ? t("allCardsPlayed") : t("cardsHereHint")}</p>
@@ -1196,13 +1210,16 @@ export default function GameTable({
       const disabled = looksDisabled || isPlayingCard
       const playable = !looksDisabled && !shouldShowCardBacks
       const dimmed = safeGameData.allBetsPlaced && looksDisabled
+      const isPressed = mobile && !!pressedCard && pressedCard.suit === card.suit && pressedCard.value === card.value
       return (
         <div
           key={index}
           className={`flex ${radius} ${
             // Mobile: no pre-highlight; the tapped card just dips a little
             mobile
-              ? playable ? "transition-transform duration-300 ease-out active:translate-y-1" : dimmed ? "opacity-[0.38]" : ""
+              ? isPressed
+                ? "transition-transform duration-300 ease-out translate-y-1"
+                : playable ? "transition-transform duration-300 ease-out active:translate-y-1" : dimmed ? "opacity-[0.38]" : ""
               : playable
                 ? "-translate-y-2.5 shadow-[0_18px_36px_rgba(0,0,0,0.5)]"
                 : dimmed ? "opacity-[0.38]" : ""
@@ -1212,7 +1229,7 @@ export default function GameTable({
             suit={card.suit}
             value={card.value}
             size={size}
-            onClick={() => handlePlayCard(card)}
+            onClick={() => { if (mobile) setPressedCard(card); handlePlayCard(card) }}
             disabled={disabled}
             showBack={shouldShowCardBacks}
             className={`${isNoSuitRound && card.suit === "diamonds" ? "!bg-white" : ""} ${mobile ? "hover:!scale-100 hover:!shadow-md" : ""}`}
