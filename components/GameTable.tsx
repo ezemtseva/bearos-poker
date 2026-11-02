@@ -1187,18 +1187,19 @@ export default function GameTable({
     }
     const radius = size === "normal" ? "rounded-2xl" : "rounded-xl"
     return currentPlayer.hand.map((card, index) => {
-      const disabled =
+      // Look ignores isPlayingCard, so the other cards don't drop while a card is being sent
+      const looksDisabled =
         !isCurrentPlayerTurn ||
         isClearing ||
         !isValidCardToPlay(card) ||
-        !safeGameData.allBetsPlaced ||
-        isPlayingCard
-      const playable = !disabled && !shouldShowCardBacks
-      const dimmed = safeGameData.allBetsPlaced && disabled
+        !safeGameData.allBetsPlaced
+      const disabled = looksDisabled || isPlayingCard
+      const playable = !looksDisabled && !shouldShowCardBacks
+      const dimmed = safeGameData.allBetsPlaced && looksDisabled
       return (
         <div
           key={index}
-          className={`flex ${radius} transition-all duration-150 ${
+          className={`flex ${radius} ${
             playable
               ? "-translate-y-2.5 shadow-[0_18px_36px_rgba(0,0,0,0.5)]"
               : dimmed ? "opacity-[0.38]" : ""
