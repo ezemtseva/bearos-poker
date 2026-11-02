@@ -2048,11 +2048,6 @@ export default function GameTable({
                         )}
                       </div>
                       <span className="font-semibold text-[15px] truncate min-w-0" title={player.name}>{player.name}</span>
-                      {isActiveTurn && (
-                        <span className="ml-auto font-mono text-[10px] tracking-[0.1em] uppercase px-2 py-[3px] rounded-full bg-bp-accent text-bp-bg flex-shrink-0">
-                          {t("turnChip")}
-                        </span>
-                      )}
                     </div>
                     {/* Stats row: pts | bet | won */}
                     <div className="grid grid-cols-3 border-t border-bp-border px-1 pt-2 pb-2.5">
