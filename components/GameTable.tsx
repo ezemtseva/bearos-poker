@@ -1916,6 +1916,10 @@ export default function GameTable({
   const layoutNaturalWidth =
     48 + PLAY_MIN_WIDTH + (!isBottomPosition && scoreTableExpanded ? scorePanelWidth + 24 : !isBottomPosition ? 200 : 0)
   const layoutZoom = Math.min(1, viewportWidth / layoutNaturalWidth)
+  // Emoji button sits outside the layout, to the right of the hand; shown only when the free margin
+  // on the right fits it (16px gap + 48px button), i.e. wide screens with the score table not on the right
+  const rightMargin = Math.max(0, (viewportWidth - 1440) / 2) + 24
+  const showWebEmojiButton = layoutZoom === 1 && scoreTablePosition !== "right" && rightMargin >= 64
   // Who acts now: the betting player during bets, otherwise the player whose turn it is to play
   const activeTurnName =
     (!safeGameData.allBetsPlaced && typeof safeGameData.currentBettingTurn === "number"
@@ -2066,8 +2070,31 @@ export default function GameTable({
             </div>
 
             <div
-              className="flex-[999_1_420px] min-w-0 bg-bp-surface border border-bp-border rounded-[20px] px-5 py-[18px] flex flex-col gap-3.5"
+              className="relative flex-[999_1_420px] min-w-0 bg-bp-surface border border-bp-border rounded-[20px] px-5 py-[18px] flex flex-col gap-3.5"
             >
+              {showWebEmojiButton && (
+                <div className="absolute -top-px left-[calc(100%+17px)] w-12 h-12">
+                  <button
+                    type="button"
+                    onClick={() => setShowMobileEmojiPanel(v => !v)}
+                    className="w-full h-full rounded-2xl border border-bp-border bg-bp-surface flex items-center justify-center text-xl hover:border-bp-strong active:scale-95 transition"
+                    aria-label={t("emojiTab")}
+                    title={t("emojiTab")}
+                  >😊</button>
+                  {showMobileEmojiPanel && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setShowMobileEmojiPanel(false)} />
+                      <div className="absolute bottom-full right-0 mb-2 z-20 bg-bp-surface2 border border-bp-strong rounded-2xl p-2 shadow-[0_24px_60px_rgba(0,0,0,0.6)] w-64">
+                        <div className="grid grid-cols-6 gap-1">
+                          {EMOJI_LIST.map(emoji => (
+                            <button key={emoji} type="button" onClick={() => { onSendReaction(emoji); setShowMobileEmojiPanel(false) }} className="text-2xl rounded-lg p-1 hover:bg-bp-surface3 transition-colors text-center">{emoji}</button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
               <div className="flex justify-between items-center gap-3 flex-wrap min-w-0">
                 <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-bp-muted">{t("yourHand")}</span>
                 {renderStatusLine(false)}
