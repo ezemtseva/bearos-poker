@@ -1136,7 +1136,7 @@ export default function GameTable({
     </span>
   )
 
-  // Lime turn frames (seats, bet block, hand) appear only when the betting alarm is on
+  // Lime turn frames (seats, bet block) appear only when the betting alarm is on
   const turnBorder = (active: boolean) =>
     active && betBlinkEnabled ? "border-2 border-bp-accent animate-bet-border" : "border border-bp-strong"
 
@@ -1208,7 +1208,7 @@ export default function GameTable({
           key={index}
           className={`${radius} transition-all duration-150 ${
             playable
-              ? "-translate-y-2.5 shadow-[0_0_0_3px_#D7FF3F,0_18px_36px_rgba(0,0,0,0.5)]"
+              ? "-translate-y-2.5 shadow-[0_18px_36px_rgba(0,0,0,0.5)]"
               : dimmed ? "opacity-[0.38]" : ""
           }`}
         >
@@ -2078,9 +2078,7 @@ export default function GameTable({
             </div>
 
             <div
-              className={`flex-[999_1_420px] min-w-0 bg-bp-surface rounded-[20px] px-5 py-[18px] flex flex-col gap-3.5 ${
-                isMyPlayTurn && betBlinkEnabled ? "border-2 border-bp-accent" : "border border-bp-border"
-              }`}
+              className="flex-[999_1_420px] min-w-0 bg-bp-surface border border-bp-border rounded-[20px] px-5 py-[18px] flex flex-col gap-3.5"
             >
               <div className="flex justify-between items-center gap-3 flex-wrap min-w-0">
                 <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-bp-muted">{t("yourHand")}</span>
