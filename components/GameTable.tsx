@@ -1914,7 +1914,8 @@ export default function GameTable({
       </div>
 
       <div
-        style={layoutZoom < 1 ? { zoom: layoutZoom } : undefined}
+        // When scaled down, lay out at the natural width so the zoomed result fits the viewport
+        style={layoutZoom < 1 ? { zoom: layoutZoom, width: layoutNaturalWidth, maxWidth: "none" } : undefined}
         className={`w-full max-w-[1440px] mx-auto px-6 pt-12 pb-6 flex gap-6 text-bp-text ${isBottomPosition ? "flex-col" : "flex-row items-stretch"}`}
       >
         {scoreTablePanel}
@@ -1925,7 +1926,8 @@ export default function GameTable({
           <section
             aria-label={t("tableChip")}
             className="relative w-[800px] h-[400px] mx-auto overflow-visible flex-shrink-0"
-            style={{ marginTop: seatsHaveCards ? 56 : 0, marginBottom: seatsHaveCards ? 100 : 52 }}
+            // Top margin = half a seat, so top seats (centered on the rail) start level with the score table
+            style={{ marginTop: seatsHaveCards ? 110 : 54, marginBottom: seatsHaveCards ? 100 : 52 }}
           >
             {/* Rail */}
             <div className="absolute inset-0 rounded-[25%/25%] bg-bp-surface3 border border-bp-strong shadow-[0_30px_80px_rgba(0,0,0,0.55)]" />
@@ -1953,7 +1955,7 @@ export default function GameTable({
                 6: [[400, 400], [59, 371], [59, 29], [400, 0], [741, 29], [741, 371]],
               }
               const [left, top] = seatPositions[players.length]?.[index] ?? [400, 200]
-              // Top seats: top edge level with the top of the table (and the score table)
+              // Top seats show their seat cards above the seat, the rest below
               const isTopSeat = top < 200
 
               const isCurrentTurn = safeGameData.allBetsPlaced && players[currentTurn]?.name === player.name
@@ -1994,7 +1996,7 @@ export default function GameTable({
                 <div
                   key={index}
                   className="absolute w-[200px] z-[2]"
-                  style={{ left: `${left}px`, top: isTopSeat ? 0 : `${top}px`, transform: isTopSeat ? "translate(-50%, 0)" : "translate(-50%, -50%)" }}
+                  style={{ left: `${left}px`, top: `${top}px`, transform: "translate(-50%, -50%)" }}
                 >
                   {renderReaction(player.name)}
                   {seatCards}
