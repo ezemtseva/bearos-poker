@@ -1159,7 +1159,7 @@ export default function GameTable({
         card.value === safeGameData.highestCard.value
       return (
         <div key={index} className="flex flex-col items-center gap-1.5 min-w-0">
-          <div className={`relative ${compact ? "rounded-xl" : "rounded-2xl"} ${isHighest ? "outline outline-[3px] outline-bp-accent outline-offset-[3px]" : ""}`}>
+          <div className={`relative flex ${compact ? "rounded-xl" : "rounded-2xl"} ${isHighest ? "outline outline-[3px] outline-bp-accent outline-offset-[3px]" : ""}`}>
             <PlayingCard
               suit={card.suit}
               value={card.value}
@@ -1198,7 +1198,7 @@ export default function GameTable({
       return (
         <div
           key={index}
-          className={`${radius} transition-all duration-150 ${
+          className={`flex ${radius} transition-all duration-150 ${
             playable
               ? "-translate-y-2.5 shadow-[0_18px_36px_rgba(0,0,0,0.5)]"
               : dimmed ? "opacity-[0.38]" : ""
