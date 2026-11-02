@@ -1383,7 +1383,7 @@ export default function GameTable({
                         <td className={`${cell} text-center border-b border-bp-divider ${isCurrent ? "text-bp-text font-medium" : "text-bp-text2"}`}>{betText}</td>
                         <td className={`${cell} text-center border-b border-bp-divider ${isCurrent ? "text-bp-text font-medium" : "text-bp-text2"}`}>{wonText}</td>
                         <td className={`${cell} ${compact ? lastPad : ""} text-center border-b border-bp-divider ${
-                          showLive ? "text-bp-dim" : isRoundLeader ? "bg-bp-accent/[0.16] text-bp-accent font-semibold" : "text-bp-text font-medium"
+                          showLive ? "text-bp-dim" : isRoundLeader ? "bg-bp-accent/[0.16] text-bp-accent font-semibold" : hasScore && playerScore.cumulativePoints < 0 ? "text-bp-negative font-medium" : "text-bp-text font-medium"
                         }`}>
                           {showLive ? "·" : hasScore ? playerScore.cumulativePoints : "-"}
                         </td>
@@ -1761,7 +1761,7 @@ export default function GameTable({
           )}
         </div>
         <div className="grid grid-cols-3 border-t border-bp-border px-0.5 pt-1.5 pb-2">
-          {renderStat(t("colPts"), player.score, isLeaderM ? "text-bp-accent" : "", true)}
+          {renderStat(t("colPts"), player.score, isLeaderM ? "text-bp-accent" : player.score < 0 ? "text-bp-negative" : "", true)}
           {renderStat(t("colBet"), betValueM, "", true)}
           {renderStat(t("colWon"), player.roundWins, hitM ? "text-bp-accent" : "", true)}
         </div>
@@ -1842,7 +1842,7 @@ export default function GameTable({
               {renderAvatar(currentPlayer, "w-8 h-8", "text-[13px]")}
               <span className="font-semibold text-[15px] flex-1 min-w-0 truncate">{currentPlayer.name}</span>
               <span className="flex gap-3.5 flex-shrink-0">
-                {renderStat(t("colPts"), currentPlayer.score, highestScore > 0 && currentPlayer.score === highestScore ? "text-bp-accent" : "", true)}
+                {renderStat(t("colPts"), currentPlayer.score, highestScore > 0 && currentPlayer.score === highestScore ? "text-bp-accent" : currentPlayer.score < 0 ? "text-bp-negative" : "", true)}
                 {renderStat(t("colBet"), myBetM, "", true)}
                 {renderStat(t("colWon"), currentPlayer.roundWins, myHitM ? "text-bp-accent" : "", true)}
               </span>
@@ -2044,7 +2044,7 @@ export default function GameTable({
                     </div>
                     {/* Stats row: pts | bet | won */}
                     <div className="grid grid-cols-3 border-t border-bp-border px-1 pt-2 pb-2.5">
-                      {renderStat(t("colPts"), player.score, isLeader ? "text-bp-accent" : "")}
+                      {renderStat(t("colPts"), player.score, isLeader ? "text-bp-accent" : player.score < 0 ? "text-bp-negative" : "")}
                       {renderStat(t("colBet"), betValue)}
                       {renderStat(t("colWon"), player.roundWins, hit ? "text-bp-accent" : "")}
                     </div>

@@ -37,6 +37,7 @@ module.exports = {
 			accent: "#D7FF3F",
 			accentHover: "#E8FF8A",
 			warning: "#FFB547",
+			negative: "#FF5C66",
 		  },
 		  border: "hsl(var(--border))",
 		  input: "hsl(var(--input))",
