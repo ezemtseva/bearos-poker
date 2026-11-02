@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react"
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { Camera, Save, Trophy, Calendar } from "lucide-react"
+import { Camera } from "lucide-react"
 import { useLocale } from "@/lib/locale-context"
 
 interface PlayerData {
@@ -97,187 +97,221 @@ export default function ProfilePage() {
 
   if (status === "loading" || !data) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-white">
-        <div className="animate-pulse text-gray-400">{t("loadingProfile")}</div>
+      <div className="flex-1 flex items-center justify-center text-bp-text">
+        <div className="animate-pulse text-bp-muted">{t("loadingProfile")}</div>
       </div>
     )
   }
 
   const initials = nickname ? nickname.slice(0, 2).toUpperCase() : "?"
+
+  const games = data.history.length
+  const wins = data.history.filter(g => g.is_winner).length
+  const winRate = games > 0 ? Math.round((wins / games) * 100) : 0
+  const totalPoints = data.history.reduce((s, g) => s + g.final_score, 0)
+  const pointsRecord = games > 0 ? Math.max(...data.history.map(g => g.final_score)) : 0
+  const pokerHands = data.history.reduce((s, g) => s + (g.poker_hands ?? 0), 0)
+
+  const stats = [
+    { label: t("games"), value: games },
+    { label: t("wins"), value: wins, accent: true },
+    { label: t("winRate"), value: `${winRate}%` },
+    { label: t("points"), value: totalPoints },
+    { label: t("pointsRecord"), value: pointsRecord },
+    { label: t("statPoker7"), value: pokerHands },
+  ]
+
+  const placeLabel = (place: number) =>
+    place === 1 ? t("place1") : place === 2 ? t("place2") : place === 3 ? t("place3") : `#${place}`
+  const placePillClass = (place: number) =>
+    `font-mono text-xs px-2.5 py-1 rounded-full ${place === 1 ? "bg-bp-accent text-bp-bg" : "bg-bp-surface3 text-bp-text2"}`
+  const formatPoints = (n: number) => (n > 0 ? `+${n}` : `${n}`)
+  const formatDate = (d: string) => new Date(d).toLocaleDateString()
+
   return (
-    <div className="min-h-screen text-white px-4 py-8 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-8">{t("myProfileHeading")}</h1>
+    <div className="w-full max-w-[1040px] mx-auto px-4 pt-7 pb-8 md:px-8 md:pt-12 md:pb-16 flex flex-col gap-4 md:gap-6 text-bp-text">
+      <h1 className="m-0 font-display font-extrabold text-4xl md:text-[clamp(36px,5vw,52px)] leading-[0.98] tracking-[-0.03em]">
+        {t("profileTitle1")} <span className="text-bp-accent">{t("profileTitle2")}</span>
+      </h1>
 
       {/* Avatar + name */}
-      <div className="bg-gray-800 border border-white/10 rounded-2xl p-6 mb-4">
-        <div className="flex items-center gap-6">
+      <section aria-label={t("myProfileHeading")} className="bg-bp-surface border border-bp-border rounded-[20px] md:rounded-3xl px-4 py-[18px] md:p-6 flex flex-col md:flex-row md:flex-wrap md:items-center gap-4 md:gap-6">
+        <div className="flex items-center gap-4">
           {/* Avatar */}
-          <div className="relative flex-shrink-0">
-            <div className="w-20 h-20 rounded-full overflow-hidden bg-blue-700 flex items-center justify-center text-2xl font-bold">
+          <div className="relative flex-shrink-0 w-[72px] h-[72px] md:w-24 md:h-24">
+            <div className="w-full h-full rounded-full overflow-hidden bg-bp-surface3 border border-bp-strong flex items-center justify-center font-display font-extrabold text-2xl md:text-[32px]">
               {avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={avatarUrl} alt={nickname} className="w-full h-full object-cover" />
               ) : initials}
             </div>
             <button
+              type="button"
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              className="absolute bottom-0 right-0 w-7 h-7 bg-blue-600 hover:bg-blue-500 rounded-full flex items-center justify-center shadow-lg transition-colors"
+              aria-label={t("changePhoto")}
+              className="absolute -right-1.5 -bottom-1.5 md:-right-0.5 md:-bottom-0.5 w-[34px] h-[34px] md:w-9 md:h-9 box-content border-[3px] border-bp-surface bg-bp-accent text-bp-bg rounded-full flex items-center justify-center hover:bg-bp-accentHover transition-colors"
             >
-              {uploading ? <div className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin" /> : <Camera size={13} />}
+              {uploading ? <div className="w-3.5 h-3.5 border-2 border-bp-bg/40 border-t-bp-bg rounded-full animate-spin" /> : <Camera size={16} />}
             </button>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
           </div>
-
-          {/* Nickname */}
-          <div className="flex-1">
-            <label className="text-xs text-gray-400 mb-1 block">{t("nickname")}</label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={nickname}
-                onChange={e => setNickname(e.target.value)}
-                maxLength={30}
-                className="flex-1 bg-gray-800 border border-gray-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-              />
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors flex-shrink-0"
-              >
-                <Save size={14} />
-                <span className="hidden sm:inline">{saved ? t("saved") : saving ? t("saving") : t("save")}</span>
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">{session?.user?.email}</p>
+          <div className="md:hidden flex flex-col gap-0.5 min-w-0">
+            <span className="font-display font-bold text-xl truncate">{nickname}</span>
+            <span className="text-[13px] text-bp-muted truncate">{session?.user?.email}</span>
           </div>
         </div>
-      </div>
+
+        {/* Nickname */}
+        <div className="md:flex-[1_1_320px] min-w-0 flex flex-col gap-2 md:gap-2.5">
+          <label htmlFor="nick" className="bp-label">{t("nickname")}</label>
+          <div className="flex gap-2">
+            <input
+              id="nick"
+              type="text"
+              value={nickname}
+              onChange={e => setNickname(e.target.value)}
+              maxLength={30}
+              className="flex-1 min-w-0 h-[50px] md:h-[52px] px-3.5 md:px-4 rounded-xl border border-bp-strong bg-bp-surface2 text-bp-text text-base md:text-[17px] focus:outline-none focus:border-bp-accent"
+            />
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="h-[50px] md:h-[52px] px-5 md:px-[22px] rounded-full bg-bp-accent text-bp-bg text-[15px] font-semibold hover:bg-bp-accentHover disabled:opacity-50 transition-colors flex-shrink-0"
+            >
+              {saved ? t("saved") : saving ? t("saving") : t("save")}
+            </button>
+          </div>
+          <p className="hidden md:block text-[13px] text-bp-muted m-0">{session?.user?.email}</p>
+        </div>
+      </section>
 
       {/* Stats — 6 widgets */}
-      {(() => {
-        const games = data.history.length
-        const wins = data.history.filter(g => g.is_winner).length
-        const winRate = games > 0 ? Math.round((wins / games) * 100) : 0
-        const totalPoints = data.history.reduce((s, g) => s + g.final_score, 0)
-        const pointsRecord = games > 0 ? Math.max(...data.history.map(g => g.final_score)) : 0
-        const pokerHands = data.history.reduce((s, g) => s + (g.poker_hands ?? 0), 0)
-
-        const stats = [
-          { label: t("games"), value: games, color: "text-blue-400" },
-          { label: t("wins"), value: wins, color: "text-green-400" },
-          { label: t("winRate"), value: `${winRate}%`, color: "text-yellow-400" },
-          { label: t("points"), value: totalPoints, color: "text-purple-400" },
-          { label: t("pointsRecord"), value: pointsRecord, color: "text-orange-400" },
-          { label: t("pokerHand"), value: pokerHands, color: "text-pink-400" },
-        ]
-        return (
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            {stats.map(stat => (
-              <div key={stat.label} className="bg-gray-800 border border-white/10 rounded-xl p-4 text-center">
-                <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
-                <div className="text-xs text-gray-400 mt-1">{stat.label}</div>
-              </div>
-            ))}
+      <section aria-label="Stats" className="grid grid-cols-3 md:grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-2 md:gap-3">
+        {stats.map(stat => (
+          <div key={stat.label} className="bg-bp-surface border border-bp-border rounded-2xl md:rounded-[20px] p-3 md:p-5 flex flex-col gap-2 md:gap-2.5 min-w-0">
+            <span className="font-mono text-[9px] md:text-[11px] tracking-[0.08em] md:tracking-[0.1em] uppercase text-bp-muted truncate">{stat.label}</span>
+            <span className={`font-display font-extrabold text-[22px] md:text-[34px] leading-none ${stat.accent ? "text-bp-accent" : "text-bp-text"}`}>{stat.value}</span>
           </div>
-        )
-      })()}
+        ))}
+      </section>
 
       {/* Game history */}
-      <div className="bg-gray-800 border border-white/10 rounded-2xl overflow-hidden">
-        <div className="flex items-center gap-2 px-5 py-4 border-b border-white/10">
-          <Trophy size={16} className="text-yellow-400" />
-          <span className="font-semibold text-sm">{t("gameHistory")}</span>
+      <section aria-labelledby="hist" className="bg-bp-surface border border-bp-border rounded-[20px] md:rounded-3xl overflow-hidden">
+        <div className="flex justify-between items-center px-4 py-3.5 md:px-6 md:py-[18px] border-b border-bp-border">
+          <h2 id="hist" className="m-0 font-display font-bold text-[17px] md:text-xl">{t("gameHistory")}</h2>
+          <span className="font-mono text-xs text-bp-muted">{games} {t("gamesCount")}</span>
         </div>
 
         {data.history.length === 0 ? (
-          <div className="px-5 py-8 text-center text-gray-500 text-sm italic">{t("noGamesYet")}</div>
+          <div className="px-5 py-8 text-center text-bp-dim text-sm">{t("noGamesYet")}</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-xs text-gray-500 border-b border-white/5">
-                  <th className="text-left px-4 py-2 font-medium">{t("tableId")}</th>
-                  <th className="text-center px-3 py-2 font-medium">{t("players")}</th>
-                  <th className="text-center px-3 py-2 font-medium">{t("place")}</th>
-                  <th className="text-center px-3 py-2 font-medium">{t("points")}</th>
-                  <th className="text-center px-3 py-2 font-medium">7♠</th>
-                  <th className="text-center px-3 py-2 font-medium">{t("type")}</th>
-                  <th className="text-right px-4 py-2 font-medium">{t("date")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {data.history.map(game => {
-                  const placeLabel = game.place === 1 ? "🥇" : game.place === 2 ? "🥈" : game.place === 3 ? "🥉" : `#${game.place}`
-                  const hasLeaderboard = game.players_data?.length > 0
+          <>
+            {/* Mobile: list rows */}
+            <div className="md:hidden">
+              {data.history.map((game, i) => (
+                <div key={game.id} className={`px-4 py-3 flex items-center gap-3 ${i > 0 ? "border-t border-bp-divider" : ""}`}>
+                  <span className={`w-11 text-center font-mono text-xs py-[5px] rounded-full flex-shrink-0 ${game.place === 1 ? "bg-bp-accent text-bp-bg" : "bg-bp-surface3 text-bp-text2"}`}>
+                    {game.place > 0 ? placeLabel(game.place) : "—"}
+                  </span>
+                  <span className="flex-1 flex flex-col gap-[3px] min-w-0">
+                    <span className="font-mono text-sm tracking-[0.1em] text-bp-accent">{game.table_id}</span>
+                    <span className="font-mono text-[11px] text-bp-muted truncate">
+                      {formatDate(game.played_at)} · {game.game_length} · {game.players_count} {t("players2")}
+                      {game.poker_hands > 0 ? ` · 7♠ ×${game.poker_hands}` : ""}
+                    </span>
+                  </span>
+                  <span className={`font-display font-bold text-base ${game.final_score < 0 ? "text-bp-warning" : "text-bp-text"}`}>
+                    {formatPoints(game.final_score)}
+                  </span>
+                </div>
+              ))}
+            </div>
 
-                  return (
-                    <tr key={game.id} className="hover:bg-white/3 transition-colors">
-                      {/* Table ID */}
-                      <td className="px-4 py-3">
-                        <span className="font-mono text-xs text-gray-400">{game.table_id}</span>
-                      </td>
+            {/* Desktop: table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full min-w-[720px] border-collapse text-sm tabular-nums">
+                <thead>
+                  <tr className="font-mono text-[11px] tracking-[0.08em] uppercase text-bp-dim">
+                    <th scope="col" className="text-left font-medium px-6 py-3">{t("tableId")}</th>
+                    <th scope="col" className="text-left font-medium px-3 py-3">{t("players")}</th>
+                    <th scope="col" className="text-center font-medium px-3 py-3">{t("place")}</th>
+                    <th scope="col" className="text-right font-medium px-3 py-3">{t("points")}</th>
+                    <th scope="col" className="text-center font-medium px-3 py-3">7♠</th>
+                    <th scope="col" className="text-center font-medium px-3 py-3">{t("type")}</th>
+                    <th scope="col" className="text-right font-medium px-6 py-3">{t("date")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.history.map(game => {
+                    const hasLeaderboard = game.players_data?.length > 0
+                    const dotCount = hasLeaderboard ? game.players_data.length : game.players_count
+                    return (
+                      <tr key={game.id} className="border-t border-bp-divider hover:bg-white/[0.02] transition-colors">
+                        {/* Table ID */}
+                        <td className="px-6 py-3.5 font-mono tracking-[0.1em] text-bp-accent">{game.table_id}</td>
 
-                      {/* Players — hover tooltip */}
-                      <td className="px-3 py-3 text-center">
-                        {hasLeaderboard ? (
-                          <div className="relative group inline-block cursor-default">
-                            <span className="text-gray-300">{game.players_count}</span>
-                            {/* Tooltip */}
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 min-w-[160px]">
-                              <div className="bg-gray-900 border border-white/10 rounded-lg p-2 shadow-xl text-left">
-                                {game.players_data.map((p, i) => (
-                                  <div key={i} className="flex justify-between gap-3 py-0.5">
-                                    <span className={`text-xs truncate ${p.name === game.player_name ? "text-blue-400 font-semibold" : "text-gray-300"}`}>{p.name}</span>
-                                    <span className={`text-xs font-mono flex-shrink-0 ${p.score > 0 ? "text-green-400" : p.score < 0 ? "text-red-400" : "text-gray-500"}`}>
-                                      {p.score > 0 ? `+${p.score}` : p.score}
-                                    </span>
-                                  </div>
-                                ))}
+                        {/* Players — neutral dots, names on hover */}
+                        <td className="px-3 py-3.5">
+                          <div className="relative group inline-flex items-center gap-2 cursor-default">
+                            <span className="inline-flex">
+                              {Array.from({ length: Math.min(dotCount, 6) }).map((_, i) => (
+                                <span
+                                  key={i}
+                                  className={`w-[18px] h-[18px] rounded-full border-2 border-bp-surface bg-bp-strong ${i ? "-ml-1.5" : ""}`}
+                                />
+                              ))}
+                            </span>
+                            <span className="text-bp-text2">{game.players_count}</span>
+                            {hasLeaderboard && (
+                              <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-10 min-w-[180px]">
+                                <div className="bg-bp-surface2 border border-bp-strong rounded-xl p-2.5 shadow-[0_24px_60px_rgba(0,0,0,0.6)] text-left">
+                                  {game.players_data.map((p, i) => (
+                                    <div key={i} className="flex justify-between gap-3 py-0.5">
+                                      <span className={`text-xs truncate ${p.name === game.player_name ? "text-bp-accent font-semibold" : "text-bp-text2"}`}>{p.name}</span>
+                                      <span className={`text-xs font-mono flex-shrink-0 ${p.score < 0 ? "text-bp-warning" : "text-bp-muted"}`}>
+                                        {formatPoints(p.score)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                              <div className="w-2 h-2 bg-gray-900 border-r border-b border-white/10 rotate-45 mx-auto -mt-1" />
-                            </div>
+                            )}
                           </div>
-                        ) : (
-                          <span className="text-gray-300">{game.players_count}</span>
-                        )}
-                      </td>
+                        </td>
 
-                      {/* Place */}
-                      <td className="px-3 py-3 text-center text-base">{game.place > 0 ? placeLabel : "—"}</td>
+                        {/* Place */}
+                        <td className="px-3 py-3.5 text-center">
+                          {game.place > 0 ? <span className={placePillClass(game.place)}>{placeLabel(game.place)}</span> : <span className="text-bp-dim">—</span>}
+                        </td>
 
-                      {/* Points */}
-                      <td className="px-3 py-3 text-center">
-                        <span className={`font-bold ${game.final_score > 0 ? "text-green-400" : game.final_score < 0 ? "text-red-400" : "text-gray-400"}`}>
-                          {game.final_score > 0 ? `+${game.final_score}` : game.final_score}
-                        </span>
-                      </td>
+                        {/* Points */}
+                        <td className={`px-3 py-3.5 text-right font-display font-bold text-[15px] ${game.final_score < 0 ? "text-bp-warning" : "text-bp-text"}`}>
+                          {formatPoints(game.final_score)}
+                        </td>
 
-                      {/* Poker hand */}
-                      <td className="px-3 py-3 text-center text-gray-400">
-                        {game.poker_hands > 0 ? <span className="text-pink-400 font-semibold">{game.poker_hands}</span> : "—"}
-                      </td>
+                        {/* Poker hand */}
+                        <td className={`px-3 py-3.5 text-center font-mono ${game.poker_hands > 0 ? "text-bp-text" : "text-bp-dim"}`}>
+                          {game.poker_hands > 0 ? game.poker_hands : "—"}
+                        </td>
 
-                      {/* Game type */}
-                      <td className="px-3 py-3 text-center">
-                        <span className="text-xs text-gray-400 capitalize">{game.game_length}</span>
-                      </td>
+                        {/* Game type */}
+                        <td className="px-3 py-3.5 text-center">
+                          <span className="font-mono text-[11px] tracking-[0.08em] uppercase px-2.5 py-1 rounded-full bg-bp-surface3 text-bp-text2">{game.game_length}</span>
+                        </td>
 
-                      {/* Date */}
-                      <td className="px-4 py-3 text-right">
-                        <span className="flex items-center justify-end gap-1 text-xs text-gray-500">
-                          <Calendar size={10} />
-                          {new Date(game.played_at).toLocaleDateString()}
-                        </span>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+                        {/* Date */}
+                        <td className="px-6 py-3.5 text-right font-mono text-bp-muted">{formatDate(game.played_at)}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
-      </div>
+      </section>
     </div>
   )
 }

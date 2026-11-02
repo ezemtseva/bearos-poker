@@ -3,6 +3,8 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
@@ -57,28 +59,40 @@ export default function CreateGame() {
   }
 
   return (
-    <div className="container mx-auto px-4 min-h-screen flex items-center justify-center">
-      <div className="max-w-md w-full">
-        <h1 className="text-2xl font-bold mb-4 text-center text-white">{t("createTable")}</h1>
-        <form onSubmit={handleCreateGame} className="space-y-4">
-          <div>
-            <label htmlFor="playerName" className="block text-sm font-medium text-white mb-1">
-              {t("enterYourName")}
-            </label>
-            <Input
-              type="text"
-              id="playerName"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              className="w-full"
-              required
-            />
-          </div>
-          <Button type="submit" className="mx-auto block w-[120px] h-[40px]">
-            {t("create")}
-          </Button>
-        </form>
-      </div>
+    <div className="flex-1 flex items-center justify-center px-4 py-8 md:py-14">
+      <form
+        onSubmit={handleCreateGame}
+        className="w-full max-w-[520px] bg-bp-surface border border-bp-border rounded-3xl px-5 py-6 md:px-8 md:py-9 flex flex-col gap-6 md:gap-7"
+      >
+        <h1 className="m-0 font-display font-extrabold text-[40px] md:text-[clamp(36px,5vw,52px)] leading-[0.98] tracking-[-0.03em]">
+          {t("createTitle")}
+          <br />
+          <span className="text-bp-accent">{t("titleTable")}</span>
+        </h1>
+        <div className="flex flex-col gap-2.5">
+          <label htmlFor="playerName" className="bp-label">
+            {t("yourName")}
+          </label>
+          <Input
+            type="text"
+            id="playerName"
+            autoComplete="nickname"
+            placeholder={t("enterYourName")}
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+            className="h-14 px-[18px] text-[17px] md:text-[17px]"
+            required
+          />
+        </div>
+        <Button type="submit" size="lg" className="w-full">
+          {t("create")}
+          <ArrowRight size={20} />
+        </Button>
+        <p className="m-0 text-sm text-bp-muted text-center">
+          {t("haveIdQuestion")}{" "}
+          <Link href="/join-game" className="text-bp-accent hover:text-bp-accentHover">{t("joinATable")}</Link>
+        </p>
+      </form>
     </div>
   )
 }

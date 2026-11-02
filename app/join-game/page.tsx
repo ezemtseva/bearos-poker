@@ -5,8 +5,8 @@ export const dynamic = "force-dynamic"
 
 export default function JoinGame() {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <Suspense fallback={<div>Loading...</div>}>
+    <div className="flex-1 flex flex-col">
+      <Suspense fallback={<div className="flex-1" />}>
         <JoinGameClient />
       </Suspense>
     </div>
