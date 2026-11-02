@@ -4,7 +4,7 @@ import { useState, Suspense } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { LogoMark } from "@/app/Navigation"
+import Logo from "@/components/Logo"
 import { useLocale } from "@/lib/locale-context"
 
 function LoginForm() {
@@ -40,7 +40,7 @@ function LoginForm() {
     <div className="flex-1 flex items-center justify-center px-4 py-8 md:py-14">
       <div className="w-full max-w-[440px] bg-bp-surface border border-bp-border rounded-3xl px-5 py-6 md:px-8 md:py-9 text-bp-text">
         <div className="flex flex-col items-center mb-7">
-          <span className="w-12 h-12 rounded-xl bg-bp-accent flex items-center justify-center mb-4"><LogoMark size={24} /></span>
+          <Logo size={48} className="mb-4" />
           <h1 className="m-0 font-display font-extrabold text-[32px] leading-none tracking-[-0.03em]">{t("signInHeading")}</h1>
         </div>
 

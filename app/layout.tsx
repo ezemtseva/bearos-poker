@@ -1,4 +1,5 @@
 import type React from "react"
+import type { Metadata, Viewport } from "next"
 import "./globals.css"
 import { Inter } from "next/font/google"
 import Navigation from "./Navigation"
@@ -13,10 +14,20 @@ const RoomSkinApplier = dynamic(() => import("@/components/RoomSkinApplier"), { 
 // Playing cards keep the original Inter font
 const inter = Inter({ subsets: ["latin"], variable: "--font-card" })
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Bearos Poker",
   description: "An online card game with custom rules",
   generator: "v0.dev",
+  // iPhone: "Add to Home Screen" opens the app full screen, without Safari UI
+  appleWebApp: {
+    capable: true,
+    title: "Bearos Poker",
+    statusBarStyle: "black",
+  },
+}
+
+export const viewport: Viewport = {
+  themeColor: "#0B0C0F",
 }
 
 export default function RootLayout({

@@ -4,18 +4,11 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import dynamic from "next/dynamic"
 import { useLocale } from "@/lib/locale-context"
+import Logo from "@/components/Logo"
 
 const SoundToggle = dynamic(() => import("@/components/SoundToggle"), { ssr: false })
 const SettingsPanel = dynamic(() => import("@/components/SettingsPanel"), { ssr: false })
 const UserMenu = dynamic(() => import("@/components/UserMenu"), { ssr: false })
-
-export function LogoMark({ size = 20 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 2C9 6 4 9 4 13.5A4 4 0 0 0 11 16l-1.5 5h5L13 16a4 4 0 0 0 7-2.5C20 9 15 6 12 2z" fill="#0B0C0F" />
-    </svg>
-  )
-}
 
 export default function Navigation() {
   const { t } = useLocale()
@@ -27,9 +20,7 @@ export default function Navigation() {
       <div className="relative h-full max-w-[1440px] mx-auto px-4 md:px-8 flex items-center justify-between gap-4">
         {/* Left: logo */}
         <Link href="/" aria-label={t("appName")} className="flex items-center gap-3 text-bp-text">
-          <span className="w-10 h-10 rounded-xl bg-bp-accent flex items-center justify-center flex-shrink-0">
-            <LogoMark />
-          </span>
+          <Logo size={40} />
           <span className={`hidden ${isGame ? "xl:inline" : "md:inline"} font-display font-bold text-[17px] tracking-[-0.01em]`}>{t("appName")}</span>
         </Link>
 
