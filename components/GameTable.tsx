@@ -1220,7 +1220,14 @@ export default function GameTable({
 
   const renderBetControls = (compact: boolean) => (
     <>
-      <span className={`font-mono text-[11px] tracking-[0.1em] uppercase text-bp-accent ${compact ? "text-center mb-5" : ""}`}>{t("makeYourBet")}</span>
+      <span className={`font-mono text-[11px] tracking-[0.1em] uppercase text-bp-accent ${compact ? "text-center mb-3" : ""}`}>{t("makeYourBet")}</span>
+      {/* Error above the counter; always takes its space (invisible without a forbidden bet) so nothing moves */}
+      <span
+        aria-hidden={forbiddenBet === null}
+        className={`text-bp-warning text-center ${compact ? "text-xs leading-none mb-2" : "text-[13px] leading-tight"} ${forbiddenBet === null ? "invisible" : ""}`}
+      >
+        {t("youCannotBet")} {forbiddenBet ?? 0}
+      </span>
       <div className={`flex items-center ${compact ? "justify-center gap-4" : "justify-between gap-2"}`}>
         <button
           type="button"
@@ -1242,18 +1249,11 @@ export default function GameTable({
           <Plus size={20} strokeWidth={2.2} />
         </button>
       </div>
-      {/* Always takes its space (invisible without a forbidden bet) so Confirm never moves */}
-      <span
-        aria-hidden={forbiddenBet === null}
-        className={`text-bp-warning text-center ${compact ? "text-xs leading-none mt-2" : "text-[13px] leading-tight"} ${forbiddenBet === null ? "invisible" : ""}`}
-      >
-        {t("youCannotBet")} {forbiddenBet ?? 0}
-      </span>
       <button
         type="button"
         onClick={handlePlaceBet}
         disabled={betIsForbidden}
-        className={`${compact ? "h-9 px-8 text-sm mt-3" : "h-11 text-[15px]"} rounded-full font-semibold border transition-colors ${
+        className={`${compact ? "h-9 px-8 text-sm mt-5" : "h-11 text-[15px]"} rounded-full font-semibold border transition-colors ${
           betIsForbidden
             ? "bg-bp-surface3 border-bp-strong text-bp-dim cursor-not-allowed"
             : "bg-bp-accent border-bp-accent text-bp-bg hover:bg-bp-accentHover"
