@@ -1202,7 +1202,7 @@ export default function GameTable({
           className={`flex ${radius} ${
             // Mobile: no pre-highlight; the tapped card just dips a little
             mobile
-              ? playable ? "active:translate-y-1" : dimmed ? "opacity-[0.38]" : ""
+              ? playable ? "transition-transform duration-300 ease-out active:translate-y-1" : dimmed ? "opacity-[0.38]" : ""
               : playable
                 ? "-translate-y-2.5 shadow-[0_18px_36px_rgba(0,0,0,0.5)]"
                 : dimmed ? "opacity-[0.38]" : ""
