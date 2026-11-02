@@ -1763,10 +1763,9 @@ export default function GameTable({
     const mobileTableWidth = Math.max(0, viewportWidth - 32)
     const slotsWidth = players.length * 56 + Math.max(0, players.length - 1) * 8
     const slotsZoom = Math.min(1, (mobileTableWidth - 32) / Math.max(1, slotsWidth))
-    // Hand: scale the row of small cards (56px + 6px gap) to fill the section width, up to 1.8x
-    const handCount = currentPlayer?.hand.length ?? 0
-    const handNaturalWidth = handCount * 56 + Math.max(0, handCount - 1) * 6
-    const handZoom = handCount > 0 ? Math.min(1.8, mobileTableWidth / handNaturalWidth) : 1
+    // Hand: card size is set so that 6 small cards (56px + 6px gap) fill the section width;
+    // fewer cards keep that same size and are centered
+    const handZoom = mobileTableWidth / (6 * 56 + 5 * 6)
     const myBetM = currentPlayer && shouldShowBetBanners() && currentPlayer.bet !== null ? currentPlayer.bet : "—"
     const myHitM = !!currentPlayer && currentPlayer.bet !== null && myBetM !== "—" && currentPlayer.roundWins === currentPlayer.bet
 
@@ -1865,7 +1864,7 @@ export default function GameTable({
             {renderStatusLine(true)}
           </div>
           <div className="flex justify-center items-end pt-4 min-h-[105px]">
-            <div className="flex gap-1.5 items-end" style={handZoom !== 1 ? { zoom: handZoom } : undefined}>
+            <div className="flex gap-1.5 items-end" style={currentPlayer?.hand.length ? { zoom: handZoom } : undefined}>
               {renderHand("small")}
             </div>
           </div>
