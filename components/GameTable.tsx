@@ -1592,8 +1592,9 @@ export default function GameTable({
           <h1 className="m-0 font-mono font-medium text-[clamp(36px,11vw,56px)] md:text-[clamp(48px,6vw,72px)] tracking-[0.14em] leading-none text-bp-accent break-all">
             {tableId}
           </h1>
-          <div className={`flex gap-2 flex-wrap pt-1.5 ${isOwner ? "" : "justify-center"}`}>
-            <Button onClick={onShare} className="h-12 px-5 text-[15px]">
+          {/* One row on mobile too: compact buttons share the width, never wrap */}
+          <div className={`flex gap-2 flex-nowrap pt-1.5 w-full md:w-auto ${isOwner ? "" : "justify-center"}`}>
+            <Button onClick={onShare} className="h-12 px-3 gap-1.5 text-sm flex-1 min-w-0 md:flex-none md:px-5 md:gap-2 md:text-[15px]">
               <Link2 size={16} />
               {t("shareGameLink")}
             </Button>
@@ -1603,7 +1604,7 @@ export default function GameTable({
                 navigator.clipboard.writeText(tableId)
                 toast({ title: t("tableIdCopied") })
               }}
-              className="h-12 px-5 text-[15px] border border-bp-strong"
+              className="h-12 px-3 gap-1.5 text-sm flex-1 min-w-0 md:flex-none md:px-5 md:gap-2 md:text-[15px] border border-bp-strong"
             >
               <Copy size={16} className="text-bp-accent" />
               <span className="md:hidden">{t("copyTableId")}</span>

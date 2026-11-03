@@ -219,7 +219,7 @@ export default function ProfilePage() {
                     <span className="font-mono text-sm tracking-[0.1em] text-bp-accent">{game.table_id}</span>
                     <span className="font-mono text-[11px] text-bp-muted truncate">
                       {formatDate(game.played_at)}
-                      {game.poker_hands > 0 ? ` · ${t("poker")} ×${game.poker_hands}` : ""}
+                      {game.poker_hands > 0 ? ` · ${t("poker")}: ${game.poker_hands}` : ""}
                     </span>
                   </span>
                   <span className={`font-display font-bold text-base ${game.final_score < 0 ? "text-bp-warning" : "text-bp-text"}`}>

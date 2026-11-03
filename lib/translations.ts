@@ -183,7 +183,7 @@ export const translations = {
     gameOverTitle: "Game Over",
     gameOverDesc: "The game has ended. Check the final scores!",
     shareGameLink: "Share Game Link",
-    copyTableId: "Copy ID",
+    copyTableId: "Copy Table ID",
     copyTableIdFull: "Copy Table ID",
     tableIdCopied: "Table ID copied",
     configureGameBtn: "Configure Game",
