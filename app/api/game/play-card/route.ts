@@ -511,9 +511,8 @@ export async function POST(req: NextRequest) {
           }
 
           const newCardsPerRound = cardsPerRound(currentRound, gameLength, hasGoldenRound, hasNoTrumps)
-          if (deck.length < newCardsPerRound * players.length) {
-            deck = createDeck() // Create a new deck if needed
-          }
+          // Every round is dealt from a full, freshly shuffled deck
+          deck = createDeck()
 
           ;[players, deck] = dealCards(players, deck, newCardsPerRound) // Deal the correct number of cards for the new round
 

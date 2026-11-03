@@ -1312,10 +1312,11 @@ export default function GameTable({
                 colSpan={colLabels.length}
                 className={`${headTop} ${compact ? "px-1 pt-2 pb-0.5 text-xs" : "px-1.5 pt-2.5 pb-1 text-[13px]"} text-center font-sans font-semibold text-bp-text`}
               >
-                <span className="inline-flex items-center justify-center gap-1.5 max-w-full min-w-0">
+                {/* w-0 + min-w-full: the name adds nothing to the column's width, it only fills what the numbers set */}
+                <div className="w-0 min-w-full flex items-center justify-center gap-1.5">
                   {player.score === highestScore && highestScore > 0 && <StarIcon size={compact ? 12 : 14} />}
-                  <span className="truncate" title={player.name}>{player.name}</span>
-                </span>
+                  <span className="truncate min-w-0" title={player.name}>{player.name}</span>
+                </div>
               </th>
             ))}
           </tr>
@@ -1963,7 +1964,7 @@ export default function GameTable({
                   className="absolute w-[200px] z-[2]"
                   style={{ left: `${left}px`, top: `${top}px`, transform: "translate(-50%, -50%)" }}
                 >
-                  {renderReaction(player.name)}
+                  {renderReaction(player.name, true)}
 
                   {/* Bet placed notification */}
                   {betNotifications.has(player.name) && (
