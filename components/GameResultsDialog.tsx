@@ -27,7 +27,7 @@ export default function GameResultsDialog({ isOpen, onClose, players }: GameResu
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score)
   const winner = sortedPlayers[0]
   const { playSound, stopSound } = useSound()
-  const customAudioRef = useRef<HTMLAudioElement | null>(null)
+  const customPathRef = useRef<string | null>(null)
 
   // Play the game-over sound when the dialog opens, stop when it closes
   useEffect(() => {
@@ -36,10 +36,8 @@ export default function GameResultsDialog({ isOpen, onClose, players }: GameResu
         const skin = (() => { try { return localStorage.getItem("tableSkin") || "" } catch { return "" } })()
         const customPath = SKIN_GAME_OVER[skin]
         if (customPath) {
-          const audio = new Audio(customPath)
-          audio.volume = soundManager.getVolume()
-          audio.play().catch(() => {})
-          customAudioRef.current = audio
+          soundManager.playFile(customPath)
+          customPathRef.current = customPath
         } else {
           playSound("gameOver")
         }
@@ -47,10 +45,9 @@ export default function GameResultsDialog({ isOpen, onClose, players }: GameResu
       return () => clearTimeout(timer)
     } else {
       // Stop all game-over sounds on close
-      if (customAudioRef.current) {
-        customAudioRef.current.pause()
-        customAudioRef.current.currentTime = 0
-        customAudioRef.current = null
+      if (customPathRef.current) {
+        soundManager.stop(customPathRef.current)
+        customPathRef.current = null
       }
       stopSound("gameOver")
     }

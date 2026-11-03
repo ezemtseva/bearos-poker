@@ -14,14 +14,15 @@ export default function Home() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <section className="flex-1 md:flex-none w-full max-w-[1280px] mx-auto px-4 pt-10 pb-8 md:px-8 md:pt-[72px] md:pb-14 flex flex-col gap-7">
-        <h1 className="m-0 font-display font-extrabold text-[clamp(44px,14vw,60px)] md:text-[clamp(56px,9vw,136px)] leading-[0.92] tracking-[-0.03em]">
+      {/* Mobile: equal rows above and below keep the buttons in the vertical center of the screen */}
+      <section className="flex-1 md:flex-none w-full max-w-[1280px] mx-auto px-4 pt-10 pb-8 md:px-8 md:pt-9 md:pb-14 grid grid-rows-[1fr_auto_1fr] md:flex md:flex-col gap-7">
+        <h1 className="m-0 self-start font-display font-extrabold text-[clamp(44px,14vw,60px)] md:text-[clamp(56px,9vw,136px)] leading-[0.92] tracking-[-0.03em]">
           {t("heroLine1")}
           <br />
           <span className="text-bp-accent">{t("heroLine2")}</span>
         </h1>
 
-        <div className="flex-1 md:flex-none flex flex-col justify-center md:grid md:grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-2.5 md:gap-3 md:max-w-[620px]">
+        <div className="flex flex-col md:grid md:grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-2.5 md:gap-3 md:max-w-[620px]">
           <Link
             href="/create-game"
             className="flex flex-col justify-between gap-7 md:gap-10 p-5 md:p-6 rounded-[20px] bg-bp-accent text-bp-bg md:min-h-[150px] hover:bg-bp-accentHover transition-colors"

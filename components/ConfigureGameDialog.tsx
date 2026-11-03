@@ -67,7 +67,8 @@ export function GameConfigFields({
         </div>
       </fieldset>
 
-      <div className="flex flex-col gap-2">
+      <fieldset className="border-0 m-0 p-0 flex flex-col gap-2 min-w-0">
+        <legend className="bp-label pb-2.5">{t("specialRounds")}</legend>
         {options.map((o) => (
           <button
             key={o.label}
@@ -84,7 +85,7 @@ export function GameConfigFields({
             <ConfigSwitch on={o.on} />
           </button>
         ))}
-      </div>
+      </fieldset>
     </>
   )
 }

@@ -123,8 +123,9 @@ export default function ProfilePage() {
 
   const placeLabel = (place: number) =>
     place === 1 ? t("place1") : place === 2 ? t("place2") : place === 3 ? t("place3") : `#${place}`
-  const placePillClass = (place: number) =>
-    `font-mono text-xs px-2.5 py-1 rounded-full ${place === 1 ? "bg-bp-accent text-bp-bg" : "bg-bp-surface3 text-bp-text2"}`
+  const placeColors = (place: number) =>
+    place === 1 ? "bg-bp-accent text-bp-bg" : place === 2 ? "bg-bp-text2 text-bp-bg" : "bg-bp-surface3 text-bp-text2"
+  const placePillClass = (place: number) => `font-mono text-xs px-2.5 py-1 rounded-full ${placeColors(place)}`
   const formatPoints = (n: number) => (n > 0 ? `+${n}` : `${n}`)
   const formatDate = (d: string) => new Date(d).toLocaleDateString()
 
@@ -199,9 +200,8 @@ export default function ProfilePage() {
 
       {/* Game history */}
       <section aria-labelledby="hist" className="bg-bp-surface border border-bp-border rounded-[20px] md:rounded-3xl overflow-hidden">
-        <div className="flex justify-between items-center px-4 py-3.5 md:px-6 md:py-[18px] border-b border-bp-border">
+        <div className="px-4 py-3.5 md:px-6 md:py-[18px] border-b border-bp-border">
           <h2 id="hist" className="m-0 font-display font-bold text-[17px] md:text-xl">{t("gameHistory")}</h2>
-          <span className="font-mono text-xs text-bp-muted">{games} {t("gamesCount")}</span>
         </div>
 
         {data.history.length === 0 ? (
@@ -212,7 +212,7 @@ export default function ProfilePage() {
             <div className="md:hidden">
               {data.history.map((game, i) => (
                 <div key={game.id} className={`px-4 py-3 flex items-center gap-3 ${i > 0 ? "border-t border-bp-divider" : ""}`}>
-                  <span className={`w-11 text-center font-mono text-xs py-[5px] rounded-full flex-shrink-0 ${game.place === 1 ? "bg-bp-accent text-bp-bg" : "bg-bp-surface3 text-bp-text2"}`}>
+                  <span className={`w-11 text-center font-mono text-xs py-[5px] rounded-full flex-shrink-0 ${placeColors(game.place)}`}>
                     {game.place > 0 ? placeLabel(game.place) : "—"}
                   </span>
                   <span className="flex-1 flex flex-col gap-[3px] min-w-0">
@@ -231,13 +231,13 @@ export default function ProfilePage() {
 
             {/* Desktop: table */}
             <div className="hidden md:block overflow-x-auto">
-              <table className="w-full min-w-[720px] border-collapse text-sm tabular-nums">
+              <table className="w-full min-w-[900px] table-fixed border-collapse text-sm tabular-nums">
                 <thead>
                   <tr className="font-mono text-[11px] tracking-[0.08em] uppercase text-bp-dim">
                     <th scope="col" className="text-left font-medium px-6 py-3">{t("tableId")}</th>
-                    <th scope="col" className="text-left font-medium px-3 py-3">{t("players")}</th>
+                    <th scope="col" className="text-center font-medium px-3 py-3">{t("players")}</th>
                     <th scope="col" className="text-center font-medium px-3 py-3">{t("place")}</th>
-                    <th scope="col" className="text-right font-medium px-3 py-3">{t("points")}</th>
+                    <th scope="col" className="text-center font-medium px-3 py-3">{t("points")}</th>
                     <th scope="col" className="text-center font-medium px-3 py-3">{t("poker")}</th>
                     <th scope="col" className="text-center font-medium px-3 py-3">{t("type")}</th>
                     <th scope="col" className="text-right font-medium px-6 py-3">{t("date")}</th>
@@ -253,7 +253,7 @@ export default function ProfilePage() {
                         <td className="px-6 py-3.5 font-mono tracking-[0.1em] text-bp-accent">{game.table_id}</td>
 
                         {/* Players — neutral dots, names on hover */}
-                        <td className="px-3 py-3.5">
+                        <td className="px-3 py-3.5 text-center">
                           <div className="relative group inline-flex items-center gap-2 cursor-default">
                             <span className="inline-flex">
                               {Array.from({ length: Math.min(dotCount, 6) }).map((_, i) => (
@@ -287,7 +287,7 @@ export default function ProfilePage() {
                         </td>
 
                         {/* Points */}
-                        <td className={`px-3 py-3.5 text-right font-display font-bold text-[15px] ${game.final_score < 0 ? "text-bp-warning" : "text-bp-text"}`}>
+                        <td className={`px-3 py-3.5 text-center font-display font-bold text-[15px] ${game.final_score < 0 ? "text-bp-warning" : "text-bp-text"}`}>
                           {formatPoints(game.final_score)}
                         </td>
 
@@ -302,7 +302,7 @@ export default function ProfilePage() {
                         </td>
 
                         {/* Date */}
-                        <td className="px-6 py-3.5 text-right font-mono text-bp-muted">{formatDate(game.played_at)}</td>
+                        <td className="px-6 py-3.5 text-right font-mono text-bp-muted whitespace-nowrap">{formatDate(game.played_at)}</td>
                       </tr>
                     )
                   })}

@@ -12,7 +12,7 @@ const UserMenu = dynamic(() => import("@/components/UserMenu"), { ssr: false })
 
 export default function Navigation() {
   const { t } = useLocale()
-  // On the game screen the header center holds the game info chips
+  // On the game screen (tablet/desktop) the header center holds the game info chips
   const isGame = usePathname()?.startsWith("/game/")
 
   return (
@@ -21,7 +21,7 @@ export default function Navigation() {
         {/* Left: logo */}
         <Link href="/" aria-label={t("appName")} className="flex items-center gap-3 text-bp-text">
           <Logo size={40} />
-          <span className={`hidden ${isGame ? "xl:inline" : "md:inline"} font-display font-bold text-[17px] tracking-[-0.01em]`}>{t("appName")}</span>
+          <span className={`${isGame ? "md:hidden xl:inline" : ""} font-display font-bold text-[17px] tracking-[-0.01em]`}>{t("appName")}</span>
         </Link>
 
         {/* Right */}

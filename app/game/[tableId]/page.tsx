@@ -404,20 +404,6 @@ export default function Game() {
     }
   }
 
-  const handleSetAvatar = async (avatar: string) => {
-    if (!currentPlayerName) return
-    try {
-      await fetch("/api/game/set-avatar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tableId, playerName: currentPlayerName, avatar }),
-      })
-      fetchLatestState()
-    } catch (error) {
-      console.error("Error setting avatar:", error)
-    }
-  }
-
   const handleSendReaction = async (emoji: string) => {
     if (!currentPlayerName) return
     try {
@@ -521,7 +507,6 @@ export default function Game() {
         onPlayCard={handlePlayCard}
         onPlaceBet={handlePlaceBet}
         onConfigureGame={handleConfigureGame}
-        onSetAvatar={handleSetAvatar}
         onSendReaction={handleSendReaction}
         gameData={safeGameData}
       />

@@ -15,7 +15,7 @@ import { useMemo } from "react"
 import ConfigureGameDialog, { GameConfigFields, type GameLength } from "./ConfigureGameDialog"
 // Add this import at the top with other imports
 import { useSound } from "@/hooks/use-sound"
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, SlidersHorizontal, Minus, Plus, X, Link2, ArrowRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, SlidersHorizontal, Minus, Plus, Link2, Copy, ArrowRight } from "lucide-react"
 import { TABLE_SKINS, SEAT_SKINS } from "./SettingsPanel"
 import { useSession } from "next-auth/react"
 import { useViewport } from "@/hooks/use-viewport"
@@ -35,7 +35,6 @@ interface GameTableProps {
   onPlayCard: (card: Card) => void
   onPlaceBet: (bet: number) => void
   onConfigureGame: (gameLength: GameLength, hasGoldenRound: boolean, hasNoTrumps: boolean) => void | Promise<void>
-  onSetAvatar: (avatar: string) => void
   onSendReaction: (emoji: string) => void
   gameData: GameData
   lastPlayedCard: Card | null
@@ -93,10 +92,9 @@ export default function GameTable({
   gameData,
   lastPlayedCard,
   onConfigureGame,
-  onSetAvatar,
   onSendReaction,
 }: GameTableProps) {
-  const { isMobile, isTablet, width: viewportWidth } = useViewport()
+  const { isMobile, isTablet, width: viewportWidth, height: viewportHeight } = useViewport()
   const { data: session } = useSession()
   const { t, locale } = useLocale()
 
@@ -164,15 +162,12 @@ export default function GameTable({
   const [scoreTablePosition, setScoreTablePosition] = useState<"left" | "right" | "bottom">(() => {
     try { const v = localStorage.getItem("scoreTablePosition"); return (v as "left" | "right" | "bottom") || "left" } catch { return "left" }
   })
-  const [showAvatarPicker, setShowAvatarPicker] = useState(false)
   const [showMobileEmojiPanel, setShowMobileEmojiPanel] = useState(false)
-  const [avatarPickerTab, setAvatarPickerTab] = useState<"image" | "emoji">("emoji")
   const [activeReactions, setActiveReactions] = useState<Map<string, { emoji: string; key: number }>>(new Map())
   const [betBlinkEnabled, setBetBlinkEnabled] = useState(false)
   const pokerHandsRef = useRef(0) // count rounds where 7♠ was in current player's hand
   const [tableSkin, setTableSkin] = useState("bearos")
   const [seatSkin, setSeatSkin] = useState("bearos")
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const lastReactionTimestampRef = useRef<Map<string, number>>(new Map())
   const [betNotifications, setBetNotifications] = useState<Set<string>>(new Set())
   const prevBetsRef = useRef<Map<string, number | null>>(new Map())
@@ -288,29 +283,6 @@ export default function GameTable({
     })
   }, [players])
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      const img = new Image()
-      img.onload = () => {
-        const canvas = document.createElement("canvas")
-        canvas.width = 64
-        canvas.height = 64
-        const ctx = canvas.getContext("2d")!
-        ctx.fillStyle = "#ffffff"
-        ctx.fillRect(0, 0, 64, 64)
-        ctx.drawImage(img, 0, 0, 64, 64)
-        const base64 = canvas.toDataURL("image/jpeg", 0.7)
-        onSetAvatar(base64)
-        setShowAvatarPicker(false)
-      }
-      img.src = ev.target?.result as string
-    }
-    reader.readAsDataURL(file)
-    e.target.value = ""
-  }
 
   // Refs to track stable state across renders
   const currentRoundRef = useRef<number>(currentRound)
@@ -1522,7 +1494,6 @@ export default function GameTable({
   )
 
   // ─── Shared dialogs (all layouts) ────────────────────────────────────────────
-  const myAvatar = players.find((p) => p.name === currentPlayerName)?.avatar
   const sharedDialogs = (
     <>
       <GameResultsDialog isOpen={showResultsDialog} onClose={() => setShowResultsDialog(false)} players={players} />
@@ -1567,70 +1538,6 @@ export default function GameTable({
         </Dialog>
       )}
 
-      {/* Avatar / Reaction Picker Modal */}
-      {showAvatarPicker && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4" onClick={() => setShowAvatarPicker(false)}>
-          <div
-            className="bg-bp-surface2 border border-bp-strong rounded-[20px] p-5 w-[340px] max-w-full shadow-[0_24px_60px_rgba(0,0,0,0.6)] text-bp-text"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="m-0 font-display font-bold text-base">{t("emojiAvatar")}</h3>
-              <button type="button" onClick={() => setShowAvatarPicker(false)} aria-label={t("close")} className={smallIconBtn()}>
-                <X size={14} />
-              </button>
-            </div>
-            {/* Tabs */}
-            <div className="flex gap-1 p-[3px] mb-4 rounded-full bg-bp-band border border-bp-border">
-              <button type="button" className={`flex-1 ${pillClass(avatarPickerTab === "emoji")}`} onClick={() => setAvatarPickerTab("emoji")}>{t("emojiTab")}</button>
-              <button type="button" className={`flex-1 ${pillClass(avatarPickerTab === "image")}`} onClick={() => setAvatarPickerTab("image")}>{t("avatarTab")}</button>
-            </div>
-
-            <div className="h-[220px] overflow-y-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
-              {avatarPickerTab === "emoji" && (
-                <div className="grid grid-cols-6 gap-1">
-                  {EMOJI_LIST.map((emoji) => (
-                    <button
-                      key={emoji}
-                      type="button"
-                      className="text-2xl hover:bg-bp-surface3 rounded-lg p-1 transition-colors"
-                      onClick={() => { onSendReaction(emoji); setShowAvatarPicker(false) }}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {avatarPickerTab === "image" && (
-                <div className="flex flex-col items-center justify-between h-full py-2">
-                  <div className="flex-1 flex items-center justify-center">
-                    {myAvatar ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={myAvatar} alt="avatar" className="w-[120px] h-[120px] rounded-full object-cover" />
-                    ) : (
-                      <div className="w-[120px] h-[120px] rounded-full bg-bp-strong flex items-center justify-center font-display font-extrabold text-4xl">
-                        {currentPlayerName?.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2 mt-3">
-                    {myAvatar && (
-                      <Button size="sm" variant="outline" onClick={() => { onSetAvatar(""); setShowAvatarPicker(false) }}>
-                        {t("removePhoto")}
-                      </Button>
-                    )}
-                    <Button size="sm" onClick={() => fileInputRef.current?.click()}>
-                      {t("choosePhoto")}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
 
       <style jsx global>{`
         @keyframes betBorder {
@@ -1671,17 +1578,36 @@ export default function GameTable({
   // ─── Lobby (pre-game) — desktop and mobile ───────────────────────────────────
   if (!gameStarted) {
     return (
-      <div className="w-full max-w-[1280px] mx-auto px-4 pt-6 pb-8 md:px-8 md:py-12 grid gap-4 md:gap-6 md:grid-cols-[minmax(0,380fr)_minmax(0,460fr)] md:grid-rows-[auto_1fr] items-start text-bp-text">
+      <div
+        className={
+          isOwner
+            ? "w-full max-w-[1280px] mx-auto px-4 pt-6 pb-8 md:px-8 md:py-12 grid gap-4 md:gap-6 md:grid-cols-[minmax(0,380fr)_minmax(0,460fr)] md:grid-rows-[auto_1fr] items-start text-bp-text"
+            : // Waiting guests: one centered column, sections stacked
+              "w-full max-w-[592px] mx-auto px-4 pt-6 pb-8 md:pt-16 flex flex-col gap-4 md:gap-5 text-bp-text"
+        }
+      >
         {/* Table ID + share */}
-        <section className="flex flex-col gap-3 md:col-start-1 md:row-start-1 min-w-0">
+        <section className={`flex flex-col gap-3 min-w-0 ${isOwner ? "md:col-start-1 md:row-start-1" : "items-center text-center pb-2"}`}>
           <span className="bp-label tracking-[0.12em]">{t("tableId")}</span>
           <h1 className="m-0 font-mono font-medium text-[clamp(36px,11vw,56px)] md:text-[clamp(48px,6vw,72px)] tracking-[0.14em] leading-none text-bp-accent break-all">
             {tableId}
           </h1>
-          <div className="flex gap-2 flex-wrap pt-1.5">
+          <div className={`flex gap-2 flex-wrap pt-1.5 ${isOwner ? "" : "justify-center"}`}>
             <Button onClick={onShare} className="h-12 px-5 text-[15px]">
               <Link2 size={16} />
               {t("shareGameLink")}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                navigator.clipboard.writeText(tableId)
+                toast({ title: t("tableIdCopied") })
+              }}
+              className="h-12 px-5 text-[15px] border border-bp-strong"
+            >
+              <Copy size={16} className="text-bp-accent" />
+              <span className="md:hidden">{t("copyTableId")}</span>
+              <span className="hidden md:inline">{t("copyTableIdFull")}</span>
             </Button>
           </div>
         </section>
@@ -1692,10 +1618,7 @@ export default function GameTable({
             aria-labelledby="cfg-title"
             className="bg-bp-surface border border-bp-border rounded-3xl p-5 md:p-7 flex flex-col gap-6 md:col-start-2 md:row-start-1 md:row-span-2 min-w-0"
           >
-            <div className="flex justify-between items-baseline gap-3 flex-wrap">
-              <h2 id="cfg-title" className="m-0 font-display font-bold text-xl md:text-2xl">{t("configureGame")}</h2>
-              <span className="bp-label">{t("hostOnly")}</span>
-            </div>
+            <h2 id="cfg-title" className="m-0 font-display font-bold text-xl md:text-2xl">{t("configureGame")}</h2>
             <GameConfigFields
               gameLength={lobbyGameLength}
               hasGoldenRound={lobbyGoldenRound}
@@ -1711,37 +1634,32 @@ export default function GameTable({
             {players.length < 2 && <p className="m-0 -mt-2 text-sm text-bp-muted text-center">{t("waitingMorePlayers")}</p>}
           </section>
         ) : (
-          <section className="bg-bp-surface border border-bp-border rounded-3xl p-5 md:p-7 flex items-center gap-3 md:col-start-2 md:row-start-1 min-w-0">
-            <span className="w-2 h-2 rounded-full bg-bp-accent animate-pulse flex-shrink-0" />
-            <span className="text-[15px] text-bp-text2">{players.length < 2 ? t("waitingMorePlayers") : t("waitingForHost")}</span>
+          <section className="bg-bp-surface border border-bp-border rounded-3xl px-5 py-6 md:px-7 md:py-8 flex items-center justify-center gap-3.5 min-w-0">
+            <span className="w-3 h-3 rounded-full bg-bp-accent animate-pulse flex-shrink-0" />
+            <span className="font-display font-bold text-xl md:text-2xl text-bp-text">{players.length < 2 ? t("waitingMorePlayers") : t("waitingForHost")}</span>
           </section>
         )}
 
         {/* At the table */}
-        <section aria-labelledby="players-title" className="bg-bp-surface border border-bp-border rounded-3xl py-2 md:col-start-1 md:row-start-2 self-start min-w-0">
+        <section aria-labelledby="players-title" className={`bg-bp-surface border border-bp-border rounded-3xl py-2 min-w-0 ${isOwner ? "md:col-start-1 md:row-start-2 self-start" : ""}`}>
           <div className="flex justify-between items-baseline gap-3 px-5 pt-4 pb-3 md:pt-5 md:pb-3.5">
             <h2 id="players-title" className="m-0 font-display font-bold text-xl md:text-2xl">{t("atTheTable")}</h2>
             <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-bp-muted">{players.length} / 6</span>
           </div>
           {players.map((p) => {
             const isMe = p.name === currentPlayerName
-            const role = p.isOwner && isMe ? t("hostYou") : p.isOwner ? t("host") : isMe ? t("you") : ""
             return (
               <div key={p.name} className="flex items-center gap-3 px-5 py-3 border-t border-bp-divider">
-                <button
-                  type="button"
-                  className={`relative rounded-full ${isMe ? "cursor-pointer hover:ring-2 hover:ring-bp-accent" : "cursor-default"}`}
-                  onClick={isMe ? () => { setShowAvatarPicker(true); setAvatarPickerTab("emoji") } : undefined}
-                  tabIndex={isMe ? 0 : -1}
-                  aria-label={isMe ? t("emojiAvatar") : p.name}
-                >
+                <div className="relative rounded-full">
                   {renderAvatar(p, "w-9 h-9", "text-[15px]")}
                   {renderReaction(p.name, false, "text-2xl")}
-                </button>
+                </div>
                 <span className="font-semibold text-base truncate min-w-0">{p.name}</span>
-                {role && (
-                  <span className="ml-auto font-mono text-[11px] tracking-[0.08em] uppercase px-2.5 py-1 rounded-full bg-bp-surface3 text-bp-text2 whitespace-nowrap">
-                    {role}
+                {(p.isOwner || isMe) && (
+                  <span className="ml-auto font-mono text-[11px] tracking-[0.08em] uppercase px-2.5 py-1 rounded-full bg-bp-surface3 whitespace-nowrap">
+                    {p.isOwner && <span className="text-bp-accent">{t("host")}</span>}
+                    {p.isOwner && isMe && <span className="text-bp-text2"> · </span>}
+                    {isMe && <span className="text-bp-text">{t("you")}</span>}
                   </span>
                 )}
               </div>
@@ -1936,11 +1854,20 @@ export default function GameTable({
   const PLAY_MIN_WIDTH = 920 // 800px table + room for seats that overhang the rail
   const layoutNaturalWidth =
     48 + PLAY_MIN_WIDTH + (!isBottomPosition && scoreTableExpanded ? scorePanelWidth + 24 : !isBottomPosition ? 200 : 0)
-  const layoutZoom = Math.min(1, viewportWidth / layoutNaturalWidth)
+  // ...and when the viewport is shorter than the play column, so the hand stays on screen (e.g. 13" laptops).
+  // Natural height: pt-8 + table margins + 400px table + gap + 248px hand row + pb-6.
+  // With the score table at the bottom the page scrolls anyway, so only width counts there.
+  const HEADER_H = 77 // --header-h at md and up
+  const layoutNaturalHeight =
+    32 + (54 - (players.length === 3 || players.length === 5 ? 29 : 0)) + 400 + 52 + 28 + 248 + 24
+  const heightZoom = isBottomPosition ? 1 : Math.max(0.7, (viewportHeight - HEADER_H) / layoutNaturalHeight)
+  const layoutZoom = Math.min(1, viewportWidth / layoutNaturalWidth, heightZoom)
+  // Layout width in its own (unzoomed) pixels: fills the viewport once scaled
+  const layoutWidth = Math.min(1440, viewportWidth / layoutZoom)
   // Emoji button sits outside the layout, to the right of the hand (bottom-aligned); shown only when the free margin
   // on the right fits it (16px gap + 48px button), i.e. wide screens with the score table not on the right
-  const rightMargin = Math.max(0, (viewportWidth - 1440) / 2) + 24
-  const showWebEmojiButton = layoutZoom === 1 && scoreTablePosition !== "right" && rightMargin >= 64
+  const rightMargin = Math.max(0, (viewportWidth / layoutZoom - layoutWidth) / 2) + 24
+  const showWebEmojiButton = scoreTablePosition !== "right" && rightMargin >= 64
   // Who acts now: the betting player during bets, otherwise the player whose turn it is to play
   const activeTurnName =
     (!safeGameData.allBetsPlaced && typeof safeGameData.currentBettingTurn === "number"
@@ -1977,8 +1904,8 @@ export default function GameTable({
 
       <div
         // When scaled down, lay out at the natural width so the zoomed result fits the viewport
-        style={layoutZoom < 1 ? { zoom: layoutZoom, width: layoutNaturalWidth, maxWidth: "none" } : undefined}
-        className={`w-full max-w-[1440px] mx-auto px-6 pt-12 pb-6 flex gap-6 text-bp-text ${isBottomPosition ? "flex-col" : "flex-row items-stretch"}`}
+        style={layoutZoom < 1 ? { zoom: layoutZoom, width: layoutWidth, maxWidth: "none" } : undefined}
+        className={`w-full max-w-[1440px] mx-auto px-6 pt-8 pb-6 flex gap-6 text-bp-text ${isBottomPosition ? "flex-col" : "flex-row items-stretch"}`}
       >
         {scoreTablePanel}
 
@@ -2028,7 +1955,6 @@ export default function GameTable({
               const isLeader = player.score === highestScore && highestScore > 0
               const betValue = shouldShowBetBanners() && player.bet !== null ? player.bet : "—"
               const hit = player.bet !== null && betValue !== "—" && player.roundWins === player.bet
-              const isCurrentPlayerSeat = player.name === currentPlayerName
 
               return (
                 <div
@@ -2054,16 +1980,8 @@ export default function GameTable({
                     {isLeader && <LeaderBadge />}
                     {/* Top row: avatar + name */}
                     <div className="flex items-center gap-2.5 px-3 pt-2.5 pb-2 min-w-0">
-                      <div
-                        className={`relative rounded-full flex-shrink-0 ${isCurrentPlayerSeat ? "cursor-pointer group" : ""}`}
-                        onClick={isCurrentPlayerSeat ? () => { setShowAvatarPicker(true); setAvatarPickerTab("emoji") } : undefined}
-                      >
+                      <div className="relative rounded-full flex-shrink-0">
                         {renderAvatar(player, "w-8 h-8", "text-sm")}
-                        {isCurrentPlayerSeat && (
-                          <div className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center rounded-full">
-                            <span className="text-white text-[9px]">✏️</span>
-                          </div>
-                        )}
                       </div>
                       <span className="font-semibold text-[15px] truncate min-w-0" title={player.name}>{player.name}</span>
                     </div>

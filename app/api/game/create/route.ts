@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
         false,
         false,
         'basic',
-        false,
+        true,
         false
       )
       RETURNING *

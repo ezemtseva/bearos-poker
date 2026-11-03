@@ -37,7 +37,7 @@ export default function HowToPlay() {
 
         <section className="bg-bp-surface border border-bp-border rounded-[20px] p-5 md:p-6 text-[15px] leading-relaxed text-bp-text2">
           <h2 className="m-0 mb-3 font-display font-bold text-lg md:text-xl text-bp-text">{t("htpGameplay")}</h2>
-          <ol className="list-decimal pl-5 space-y-1.5 marker:text-bp-accent marker:font-mono">
+          <ul className="list-disc pl-5 space-y-1.5 marker:text-bp-accent">
             <li>{t("htpGameplay1")}</li>
             <li>{t("htpGameplay2")}</li>
             <li>{t("htpGameplay3")}</li>
@@ -45,7 +45,7 @@ export default function HowToPlay() {
             <li>{t("htpGameplay5")}</li>
             <li>{t("htpGameplay6")}</li>
             <li>{t("htpGameplay7")}</li>
-          </ol>
+          </ul>
         </section>
 
         <section className="bg-bp-surface border border-bp-border rounded-[20px] p-5 md:p-6 text-[15px] leading-relaxed text-bp-text2">
