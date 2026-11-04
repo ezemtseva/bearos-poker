@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   console.log(`[JOIN-GAME] Received join request: tableId=${tableId}, playerName=${playerName}`)
 
   if (!tableId || !playerName) {
-    return NextResponse.json({ error: "Table ID and player name are required" }, { status: 400 })
+    return NextResponse.json({ error: "Table ID and player name are required", code: "missing_fields" }, { status: 400 })
   }
 
   try {
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     `
 
     if (result.rowCount === 0) {
-      return NextResponse.json({ error: "Game not found or already started" }, { status: 404 })
+      return NextResponse.json({ error: "Game not found or already started", code: "not_found" }, { status: 404 })
     }
 
     const game = result.rows[0]
@@ -28,14 +28,14 @@ export async function POST(req: NextRequest) {
 
     // Check if the player is already in the game
     if (players.some((p) => p.name === playerName)) {
-      return NextResponse.json({ error: "Player with this name already exists in the game" }, { status: 400 })
+      return NextResponse.json({ error: "Player with this name already exists in the game", code: "name_taken" }, { status: 400 })
     }
 
     console.log(`[JOIN-GAME] Player not in game, proceeding`)
 
     // Check if the game is full
     if (players.length >= 6) {
-      return NextResponse.json({ error: "Game is full" }, { status: 400 })
+      return NextResponse.json({ error: "Game is full", code: "table_full" }, { status: 400 })
     }
 
     // Add the new player

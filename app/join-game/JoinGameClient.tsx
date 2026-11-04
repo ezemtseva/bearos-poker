@@ -31,11 +31,7 @@ export default function JoinGameClient() {
   const handleJoinGame = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!tableId || !playerName) {
-      toast({
-        title: "Error",
-        description: "Please enter both table ID and your name",
-        variant: "destructive",
-      })
+      toast({ title: t("joinErrorMissing"), variant: "destructive" })
       return
     }
 
@@ -51,24 +47,24 @@ export default function JoinGameClient() {
         body: JSON.stringify({ tableId, playerName, avatar }),
       })
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-      if (data.error) {
-        throw new Error(data.error)
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok || data.error) {
+        const messages: Record<string, string> = {
+          name_taken: t("joinErrorNameTaken"),
+          not_found: t("joinErrorNotFound"),
+          table_full: t("joinErrorFull"),
+          missing_fields: t("joinErrorMissing"),
+        }
+        toast({ title: messages[data.code] ?? t("joinErrorGeneric"), variant: "destructive" })
+        return
       }
 
       console.log("Joining game with player name:", playerName)
 
       router.push(`/game/${tableId}?playerName=${encodeURIComponent(playerName)}`)
     } catch (error: unknown) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred while joining the game",
-        variant: "destructive",
-      })
+      console.error("Error joining game:", error)
+      toast({ title: t("joinErrorGeneric"), variant: "destructive" })
     }
   }
 

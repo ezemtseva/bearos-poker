@@ -168,7 +168,8 @@ export default function GameTable({
   const pokerHandsRef = useRef(0) // count rounds where 7♠ was in current player's hand
   const [tableSkin, setTableSkin] = useState("bearos")
   const [seatSkin, setSeatSkin] = useState("bearos")
-  const lastReactionTimestampRef = useRef<Map<string, number>>(new Map())
+  const lastReactionTimestampRef = useRef<Map<string, number | undefined>>(new Map())
+  const reactionsBaselineRef = useRef(false)
   const [betNotifications, setBetNotifications] = useState<Set<string>>(new Set())
   const prevBetsRef = useRef<Map<string, number | null>>(new Map())
   const betNotifFirstRender = useRef(true)
@@ -259,13 +260,21 @@ export default function GameTable({
     }
   }, [players.length])
 
-  // Track emoji reactions from other players
+  // Track emoji reactions from other players.
+  // The first state seen is a baseline (old reactions aren't replayed on load); after that any new
+  // timestamp is shown. No comparison with the device clock, which may differ from the server's.
   useEffect(() => {
+    if (players.length === 0) return
+    if (!reactionsBaselineRef.current) {
+      reactionsBaselineRef.current = true
+      players.forEach((p) => lastReactionTimestampRef.current.set(p.name, p.reaction?.timestamp))
+      return
+    }
     players.forEach((player) => {
       if (!player.reaction) return
       const { emoji, timestamp } = player.reaction
       const lastSeen = lastReactionTimestampRef.current.get(player.name)
-      if (lastSeen !== timestamp && Date.now() - timestamp < 5000) {
+      if (lastSeen !== timestamp) {
         lastReactionTimestampRef.current.set(player.name, timestamp)
         setActiveReactions((prev) => {
           const next = new Map(prev)
@@ -1652,10 +1661,7 @@ export default function GameTable({
             const isMe = p.name === currentPlayerName
             return (
               <div key={p.name} className="flex items-center gap-3 px-5 py-3 border-t border-bp-divider">
-                <div className="relative rounded-full">
-                  {renderAvatar(p, "w-9 h-9", "text-[15px]")}
-                  {renderReaction(p.name, false, "text-2xl")}
-                </div>
+                {renderAvatar(p, "w-9 h-9", "text-[15px]")}
                 <span className="font-semibold text-base truncate min-w-0">{p.name}</span>
                 {(p.isOwner || isMe) && (
                   <span className="ml-auto font-mono text-[11px] tracking-[0.08em] uppercase px-2.5 py-1 rounded-full bg-bp-surface3 whitespace-nowrap">
@@ -1857,11 +1863,12 @@ export default function GameTable({
   const layoutNaturalWidth =
     48 + PLAY_MIN_WIDTH + (!isBottomPosition && scoreTableExpanded ? scorePanelWidth + 24 : !isBottomPosition ? 200 : 0)
   // ...and when the viewport is shorter than the play column, so the hand stays on screen (e.g. 13" laptops).
-  // Natural height: pt-8 + table margins + 400px table + gap + 248px hand row + pb-6.
+  // Natural height: pt-12 + table margins + 400px table + gap + 248px hand row + pb-6.
+  // pt-12 leaves room above the top seats for the "Bet placed" tooltip, clear of the header.
   // With the score table at the bottom the page scrolls anyway, so only width counts there.
   const HEADER_H = 77 // --header-h at md and up
   const layoutNaturalHeight =
-    32 + (54 - (players.length === 3 || players.length === 5 ? 29 : 0)) + 400 + 52 + 28 + 248 + 24
+    48 + (54 - (players.length === 3 || players.length === 5 ? 29 : 0)) + 400 + 52 + 28 + 248 + 24
   const heightZoom = isBottomPosition ? 1 : Math.max(0.7, (viewportHeight - HEADER_H) / layoutNaturalHeight)
   const layoutZoom = Math.min(1, viewportWidth / layoutNaturalWidth, heightZoom)
   // Layout width in its own (unzoomed) pixels: fills the viewport once scaled
@@ -1907,7 +1914,7 @@ export default function GameTable({
       <div
         // When scaled down, lay out at the natural width so the zoomed result fits the viewport
         style={layoutZoom < 1 ? { zoom: layoutZoom, width: layoutWidth, maxWidth: "none" } : undefined}
-        className={`w-full max-w-[1440px] mx-auto px-6 pt-8 pb-6 flex gap-6 text-bp-text ${isBottomPosition ? "flex-col" : "flex-row items-stretch"}`}
+        className={`w-full max-w-[1440px] mx-auto px-6 pt-12 pb-6 flex gap-6 text-bp-text ${isBottomPosition ? "flex-col" : "flex-row items-stretch"}`}
       >
         {scoreTablePanel}
 
@@ -1964,7 +1971,8 @@ export default function GameTable({
                   className="absolute w-[200px] z-[2]"
                   style={{ left: `${left}px`, top: `${top}px`, transform: "translate(-50%, -50%)" }}
                 >
-                  {renderReaction(player.name, true)}
+                  {/* Emojis fly toward the table center: down from top/side seats, up from bottom seats */}
+                  {renderReaction(player.name, top <= 200)}
 
                   {/* Bet placed notification */}
                   {betNotifications.has(player.name) && (

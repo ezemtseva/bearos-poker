@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
-import type { Player } from "@/types/game"
 
 export const runtime = "edge"
 
@@ -12,20 +11,23 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await sql`SELECT players FROM poker_games WHERE table_id = ${tableId}`
+    // Update only this player's reaction, in one statement: a read-modify-write of the whole
+    // players array could overwrite a bet or card played in between (and vice versa)
+    const reaction = JSON.stringify({ emoji, timestamp: Date.now() })
+    const result = await sql`
+      UPDATE poker_games
+      SET players = (
+        SELECT jsonb_agg(
+          CASE WHEN elem->>'name' = ${playerName} THEN elem || jsonb_build_object('reaction', ${reaction}::jsonb) ELSE elem END
+          ORDER BY idx
+        )
+        FROM jsonb_array_elements(players) WITH ORDINALITY AS t(elem, idx)
+      )
+      WHERE table_id = ${tableId} AND players @> ${JSON.stringify([{ name: playerName }])}::jsonb
+    `
     if (result.rowCount === 0) {
-      return NextResponse.json({ error: "Game not found" }, { status: 404 })
+      return NextResponse.json({ error: "Game or player not found" }, { status: 404 })
     }
-
-    const players = result.rows[0].players as Player[]
-    const idx = players.findIndex((p) => p.name === playerName)
-    if (idx === -1) {
-      return NextResponse.json({ error: "Player not found" }, { status: 404 })
-    }
-
-    players[idx].reaction = { emoji, timestamp: Date.now() }
-
-    await sql`UPDATE poker_games SET players = ${JSON.stringify(players)}::jsonb WHERE table_id = ${tableId}`
 
     return NextResponse.json({ success: true })
   } catch (error) {
